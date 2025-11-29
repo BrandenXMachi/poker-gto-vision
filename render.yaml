@@ -1,0 +1,29 @@
+services:
+  # Backend FastAPI Service
+  - type: web
+    name: poker-gto-vision-backend
+    runtime: python
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+    disk:
+      name: models
+      mountPath: /opt/render/project/src/backend/models
+      sizeGB: 1
+    
+  # Frontend Next.js Service
+  - type: web
+    name: poker-gto-vision-frontend
+    runtime: node
+    buildCommand: "cd frontend && npm install && npm run build"
+    startCommand: "cd frontend && npm start"
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: NEXT_PUBLIC_WS_URL
+        fromService:
+          type: web
+          name: poker-gto-vision-backend
+          envVarKey: RENDER_EXTERNAL_URL
