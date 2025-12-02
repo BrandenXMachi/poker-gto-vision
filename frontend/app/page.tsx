@@ -66,19 +66,21 @@ export default function Home() {
     }
   }
 
-  // Connect to WebSocket server
-  const connectWebSocket = () => {
+  // Connect to WebSocket server with retry logic
+  const connectWebSocket = (retryCount = 0) => {
     setConnectionStatus('connecting')
     
     // Get WebSocket URL from environment variable or use localhost for development
     const backendUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000'
     const wsUrl = `${backendUrl}/ws`
     
+    console.log(`Connecting to WebSocket (attempt ${retryCount + 1})...`)
     const ws = new WebSocket(wsUrl)
     
     ws.onopen = () => {
-      console.log('WebSocket connected')
+      console.log('WebSocket connected successfully')
       setConnectionStatus('connected')
+      setError('')
       startFrameCapture()
     }
 
@@ -116,13 +118,26 @@ export default function Home() {
 
     ws.onerror = (error) => {
       console.error('WebSocket error:', error)
-      setConnectionStatus('disconnected')
-      setError('Failed to connect to server')
     }
 
-    ws.onclose = () => {
-      console.log('WebSocket disconnected')
+    ws.onclose = (event) => {
+      console.log('WebSocket disconnected', event.code, event.reason)
       setConnectionStatus('disconnected')
+      
+      // Retry connection if backend is waking up (max 10 retries = ~50 seconds)
+      if (retryCount < 10 && isAnalyzing) {
+        const delay = Math.min(1000 * Math.pow(1.5, retryCount), 5000) // Exponential backoff, max 5s
+        console.log(`Retrying connection in ${delay}ms (attempt ${retryCount + 2}/10)...`)
+        setError(`Backend is waking up... Retry ${retryCount + 1}/10`)
+        
+        setTimeout(() => {
+          connectWebSocket(retryCount + 1)
+        }, delay)
+      } else if (retryCount >= 10) {
+        setError('Failed to connect. Backend may be down. Please try again in a minute.')
+      } else {
+        setError('Connection closed')
+      }
     }
 
     wsRef.current = ws
