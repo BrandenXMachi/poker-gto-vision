@@ -73,35 +73,45 @@ async def websocket_endpoint(websocket: WebSocket):
         })
         
         while True:
-            # Receive frame from client
-            data = await websocket.receive_bytes()
-            
-            # Process frame in background to avoid blocking
-            asyncio.create_task(process_frame(websocket, data))
+            # Receive any message (text or binary)
+            try:
+                # Try to receive as text first (for ping messages)
+                message = await websocket.receive()
+                
+                if "text" in message:
+                    # Handle ping/pong
+                    import json
+                    try:
+                        data = json.loads(message["text"])
+                        if data.get("type") == "ping":
+                            await websocket.send_json({"type": "pong"})
+                            logger.debug("Received ping, sent pong")
+                            continue
+                    except json.JSONDecodeError:
+                        logger.warning("Received non-JSON text message")
+                        continue
+                
+                elif "bytes" in message:
+                    # Process image frame in background
+                    asyncio.create_task(process_frame(websocket, message["bytes"]))
+                    
+            except Exception as e:
+                logger.error(f"Error receiving message: {e}")
+                break
             
     except WebSocketDisconnect:
         logger.info("Client disconnected")
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
-        await websocket.close()
+        try:
+            await websocket.close()
+        except:
+            pass
 
 
 async def process_frame(websocket: WebSocket, frame_data: bytes):
     """Process a single frame and send recommendation if hero's turn detected"""
     try:
-        # Check if this is a text message (ping/pong)
-        try:
-            text_data = frame_data.decode('utf-8')
-            import json
-            msg = json.loads(text_data)
-            if msg.get('type') == 'ping':
-                # Respond to ping to keep connection alive
-                await websocket.send_json({"type": "pong"})
-                return
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            # Not a text message, continue processing as image
-            pass
-        
         # Convert bytes to image
         image = Image.open(BytesIO(frame_data))
         frame = np.array(image)
