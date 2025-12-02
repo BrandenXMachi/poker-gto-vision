@@ -29,6 +29,7 @@ import os
 allowed_origins = [
     "https://lelabubu.ca",
     "https://www.lelabubu.ca",
+    "https://poker-gto-vision-frontend.onrender.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000"
 ]
