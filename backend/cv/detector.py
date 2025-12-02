@@ -32,17 +32,22 @@ class PokerDetector:
         self.model = None
         if YOLO_AVAILABLE:
             try:
+                import torch
+                # Set PyTorch to allow loading YOLO weights (trusted source)
+                torch.serialization.add_safe_globals([])
+                
                 # Try to load custom poker model, fallback to base YOLOv8
-                model_path = Path(__file__).parent.parent / "models" / "poker_detector.pt"
+                model_path = Path(__file__).parent.parent / "yolov8n.pt"
                 if model_path.exists():
                     self.model = YOLO(str(model_path))
-                    logger.info("Loaded custom poker detection model")
+                    logger.info("Loaded YOLOv8 nano model")
                 else:
                     # Use base YOLOv8 nano model for faster inference
                     self.model = YOLO('yolov8n.pt')
                     logger.info("Using base YOLOv8 model (train custom model for better results)")
             except Exception as e:
                 logger.error(f"Failed to load YOLO model: {e}")
+                logger.info("Poker detection will continue without YOLO (using color/shape detection)")
         
         # Detection thresholds
         self.button_confidence = 0.5
