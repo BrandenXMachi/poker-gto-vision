@@ -80,13 +80,13 @@ export default function Home() {
     const ws = new WebSocket(wsUrl)
     let connectionTimeout: NodeJS.Timeout
 
-    // Set timeout for connection
+    // Set timeout for connection (30 seconds for backend to wake/respond)
     connectionTimeout = setTimeout(() => {
       if (ws.readyState !== WebSocket.OPEN) {
-        console.log('Connection timeout, closing...')
+        console.log('⏱️ Connection timeout after 30s')
         ws.close()
       }
-    }, 10000) // 10 second timeout
+    }, 30000) // 30 second timeout
     
     ws.onopen = () => {
       clearTimeout(connectionTimeout)
@@ -128,16 +128,16 @@ export default function Home() {
       console.log(`🔌 Disconnected (code: ${event.code})`)
       setConnectionStatus('disconnected')
       
-      // Simple reconnect if analyzing
-      if (isAnalyzing && retryCount < 20) {
-        const delay = Math.min(2000 + (retryCount * 1000), 10000)
-        setError(`Reconnecting in ${Math.ceil(delay/1000)}s... (${retryCount + 1}/20)`)
+      // Reconnect if analyzing (give backend time to respond)
+      if (isAnalyzing && retryCount < 30) {
+        const delay = Math.min(3000 + (retryCount * 500), 8000)
+        setError(`🔄 Reconnecting in ${Math.ceil(delay/1000)}s... (attempt ${retryCount + 1}/30)`)
         
         setTimeout(() => {
           connectWebSocket(retryCount + 1)
         }, delay)
-      } else if (retryCount >= 20) {
-        setError('❌ Failed to maintain connection. Backend may be down.')
+      } else if (retryCount >= 30) {
+        setError('❌ Failed after 30 attempts. Please check Render backend logs.')
         setIsAnalyzing(false)
       }
     }
