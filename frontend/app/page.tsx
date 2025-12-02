@@ -56,7 +56,7 @@ export default function Home() {
       // Connect to WebSocket
       connectWebSocket()
       
-      speak('Analysis started. Watching for hero\'s turn.')
+      speak('Analysis started. Watching for hero turn.')
       setIsAnalyzing(true)
 
     } catch (err) {
@@ -91,7 +91,7 @@ export default function Home() {
           setLastRecommendation(recommendation.action)
           
           // Construct speech text
-          let speechText = `Hero's turn. ${recommendation.action}.`
+          let speechText = `Hero turn. ${recommendation.action}.`
           
           if (recommendation.pot_size) {
             speechText += ` Pot is ${recommendation.pot_size}.`
@@ -238,7 +238,7 @@ export default function Home() {
                 {lastRecommendation ? (
                   <>
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-sm font-medium">HERO'S TURN</span>
+                    <span className="text-sm font-medium">HERO TURN</span>
                   </>
                 ) : (
                   <>
@@ -284,7 +284,7 @@ export default function Home() {
           <ol className="list-decimal list-inside space-y-1">
             <li>Point your phone camera at the poker table on your laptop screen</li>
             <li>Press "Start Analysis" to begin</li>
-            <li>When the hero's turn is detected, you'll hear audio recommendations</li>
+            <li>When the hero turn is detected, you will hear audio recommendations</li>
             <li>Keep the camera steady for best results</li>
           </ol>
         </div>
