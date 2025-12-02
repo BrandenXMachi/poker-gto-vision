@@ -39,6 +39,7 @@ export default function Home() {
   const startCamera = async () => {
     try {
       setError('')
+      setIsAnalyzing(true) // Set this BEFORE connecting to enable retry logic
       
       // Request camera access with back camera preference
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -57,11 +58,11 @@ export default function Home() {
       connectWebSocket()
       
       speak('Analysis started. Watching for hero turn.')
-      setIsAnalyzing(true)
 
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to access camera'
       setError(errorMsg)
+      setIsAnalyzing(false) // Reset on error
       console.error('Camera error:', err)
     }
   }
