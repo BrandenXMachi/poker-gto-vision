@@ -283,7 +283,7 @@ export default function Home() {
           <h2 className="font-semibold text-white mb-2">Instructions:</h2>
           <ol className="list-decimal list-inside space-y-1">
             <li>Point your phone camera at the poker table on your laptop screen</li>
-            <li>Press "Start Analysis" to begin</li>
+            <li>Press Start Analysis to begin</li>
             <li>When the hero turn is detected, you will hear audio recommendations</li>
             <li>Keep the camera steady for best results</li>
           </ol>
