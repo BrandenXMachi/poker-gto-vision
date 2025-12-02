@@ -7,6 +7,7 @@ export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
 
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -83,6 +84,7 @@ export default function Home() {
       setConnectionStatus('connected')
       setError('')
       startFrameCapture()
+      startHeartbeat()
     }
 
     ws.onmessage = (event) => {
@@ -124,24 +126,50 @@ export default function Home() {
     ws.onclose = (event) => {
       console.log('WebSocket disconnected', event.code, event.reason)
       setConnectionStatus('disconnected')
+      stopHeartbeat()
       
-      // Retry connection if backend is waking up (max 10 retries = ~50 seconds)
-      if (retryCount < 10 && isAnalyzing) {
-        const delay = Math.min(1000 * Math.pow(1.5, retryCount), 5000) // Exponential backoff, max 5s
-        console.log(`Retrying connection in ${delay}ms (attempt ${retryCount + 2}/10)...`)
-        setError(`Backend is waking up... Retry ${retryCount + 1}/10`)
+      // Automatically reconnect if still analyzing
+      if (isAnalyzing) {
+        const delay = retryCount === 0 ? 1000 : Math.min(1000 * Math.pow(1.5, retryCount), 5000)
+        console.log(`Connection lost. Reconnecting in ${delay}ms (attempt ${retryCount + 2})...`)
+        setError(`Connection lost. Reconnecting... (${retryCount + 1})`)
         
         setTimeout(() => {
           connectWebSocket(retryCount + 1)
         }, delay)
-      } else if (retryCount >= 10) {
-        setError('Failed to connect. Backend may be down. Please try again in a minute.')
       } else {
         setError('Connection closed')
       }
     }
 
     wsRef.current = ws
+  }
+
+  // Start heartbeat to keep connection alive
+  const startHeartbeat = () => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current)
+    }
+
+    // Send ping every 30 seconds to keep connection alive
+    heartbeatIntervalRef.current = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        try {
+          wsRef.current.send(JSON.stringify({ type: 'ping' }))
+          console.log('Sent heartbeat ping')
+        } catch (err) {
+          console.error('Failed to send heartbeat:', err)
+        }
+      }
+    }, 30000) // 30 seconds
+  }
+
+  // Stop heartbeat
+  const stopHeartbeat = () => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current)
+      heartbeatIntervalRef.current = null
+    }
   }
 
   // Capture and send frames
@@ -193,6 +221,9 @@ export default function Home() {
       clearInterval(intervalRef.current)
       intervalRef.current = null
     }
+
+    // Stop heartbeat
+    stopHeartbeat()
 
     // Stop any ongoing speech
     if (synthRef.current) {

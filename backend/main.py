@@ -89,6 +89,19 @@ async def websocket_endpoint(websocket: WebSocket):
 async def process_frame(websocket: WebSocket, frame_data: bytes):
     """Process a single frame and send recommendation if hero's turn detected"""
     try:
+        # Check if this is a text message (ping/pong)
+        try:
+            text_data = frame_data.decode('utf-8')
+            import json
+            msg = json.loads(text_data)
+            if msg.get('type') == 'ping':
+                # Respond to ping to keep connection alive
+                await websocket.send_json({"type": "pong"})
+                return
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            # Not a text message, continue processing as image
+            pass
+        
         # Convert bytes to image
         image = Image.open(BytesIO(frame_data))
         frame = np.array(image)
