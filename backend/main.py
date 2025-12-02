@@ -63,7 +63,7 @@ async def root():
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time frame processing"""
     await websocket.accept()
-    logger.info("Client connected")
+    logger.info("✅ Client connected")
     
     try:
         # Send initial status
@@ -73,36 +73,16 @@ async def websocket_endpoint(websocket: WebSocket):
         })
         
         while True:
-            # Receive any message (text or binary)
-            try:
-                # Try to receive as text first (for ping messages)
-                message = await websocket.receive()
-                
-                if "text" in message:
-                    # Handle ping/pong
-                    import json
-                    try:
-                        data = json.loads(message["text"])
-                        if data.get("type") == "ping":
-                            await websocket.send_json({"type": "pong"})
-                            logger.debug("Received ping, sent pong")
-                            continue
-                    except json.JSONDecodeError:
-                        logger.warning("Received non-JSON text message")
-                        continue
-                
-                elif "bytes" in message:
-                    # Process image frame in background
-                    asyncio.create_task(process_frame(websocket, message["bytes"]))
-                    
-            except Exception as e:
-                logger.error(f"Error receiving message: {e}")
-                break
+            # Receive frame from client
+            data = await websocket.receive_bytes()
+            
+            # Process frame in background to avoid blocking
+            asyncio.create_task(process_frame(websocket, data))
             
     except WebSocketDisconnect:
-        logger.info("Client disconnected")
+        logger.info("🔌 Client disconnected")
     except Exception as e:
-        logger.error(f"WebSocket error: {e}")
+        logger.error(f"❌ WebSocket error: {e}")
         try:
             await websocket.close()
         except:

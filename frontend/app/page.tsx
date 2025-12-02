@@ -68,23 +68,32 @@ export default function Home() {
     }
   }
 
-  // Connect to WebSocket server with retry logic
+  // Connect to WebSocket server with simple retry
   const connectWebSocket = (retryCount = 0) => {
     setConnectionStatus('connecting')
     
-    // Get WebSocket URL from environment variable or use localhost for development
     const backendUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000'
     const wsUrl = `${backendUrl}/ws`
     
-    console.log(`Connecting to WebSocket (attempt ${retryCount + 1})...`)
+    console.log(`Connecting to ${wsUrl} (attempt ${retryCount + 1})...`)
+    
     const ws = new WebSocket(wsUrl)
+    let connectionTimeout: NodeJS.Timeout
+
+    // Set timeout for connection
+    connectionTimeout = setTimeout(() => {
+      if (ws.readyState !== WebSocket.OPEN) {
+        console.log('Connection timeout, closing...')
+        ws.close()
+      }
+    }, 10000) // 10 second timeout
     
     ws.onopen = () => {
-      console.log('WebSocket connected successfully')
+      clearTimeout(connectionTimeout)
+      console.log('✅ WebSocket connected')
       setConnectionStatus('connected')
       setError('')
       startFrameCapture()
-      startHeartbeat()
     }
 
     ws.onmessage = (event) => {
@@ -95,81 +104,45 @@ export default function Home() {
           const recommendation = data.recommendation
           setLastRecommendation(recommendation.action)
           
-          // Construct speech text
           let speechText = `Hero turn. ${recommendation.action}.`
-          
-          if (recommendation.pot_size) {
-            speechText += ` Pot is ${recommendation.pot_size}.`
-          }
-          
-          if (recommendation.ev) {
-            speechText += ` Expected value ${recommendation.ev}.`
-          }
-          
-          if (recommendation.reasoning) {
-            speechText += ` ${recommendation.reasoning}.`
-          }
+          if (recommendation.pot_size) speechText += ` Pot is ${recommendation.pot_size}.`
+          if (recommendation.ev) speechText += ` Expected value ${recommendation.ev}.`
+          if (recommendation.reasoning) speechText += ` ${recommendation.reasoning}.`
           
           speak(speechText)
         } else if (data.type === 'status') {
-          console.log('Status:', data.message)
+          console.log('📡 Status:', data.message)
         }
       } catch (err) {
-        console.error('Error parsing WebSocket message:', err)
+        console.error('Error parsing message:', err)
       }
     }
 
     ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
+      clearTimeout(connectionTimeout)
+      console.error('❌ WebSocket error:', error)
     }
 
     ws.onclose = (event) => {
-      console.log('WebSocket disconnected', event.code, event.reason)
+      clearTimeout(connectionTimeout)
+      console.log(`🔌 Disconnected (code: ${event.code})`)
       setConnectionStatus('disconnected')
-      stopHeartbeat()
       
-      // Automatically reconnect if still analyzing
-      if (isAnalyzing) {
-        const delay = retryCount === 0 ? 1000 : Math.min(1000 * Math.pow(1.5, retryCount), 5000)
-        console.log(`Connection lost. Reconnecting in ${delay}ms (attempt ${retryCount + 2})...`)
-        setError(`Connection lost. Reconnecting... (${retryCount + 1})`)
+      // Simple reconnect if analyzing
+      if (isAnalyzing && retryCount < 20) {
+        const delay = Math.min(2000 + (retryCount * 1000), 10000)
+        setError(`Reconnecting in ${Math.ceil(delay/1000)}s... (${retryCount + 1}/20)`)
         
         setTimeout(() => {
           connectWebSocket(retryCount + 1)
         }, delay)
-      } else {
-        setError('Connection closed')
+      } else if (retryCount >= 20) {
+        setError('❌ Failed to maintain connection. Backend may be down.')
+        setIsAnalyzing(false)
       }
     }
 
     wsRef.current = ws
-  }
-
-  // Start heartbeat to keep connection alive
-  const startHeartbeat = () => {
-    if (heartbeatIntervalRef.current) {
-      clearInterval(heartbeatIntervalRef.current)
-    }
-
-    // Send ping every 30 seconds to keep connection alive
-    heartbeatIntervalRef.current = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        try {
-          wsRef.current.send(JSON.stringify({ type: 'ping' }))
-          console.log('Sent heartbeat ping')
-        } catch (err) {
-          console.error('Failed to send heartbeat:', err)
-        }
-      }
-    }, 30000) // 30 seconds
-  }
-
-  // Stop heartbeat
-  const stopHeartbeat = () => {
-    if (heartbeatIntervalRef.current) {
-      clearInterval(heartbeatIntervalRef.current)
-      heartbeatIntervalRef.current = null
-    }
   }
 
   // Capture and send frames
@@ -221,9 +194,6 @@ export default function Home() {
       clearInterval(intervalRef.current)
       intervalRef.current = null
     }
-
-    // Stop heartbeat
-    stopHeartbeat()
 
     // Stop any ongoing speech
     if (synthRef.current) {
