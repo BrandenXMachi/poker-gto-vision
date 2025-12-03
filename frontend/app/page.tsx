@@ -224,20 +224,17 @@ export default function Home() {
             </div>
           )}
 
-          {/* Recommendation overlay - Large and prominent */}
+          {/* Recommendation overlay - Compact and semi-transparent */}
           {showResult && lastRecommendation && (
-            <div className="absolute inset-0 flex items-center justify-center rounded-lg">
-              <div className="bg-gradient-to-br from-green-500 to-green-700 text-white p-8 rounded-2xl shadow-2xl border-4 border-white max-w-md mx-4">
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 rounded-lg">
+              <div className="bg-gradient-to-br from-green-500 to-green-700 bg-opacity-90 text-white px-6 py-4 rounded-xl shadow-2xl border-2 border-white backdrop-blur-sm">
                 <div className="text-center">
-                  <div className="text-6xl font-bold mb-4">
+                  <div className="text-3xl font-bold inline-block mr-3">
                     {lastRecommendation.includes('Fold') ? '❌' : 
                      lastRecommendation.includes('Call') ? '✅' : '🚀'}
                   </div>
-                  <div className="text-4xl font-extrabold mb-2 uppercase tracking-wide">
+                  <div className="text-2xl font-extrabold inline-block uppercase tracking-wide">
                     {lastRecommendation}
-                  </div>
-                  <div className="text-lg opacity-90 mt-4">
-                    GTO Recommendation
                   </div>
                 </div>
               </div>
