@@ -11,6 +11,8 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [lastRecommendation, setLastRecommendation] = useState<string>('')
   const [error, setError] = useState<string>('')
+  const [capturedImage, setCapturedImage] = useState<string>('')
+  const [showResult, setShowResult] = useState(false)
 
   // Initialize speech synthesis
   useEffect(() => {
@@ -79,6 +81,7 @@ export default function Home() {
     setIsAnalyzing(true)
     setError('')
     setLastRecommendation('')
+    setShowResult(false)
 
     try {
       const canvas = canvasRef.current
@@ -94,7 +97,19 @@ export default function Home() {
       
       ctx.drawImage(video, 0, 0)
       
-      // Convert canvas to blob
+      // Store captured image as data URL for display
+      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9)
+      setCapturedImage(imageDataUrl)
+      
+      // Stop camera to save resources during analysis
+      if (videoRef.current?.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
+        tracks.forEach(track => track.stop())
+        videoRef.current.srcObject = null
+        setIsCameraActive(false)
+      }
+      
+      // Convert canvas to blob for upload
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(
           (blob) => blob ? resolve(blob) : reject(new Error('Failed to create blob')),
@@ -126,13 +141,7 @@ export default function Home() {
       if (data.recommendation) {
         const rec = data.recommendation
         setLastRecommendation(rec.action)
-        
-        // Construct speech text
-        let speechText = `${rec.action}.`
-        if (rec.pot_size) speechText += ` Pot is ${rec.pot_size}.`
-        if (rec.reasoning) speechText += ` ${rec.reasoning}.`
-        
-        speak(speechText)
+        setShowResult(true)
       } else if (data.hero_turn === false) {
         setError('Not hero\'s turn detected. Try capturing when action is on you.')
       } else {
@@ -146,6 +155,15 @@ export default function Home() {
     } finally {
       setIsAnalyzing(false)
     }
+  }
+
+  // Reset and prepare for new capture
+  const captureAgain = () => {
+    setCapturedImage('')
+    setShowResult(false)
+    setLastRecommendation('')
+    setError('')
+    startCamera()
   }
 
   // Cleanup on unmount
@@ -176,22 +194,52 @@ export default function Home() {
           </div>
         )}
 
-        {/* Video display */}
+        {/* Video/Image display */}
         <div className="relative max-w-2xl mx-auto">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full rounded-lg bg-black"
-          />
+          {capturedImage ? (
+            /* Show captured image */
+            <img
+              src={capturedImage}
+              alt="Captured poker table"
+              className="w-full rounded-lg"
+            />
+          ) : (
+            /* Show live video */
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full rounded-lg bg-black"
+            />
+          )}
           
           {/* Analyzing overlay */}
           {isAnalyzing && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+            <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center rounded-lg">
               <div className="text-center">
                 <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                 <div className="text-xl font-bold">Analyzing...</div>
+              </div>
+            </div>
+          )}
+
+          {/* Recommendation overlay - Large and prominent */}
+          {showResult && lastRecommendation && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-lg">
+              <div className="bg-gradient-to-br from-green-500 to-green-700 text-white p-8 rounded-2xl shadow-2xl border-4 border-white max-w-md mx-4">
+                <div className="text-center">
+                  <div className="text-6xl font-bold mb-4">
+                    {lastRecommendation.includes('Fold') ? '❌' : 
+                     lastRecommendation.includes('Call') ? '✅' : '🚀'}
+                  </div>
+                  <div className="text-4xl font-extrabold mb-2 uppercase tracking-wide">
+                    {lastRecommendation}
+                  </div>
+                  <div className="text-lg opacity-90 mt-4">
+                    GTO Recommendation
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -202,7 +250,16 @@ export default function Home() {
 
         {/* Control buttons */}
         <div className="flex justify-center gap-4 mt-6">
-          {!isCameraActive ? (
+          {showResult || capturedImage ? (
+            /* After capture/analysis */
+            <button
+              onClick={captureAgain}
+              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-colors"
+            >
+              🔄 Capture Again
+            </button>
+          ) : !isCameraActive ? (
+            /* Initial state */
             <button
               onClick={startCamera}
               className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-colors"
@@ -210,6 +267,7 @@ export default function Home() {
               📷 Start Camera
             </button>
           ) : (
+            /* Camera active state */
             <>
               <button
                 onClick={captureAndAnalyze}

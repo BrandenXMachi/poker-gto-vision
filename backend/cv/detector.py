@@ -25,29 +25,14 @@ class PokerDetector:
     """Main detector class for poker UI elements"""
     
     def __init__(self):
-        """Initialize detector with YOLO model and OCR"""
-        self.ocr = OCRProcessor()
+        """Initialize detector with lightweight color-based detection (FAST MODE)"""
+        # Skip OCR for performance - not needed for MVP
+        self.ocr = None
         
-        # Initialize YOLO model (will use pre-trained or custom trained model)
+        # Skip YOLO for performance - color detection is sufficient
         self.model = None
-        if YOLO_AVAILABLE:
-            try:
-                import torch
-                # Set PyTorch to allow loading YOLO weights (trusted source)
-                torch.serialization.add_safe_globals([])
-                
-                # Try to load custom poker model, fallback to base YOLOv8
-                model_path = Path(__file__).parent.parent / "yolov8n.pt"
-                if model_path.exists():
-                    self.model = YOLO(str(model_path))
-                    logger.info("Loaded YOLOv8 nano model")
-                else:
-                    # Use base YOLOv8 nano model for faster inference
-                    self.model = YOLO('yolov8n.pt')
-                    logger.info("Using base YOLOv8 model (train custom model for better results)")
-            except Exception as e:
-                logger.error(f"Failed to load YOLO model: {e}")
-                logger.info("Poker detection will continue without YOLO (using color/shape detection)")
+        
+        logger.info("Initialized FAST MODE detector (color-based detection only)")
         
         # Detection thresholds
         self.button_confidence = 0.5
@@ -55,7 +40,7 @@ class PokerDetector:
         
     def detect(self, frame: np.ndarray) -> Dict:
         """
-        Main detection pipeline
+        Main detection pipeline (FAST MODE - color-based only)
         Returns detected poker elements
         """
         detections = {
@@ -70,24 +55,16 @@ class PokerDetector:
         }
         
         try:
-            # Preprocess frame
+            # Lightweight preprocessing - just resize
             processed = self._preprocess_frame(frame)
             
-            # Detect hero turn indicators
+            # Fast hero turn detection using color analysis only
             detections["hero_turn"] = self._detect_hero_turn(processed)
-            detections["buttons_visible"] = self._detect_buttons(processed)
-            detections["timer_active"] = self._detect_timer(processed)
+            detections["buttons_visible"] = detections["hero_turn"]  # Same detection
+            detections["timer_active"] = False  # Skip expensive circle detection
             
-            # If YOLO model available, use it for object detection
-            if self.model:
-                yolo_results = self._yolo_detect(processed)
-                detections.update(yolo_results)
-            
-            # OCR-based detections
-            ocr_results = self.ocr.extract_text(processed)
-            detections["pot_size"] = ocr_results.get("pot_size")
-            detections["stacks"] = ocr_results.get("stacks", {})
-            detections["vpip_stats"] = ocr_results.get("vpip_stats", {})
+            # Skip YOLO - not needed for MVP
+            # Skip OCR - not needed for MVP
             
         except Exception as e:
             logger.error(f"Detection error: {e}")
@@ -96,29 +73,20 @@ class PokerDetector:
     
     def _preprocess_frame(self, frame: np.ndarray) -> np.ndarray:
         """
-        Preprocess frame for better detection
-        - Resize if needed
-        - Enhance contrast
-        - Denoise if necessary
+        FAST preprocessing - just resize to smaller dimensions
         """
-        # Resize for faster processing (keep aspect ratio)
+        # Aggressive resize for maximum speed
         height, width = frame.shape[:2]
-        max_dim = 1280
+        max_dim = 640  # Reduced from 1280 for faster processing
+        
         if max(height, width) > max_dim:
             scale = max_dim / max(height, width)
             new_width = int(width * scale)
             new_height = int(height * scale)
-            frame = cv2.resize(frame, (new_width, new_height))
+            frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
         
-        # Apply CLAHE for better contrast (helps with glare)
-        lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        l = clahe.apply(l)
-        enhanced = cv2.merge([l, a, b])
-        enhanced = cv2.cvtColor(enhanced, cv2.COLOR_LAB2BGR)
-        
-        return enhanced
+        # Skip CLAHE - too slow, not essential for color detection
+        return frame
     
     def _detect_hero_turn(self, frame: np.ndarray) -> bool:
         """
