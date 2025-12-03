@@ -6,6 +6,7 @@ export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
+  const autoModeTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const [isCameraActive, setIsCameraActive] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -13,6 +14,8 @@ export default function Home() {
   const [error, setError] = useState<string>('')
   const [capturedImage, setCapturedImage] = useState<string>('')
   const [showResult, setShowResult] = useState(false)
+  const [isAutoMode, setIsAutoMode] = useState(false)
+  const [autoModeCount, setAutoModeCount] = useState(0)
 
   // Initialize speech synthesis
   useEffect(() => {
@@ -166,12 +169,134 @@ export default function Home() {
     startCamera()
   }
 
-  // Cleanup on unmount
+  // Auto-mode: Capture and analyze continuously
+  const captureAndAnalyzeAuto = async () => {
+    if (!videoRef.current || !canvasRef.current || !isAutoMode) return
+    
+    setIsAnalyzing(true)
+    setError('')
+
+    try {
+      const canvas = canvasRef.current
+      const video = videoRef.current
+      
+      // Set canvas size to match video
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      
+      // Draw current frame to canvas
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Could not get canvas context')
+      
+      ctx.drawImage(video, 0, 0)
+      
+      // Convert canvas to blob for upload (no image display in auto-mode)
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error('Failed to create blob')),
+          'image/jpeg',
+          0.9
+        )
+      })
+
+      // Send to backend for analysis
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+      
+      const formData = new FormData()
+      formData.append('image', blob, 'poker_table.jpg')
+
+      console.log(`🤖 Auto-mode capture ${autoModeCount + 1}`)
+      
+      const response = await fetch(`${backendUrl}/analyze`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.recommendation) {
+        const rec = data.recommendation
+        setLastRecommendation(rec.action)
+        setShowResult(true)
+        
+        // Auto-speak recommendation
+        speak(rec.action)
+        
+        // Increment counter
+        setAutoModeCount(prev => prev + 1)
+      }
+
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Analysis failed'
+      console.error('Auto-mode analysis error:', err)
+      // Don't stop auto-mode on errors, just log them
+    } finally {
+      setIsAnalyzing(false)
+      
+      // Schedule next capture if auto-mode is still active
+      if (isAutoMode) {
+        autoModeTimerRef.current = setTimeout(() => {
+          captureAndAnalyzeAuto()
+        }, 3000)
+      }
+    }
+  }
+
+  // Start auto-mode
+  const startAutoMode = async () => {
+    // Start camera if not active
+    if (!isCameraActive) {
+      await startCamera()
+    }
+    
+    setIsAutoMode(true)
+    setAutoModeCount(0)
+    setCapturedImage('') // Clear any captured image
+    setShowResult(false)
+    
+    // Start the capture loop after a brief delay
+    setTimeout(() => {
+      captureAndAnalyzeAuto()
+    }, 500)
+  }
+
+  // Stop auto-mode
+  const stopAutoMode = () => {
+    setIsAutoMode(false)
+    
+    // Clear the timer
+    if (autoModeTimerRef.current) {
+      clearTimeout(autoModeTimerRef.current)
+      autoModeTimerRef.current = null
+    }
+    
+    setShowResult(false)
+    setLastRecommendation('')
+  }
+
+  // Cleanup on unmount or when auto-mode changes
   useEffect(() => {
     return () => {
+      if (autoModeTimerRef.current) {
+        clearTimeout(autoModeTimerRef.current)
+      }
       stopCamera()
     }
   }, [])
+
+  // Trigger auto-mode capture loop when enabled
+  useEffect(() => {
+    if (isAutoMode && isCameraActive) {
+      // Initial capture already triggered in startAutoMode
+    } else if (!isAutoMode && autoModeTimerRef.current) {
+      clearTimeout(autoModeTimerRef.current)
+      autoModeTimerRef.current = null
+    }
+  }, [isAutoMode, isCameraActive])
 
   return (
     <main className="min-h-screen bg-gray-900 text-white">
@@ -194,8 +319,17 @@ export default function Home() {
           </div>
         )}
 
+        {/* Auto-mode indicator */}
+        {isAutoMode && (
+          <div className="bg-purple-600 text-white p-3 rounded-lg mb-4 max-w-2xl mx-auto">
+            <div className="text-center font-bold">
+              🤖 AUTO MODE ACTIVE - Analyzing every 3 seconds ({autoModeCount} captures)
+            </div>
+          </div>
+        )}
+
         {/* Video/Image display */}
-        <div className="relative max-w-2xl mx-auto">
+        <div className={`relative max-w-2xl mx-auto ${isAutoMode ? 'ring-4 ring-purple-500 ring-opacity-50 animate-pulse' : ''}`}>
           {capturedImage ? (
             /* Show captured image */
             <img
@@ -246,44 +380,65 @@ export default function Home() {
         <canvas ref={canvasRef} className="hidden" />
 
         {/* Control buttons */}
-        <div className="flex justify-center gap-4 mt-6">
-          {showResult || capturedImage ? (
-            /* After capture/analysis */
-            <button
-              onClick={captureAgain}
-              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-colors"
-            >
-              🔄 Capture Again
-            </button>
-          ) : !isCameraActive ? (
-            /* Initial state */
-            <button
-              onClick={startCamera}
-              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-colors"
-            >
-              📷 Start Camera
-            </button>
-          ) : (
-            /* Camera active state */
-            <>
+        <div className="flex flex-col items-center gap-4 mt-6">
+          <div className="flex justify-center gap-4">
+            {showResult || capturedImage ? (
+              /* After capture/analysis */
               <button
-                onClick={captureAndAnalyze}
-                disabled={isAnalyzing}
-                className={`px-8 py-4 rounded-lg font-semibold text-lg transition-colors ${
-                  isAnalyzing
-                    ? 'bg-gray-600 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700'
-                }`}
+                onClick={captureAgain}
+                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-colors"
               >
-                {isAnalyzing ? '⏳ Analyzing...' : '📸 Capture & Analyze'}
+                🔄 Capture Again
               </button>
+            ) : !isCameraActive ? (
+              /* Initial state */
               <button
-                onClick={stopCamera}
-                className="px-8 py-4 bg-red-600 hover:bg-red-700 rounded-lg font-semibold text-lg transition-colors"
+                onClick={startCamera}
+                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-colors"
               >
-                ❌ Stop Camera
+                📷 Start Camera
               </button>
-            </>
+            ) : (
+              /* Camera active state */
+              <>
+                <button
+                  onClick={captureAndAnalyze}
+                  disabled={isAnalyzing || isAutoMode}
+                  className={`px-8 py-4 rounded-lg font-semibold text-lg transition-colors ${
+                    isAnalyzing || isAutoMode
+                      ? 'bg-gray-600 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  {isAnalyzing ? '⏳ Analyzing...' : '📸 Capture & Analyze'}
+                </button>
+                <button
+                  onClick={stopCamera}
+                  disabled={isAutoMode}
+                  className={`px-8 py-4 rounded-lg font-semibold text-lg transition-colors ${
+                    isAutoMode
+                      ? 'bg-gray-600 cursor-not-allowed'
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                >
+                  ❌ Stop Camera
+                </button>
+              </>
+            )}
+          </div>
+          
+          {/* Auto-mode button (only show when camera is active) */}
+          {isCameraActive && !capturedImage && (
+            <button
+              onClick={isAutoMode ? stopAutoMode : startAutoMode}
+              className={`px-8 py-4 rounded-lg font-semibold text-lg transition-colors ${
+                isAutoMode
+                  ? 'bg-purple-600 hover:bg-purple-700 ring-2 ring-purple-300'
+                  : 'bg-purple-500 hover:bg-purple-600'
+              }`}
+            >
+              {isAutoMode ? '⏸️ Stop Auto Mode' : '🤖 Start Auto Mode'}
+            </button>
           )}
         </div>
 
@@ -293,9 +448,10 @@ export default function Home() {
           <ol className="list-decimal list-inside space-y-1">
             <li>Click &quot;Start Camera&quot; to activate your phone camera</li>
             <li>Point camera at the poker table on your laptop screen</li>
-            <li>When it&apos;s your turn, click &quot;Capture & Analyze&quot;</li>
-            <li>Wait a few seconds for the GTO recommendation</li>
-            <li>You&apos;ll hear the recommendation spoken aloud</li>
+            <li><strong className="text-white">Manual Mode:</strong> Click &quot;Capture & Analyze&quot; when it&apos;s your turn</li>
+            <li><strong className="text-purple-400">Auto Mode:</strong> Click &quot;Start Auto Mode&quot; for continuous analysis every 3 seconds</li>
+            <li>Listen for audio recommendations spoken aloud</li>
+            <li>Click &quot;Stop Auto Mode&quot; to disable continuous analysis</li>
           </ol>
         </div>
       </div>
