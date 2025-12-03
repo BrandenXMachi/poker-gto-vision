@@ -188,8 +188,15 @@ class GTOSolver:
             frequencies["raise"] = max(frequencies["raise"] - 0.05, 0.10)
         
         # Make decision based on GTO frequencies
-        # Use pot size as deterministic seed for consistency
-        decision_value = (int(pot_bb * 100) % 100) / 100.0
+        # Use pot size with proper hash distribution for consistency
+        import hashlib
+        
+        # Create deterministic but well-distributed hash
+        seed_string = f"{pot_bb:.2f}_{position}_{num_players}"
+        hash_value = int(hashlib.md5(seed_string.encode()).hexdigest(), 16)
+        decision_value = (hash_value % 10000) / 10000.0  # Better distribution 0.0000-0.9999
+        
+        logger.info(f"Decision calc: pot_bb={pot_bb:.2f}, seed={seed_string}, decision_value={decision_value:.4f}, fold_threshold={frequencies['fold']:.2f}")
         
         # Apply frequency thresholds
         if decision_value < frequencies["fold"]:

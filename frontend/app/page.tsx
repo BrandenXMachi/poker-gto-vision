@@ -310,11 +310,21 @@ export default function Home() {
           </div>
         )}
 
-        {/* Recommendation display */}
+        {/* Recommendation display with details */}
         {lastRecommendation && (
-          <div className="bg-green-600 text-white p-4 rounded-lg mb-4 max-w-2xl mx-auto">
-            <div className="text-lg font-bold">
-              🔊 Recommendation: {lastRecommendation}
+          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 rounded-lg mb-4 max-w-2xl mx-auto shadow-lg">
+            <div className="text-2xl font-bold mb-3 text-center">
+              🔊 {lastRecommendation}
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm mt-4 bg-green-800 bg-opacity-40 p-4 rounded">
+              <div>
+                <span className="text-green-200">Position:</span>
+                <span className="font-semibold ml-2">Unknown</span>
+              </div>
+              <div>
+                <span className="text-green-200">Players:</span>
+                <span className="font-semibold ml-2">6-max</span>
+              </div>
             </div>
           </div>
         )}
