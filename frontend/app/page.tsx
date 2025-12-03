@@ -236,11 +236,11 @@ export default function Home() {
         <div className="mt-8 max-w-2xl mx-auto text-sm text-gray-400">
           <h2 className="font-semibold text-white mb-2">Instructions:</h2>
           <ol className="list-decimal list-inside space-y-1">
-            <li>Click "Start Camera" to activate your phone camera</li>
+            <li>Click &quot;Start Camera&quot; to activate your phone camera</li>
             <li>Point camera at the poker table on your laptop screen</li>
-            <li>When it's your turn, click "Capture & Analyze"</li>
+            <li>When it&apos;s your turn, click &quot;Capture & Analyze&quot;</li>
             <li>Wait a few seconds for the GTO recommendation</li>
-            <li>You'll hear the recommendation spoken aloud</li>
+            <li>You&apos;ll hear the recommendation spoken aloud</li>
           </ol>
         </div>
       </div>
