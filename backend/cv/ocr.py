@@ -79,26 +79,32 @@ class OCRProcessor:
         
         return results
     
-    def _parse_pot_size(self, text: str) -> Optional[str]:
+    def _parse_pot_size(self, text: str) -> Optional[float]:
         """
         Extract pot size from text
         Looks for currency formats like: $45, 45.00, etc.
+        Specifically handles GGPoker format: "Total Pot : $0.03"
         """
         # Remove whitespace
         text = text.strip()
         
-        # Look for currency patterns
+        # Look for currency patterns (prioritize GGPoker format)
         patterns = [
+            r'Total\s*Pot\s*[:：]\s*\$\s*(\d+\.?\d*)',  # GGPoker: "Total Pot : $0.03"
+            r'Pot\s*[:：]\s*\$\s*(\d+\.?\d*)',  # Generic: "Pot: $45"
             r'\$\s*(\d+\.?\d*)',  # $45 or $45.00
             r'(\d+\.?\d*)\s*\$',  # 45$ or 45.00$
-            r'Pot[\s:]*\$?\s*(\d+\.?\d*)',  # Pot: $45
         ]
         
         for pattern in patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                amount = match.group(1)
-                return f"${amount}"
+                try:
+                    amount = float(match.group(1))
+                    logger.info(f"Parsed pot size: ${amount} from text: '{text}'")
+                    return amount
+                except ValueError:
+                    continue
         
         return None
     

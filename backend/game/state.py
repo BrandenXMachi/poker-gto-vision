@@ -47,9 +47,12 @@ class GameStateManager:
     def update(self, detections: Dict):
         """Update game state based on new detections"""
         try:
-            # Update pot size
-            if detections.get("pot_size"):
-                self.current_state.pot_size = self._parse_amount(detections["pot_size"])
+            # Update pot size (can be float or string from OCR)
+            pot_size_raw = detections.get("pot_size")
+            if pot_size_raw is not None:
+                self.current_state.pot_size = self._parse_amount(pot_size_raw)
+                if self.current_state.pot_size:
+                    logger.info(f"✓ Pot size updated: ${self.current_state.pot_size}")
             
             # Update VPIP stats
             if detections.get("vpip_stats"):
@@ -104,13 +107,20 @@ class GameStateManager:
         if "pfr" in stats:
             logger.info(f"Detected PFR: {stats['pfr']}%")
     
-    def _parse_amount(self, amount_str: str) -> Optional[float]:
-        """Parse currency string to float"""
+    def _parse_amount(self, amount) -> Optional[float]:
+        """Parse currency string or float to float"""
         try:
-            # Remove $ and other currency symbols
-            clean = amount_str.replace("$", "").replace(",", "").strip()
-            return float(clean)
-        except (ValueError, AttributeError):
+            # If already a float/int, return it
+            if isinstance(amount, (int, float)):
+                return float(amount)
+            
+            # If string, remove $ and other currency symbols
+            if isinstance(amount, str):
+                clean = amount.replace("$", "").replace(",", "").strip()
+                return float(clean)
+            
+            return None
+        except (ValueError, AttributeError, TypeError):
             return None
     
     def get_state_summary(self) -> Dict:
