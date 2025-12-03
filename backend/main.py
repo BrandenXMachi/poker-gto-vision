@@ -3,10 +3,9 @@ Main FastAPI server for Poker GTO Vision
 Handles WebSocket connections and frame processing
 """
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-import asyncio
 import logging
 from io import BytesIO
 from PIL import Image
@@ -59,42 +58,22 @@ async def root():
     return {"status": "Poker GTO Vision Backend Running", "version": "1.0.0"}
 
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time frame processing"""
-    await websocket.accept()
-    logger.info("✅ Client connected")
-    
+@app.post("/analyze")
+async def analyze_image(image: UploadFile = File(...)):
+    """
+    Analyze a poker table image and return GTO recommendation
+    """
     try:
-        # Send initial status
-        await websocket.send_json({
-            "type": "status",
-            "message": "Connected to Poker GTO Vision server"
-        })
+        logger.info(f"📸 Received image: {image.filename}")
         
-        while True:
-            # Receive frame from client
-            data = await websocket.receive_bytes()
-            
-            # Process frame in background to avoid blocking
-            asyncio.create_task(process_frame(websocket, data))
-            
-    except WebSocketDisconnect:
-        logger.info("🔌 Client disconnected")
-    except Exception as e:
-        logger.error(f"❌ WebSocket error: {e}")
-        try:
-            await websocket.close()
-        except:
-            pass
-
-
-async def process_frame(websocket: WebSocket, frame_data: bytes):
-    """Process a single frame and send recommendation if hero's turn detected"""
-    try:
-        # Convert bytes to image
-        image = Image.open(BytesIO(frame_data))
-        frame = np.array(image)
+        # Read image data
+        image_data = await image.read()
+        
+        # Convert to PIL Image
+        pil_image = Image.open(BytesIO(image_data))
+        frame = np.array(pil_image)
+        
+        logger.info(f"🖼️  Image size: {frame.shape}")
         
         # Detect poker UI elements
         detections = detector.detect(frame)
@@ -107,23 +86,41 @@ async def process_frame(websocket: WebSocket, frame_data: bytes):
             # Get GTO recommendation
             recommendation = solver.get_recommendation(game_state)
             
-            # Send recommendation to client
-            await websocket.send_json({
-                "type": "recommendation",
+            logger.info(f"✅ Hero turn detected! Recommendation: {recommendation['action']}")
+            
+            return {
+                "success": True,
+                "hero_turn": True,
                 "recommendation": {
                     "action": recommendation["action"],
                     "pot_size": recommendation.get("pot_size"),
                     "ev": recommendation.get("ev"),
                     "reasoning": recommendation.get("reasoning")
+                },
+                "detections": {
+                    "buttons_visible": detections.get("buttons_visible"),
+                    "timer_active": detections.get("timer_active")
                 }
-            })
-            
-            # Reset hero turn flag to avoid duplicate recommendations
-            game_state.reset_hero_turn()
+            }
+        else:
+            logger.info("ℹ️  Not hero's turn")
+            return {
+                "success": True,
+                "hero_turn": False,
+                "message": "Not your turn yet. Capture when action is on you.",
+                "detections": {
+                    "buttons_visible": detections.get("buttons_visible"),
+                    "timer_active": detections.get("timer_active")
+                }
+            }
             
     except Exception as e:
-        logger.error(f"Frame processing error: {e}")
-        # Don't send error to client, just continue processing
+        logger.error(f"❌ Analysis error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to analyze image. Make sure poker table is clearly visible."
+        }
 
 
 if __name__ == "__main__":
