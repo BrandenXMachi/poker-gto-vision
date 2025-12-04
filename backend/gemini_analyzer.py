@@ -14,12 +14,13 @@ from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
-# Configure Gemini
+# Configure Gemini (will be checked on first use)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY not found in environment variables")
-
-genai.configure(api_key=GEMINI_API_KEY)
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    logger.info("✅ Gemini API key configured")
+else:
+    logger.warning("⚠️ GEMINI_API_KEY not set - add it to environment variables on Render")
 
 # Poker analysis prompt
 POKER_ANALYSIS_PROMPT = """You are an expert poker GTO (Game Theory Optimal) advisor analyzing a poker table screenshot.
@@ -82,6 +83,14 @@ class GeminiPokerAnalyzer:
         Returns:
             Dictionary with analysis results
         """
+        # Check if API key is configured
+        if not GEMINI_API_KEY:
+            logger.error("❌ GEMINI_API_KEY not configured!")
+            return {
+                "success": False,
+                "error": "GEMINI_API_KEY not configured. Please add it to Render environment variables."
+            }
+        
         try:
             logger.info("🤖 Sending image to Gemini for analysis...")
             
