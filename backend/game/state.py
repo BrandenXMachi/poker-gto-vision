@@ -33,6 +33,8 @@ class GameState:
     action_sequence: List[str] = field(default_factory=list)
     hero_turn_active: bool = False
     last_hero_turn_time: Optional[datetime] = None
+    hero_position: Optional[str] = None  # BTN, SB, BB, UTG, MP, CO
+    dealer_button_seat: Optional[int] = None  # Seat number (1-6)
 
 
 class GameStateManager:
@@ -57,6 +59,14 @@ class GameStateManager:
             # Update VPIP stats
             if detections.get("vpip_stats"):
                 self._update_vpip_stats(detections["vpip_stats"])
+            
+            # Update hero position from dealer button detection
+            if detections.get("hero_position"):
+                self.current_state.hero_position = detections["hero_position"]
+                logger.info(f"✓ Hero position: {self.current_state.hero_position}")
+            
+            if detections.get("dealer_button_position"):
+                self.current_state.dealer_button_seat = detections["dealer_button_position"]
             
             # Update hero turn status
             if detections.get("hero_turn"):

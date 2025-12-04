@@ -16,6 +16,7 @@ export default function Home() {
   const [showResult, setShowResult] = useState(false)
   const [isAutoMode, setIsAutoMode] = useState(false)
   const [autoModeCount, setAutoModeCount] = useState(0)
+  const [gameInfo, setGameInfo] = useState<{potSize?: string, position?: string, reasoning?: string} | null>(null)
 
   // Initialize speech synthesis
   useEffect(() => {
@@ -144,6 +145,11 @@ export default function Home() {
       if (data.recommendation) {
         const rec = data.recommendation
         setLastRecommendation(rec.action)
+        setGameInfo({
+          potSize: rec.pot_size || undefined,
+          position: data.game_state?.hero_position || undefined,
+          reasoning: rec.reasoning || undefined
+        })
         setShowResult(true)
       } else if (data.hero_turn === false) {
         setError('Not hero\'s turn detected. Try capturing when action is on you.')
@@ -316,16 +322,24 @@ export default function Home() {
             <div className="text-2xl font-bold mb-3 text-center">
               🔊 {lastRecommendation}
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm mt-4 bg-green-800 bg-opacity-40 p-4 rounded">
-              <div>
-                <span className="text-green-200">Position:</span>
-                <span className="font-semibold ml-2">Unknown</span>
+            {gameInfo && (
+              <div className="grid grid-cols-2 gap-4 text-sm mt-4 bg-green-800 bg-opacity-40 p-4 rounded">
+                <div>
+                  <span className="text-green-200">Pot Size:</span>
+                  <span className="font-semibold ml-2">{gameInfo.potSize || 'Unknown'}</span>
+                </div>
+                <div>
+                  <span className="text-green-200">Position:</span>
+                  <span className="font-semibold ml-2">{gameInfo.position || 'Detecting...'}</span>
+                </div>
+                {gameInfo.reasoning && (
+                  <div className="col-span-2 mt-2 pt-2 border-t border-green-600">
+                    <span className="text-green-200">Reasoning:</span>
+                    <p className="text-white mt-1">{gameInfo.reasoning}</p>
+                  </div>
+                )}
               </div>
-              <div>
-                <span className="text-green-200">Players:</span>
-                <span className="font-semibold ml-2">6-max</span>
-              </div>
-            </div>
+            )}
           </div>
         )}
 

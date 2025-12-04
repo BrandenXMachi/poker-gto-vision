@@ -118,9 +118,21 @@ class GTOSolver:
         
         Returns: 'early_position', 'middle_position', 'late_position', 'button', or 'unknown'
         """
-        # TODO: Implement position detection from computer vision
-        # For now, return unknown
-        # Future: detect based on seat position, dealer button location
+        # Use detected position from game state
+        if state.hero_position:
+            # Map GGPoker position names to solver position categories
+            position_map = {
+                "BTN": "button",
+                "CO": "late_position",
+                "MP": "middle_position",
+                "UTG": "early_position",
+                "SB": "late_position",  # SB plays similar to late position
+                "BB": "middle_position",  # BB is already invested, plays defensively
+            }
+            mapped = position_map.get(state.hero_position, "unknown")
+            logger.info(f"Position detected: {state.hero_position} → {mapped}")
+            return mapped
+        
         return "unknown"
     
     def _count_players(self, state) -> int:

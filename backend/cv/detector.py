@@ -51,7 +51,9 @@ class PokerDetector:
             "pot_size": None,
             "stacks": {},
             "actions": [],
-            "vpip_stats": {}
+            "vpip_stats": {},
+            "dealer_button_position": None,
+            "hero_position": None  # Will be calculated from button position
         }
         
         try:
@@ -62,6 +64,14 @@ class PokerDetector:
             detections["hero_turn"] = self._detect_hero_turn(processed)
             detections["buttons_visible"] = detections["hero_turn"]  # Same detection
             detections["timer_active"] = False  # Skip expensive circle detection
+            
+            # Detect dealer button position for GGPoker 6-max
+            button_seat = self._detect_dealer_button(processed)
+            if button_seat:
+                detections["dealer_button_position"] = button_seat
+                # Calculate hero position (hero is always bottom-center in GGPoker)
+                detections["hero_position"] = self._calculate_hero_position(button_seat)
+                logger.info(f"Button at seat {button_seat}, Hero position: {detections['hero_position']}")
             
             # Skip YOLO - not needed for MVP
             # Skip OCR - not needed for MVP
@@ -154,6 +164,86 @@ class PokerDetector:
         )
         
         return circles is not None and len(circles[0]) > 0
+    
+    def _detect_dealer_button(self, frame: np.ndarray) -> Optional[int]:
+        """
+        Detect dealer button "D" marker in GGPoker 6-max layout
+        
+        Returns seat number (1-6) where button is located:
+        - Seat 1: Bottom-left
+        - Seat 2: Top-left  
+        - Seat 3: Top-center
+        - Seat 4: Top-right
+        - Seat 5: Bottom-right
+        - Seat 6: Bottom-center (Hero)
+        """
+        height, width = frame.shape[:2]
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        
+        # Detect yellow "D" marker (dealer button in GGPoker)
+        lower_yellow = np.array([20, 150, 150])
+        upper_yellow = np.array([30, 255, 255])
+        yellow_mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+        
+        # Define regions for 6 seats in GGPoker layout
+        # Each region is (y_start, y_end, x_start, x_end) as percentages
+        seat_regions = {
+            1: (0.50, 0.80, 0.05, 0.25),  # Bottom-left
+            2: (0.15, 0.40, 0.05, 0.25),  # Top-left
+            3: (0.10, 0.35, 0.35, 0.65),  # Top-center
+            4: (0.15, 0.40, 0.75, 0.95),  # Top-right
+            5: (0.50, 0.80, 0.75, 0.95),  # Bottom-right
+            6: (0.60, 0.90, 0.35, 0.65),  # Bottom-center (Hero)
+        }
+        
+        # Check each region for yellow "D" marker
+        max_yellow_pixels = 0
+        button_seat = None
+        
+        for seat, (y1_pct, y2_pct, x1_pct, x2_pct) in seat_regions.items():
+            y1 = int(height * y1_pct)
+            y2 = int(height * y2_pct)
+            x1 = int(width * x1_pct)
+            x2 = int(width * x2_pct)
+            
+            region = yellow_mask[y1:y2, x1:x2]
+            yellow_pixels = cv2.countNonZero(region)
+            
+            if yellow_pixels > max_yellow_pixels and yellow_pixels > 50:  # Threshold
+                max_yellow_pixels = yellow_pixels
+                button_seat = seat
+        
+        return button_seat
+    
+    def _calculate_hero_position(self, button_seat: int) -> str:
+        """
+        Calculate hero's position based on dealer button location
+        Hero is always at seat 6 (bottom-center) in GGPoker
+        
+        Args:
+            button_seat: Seat number where dealer button is (1-6)
+            
+        Returns:
+            Position name: 'UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'
+        """
+        # Hero is always seat 6 in GGPoker
+        hero_seat = 6
+        
+        # Calculate seats between button and hero (clockwise)
+        seats_after_button = (hero_seat - button_seat) % 6
+        
+        # Map to position names (6-max)
+        position_map = {
+            0: "BTN",    # Hero is the button
+            1: "SB",     # 1 seat after button = Small Blind
+            2: "BB",     # 2 seats after button = Big Blind
+            3: "UTG",    # 3 seats after button = Under The Gun
+            4: "MP",     # 4 seats after button = Middle Position
+            5: "CO",     # 5 seats after button = Cutoff
+        }
+        
+        position = position_map.get(seats_after_button, "unknown")
+        return position
     
     def _yolo_detect(self, frame: np.ndarray) -> Dict:
         """Use YOLO for object detection (cards, seats, etc.)"""
