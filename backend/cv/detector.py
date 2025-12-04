@@ -180,10 +180,19 @@ class PokerDetector:
         height, width = frame.shape[:2]
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         
-        # Detect yellow "D" marker (dealer button in GGPoker)
-        lower_yellow = np.array([20, 150, 150])
-        upper_yellow = np.array([30, 255, 255])
+        # MORE SENSITIVE: Wider yellow detection range
+        # Expanded HSV range to catch dealer button in various lighting
+        lower_yellow = np.array([15, 100, 100])  # Wider hue, lower saturation/value
+        upper_yellow = np.array([35, 255, 255])  # Wider hue range
         yellow_mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+        
+        # Also detect orange-yellow (some tables use orange button)
+        lower_orange = np.array([10, 100, 100])
+        upper_orange = np.array([20, 255, 255])
+        orange_mask = cv2.inRange(hsv, lower_orange, upper_orange)
+        
+        # Combine yellow and orange masks
+        combined_mask = cv2.bitwise_or(yellow_mask, orange_mask)
         
         # Define regions for 6 seats in GGPoker layout
         # Each region is (y_start, y_end, x_start, x_end) as percentages
@@ -196,7 +205,7 @@ class PokerDetector:
             6: (0.60, 0.90, 0.35, 0.65),  # Bottom-center (Hero)
         }
         
-        # Check each region for yellow "D" marker
+        # Check each region for yellow/orange "D" marker
         max_yellow_pixels = 0
         button_seat = None
         
@@ -206,12 +215,19 @@ class PokerDetector:
             x1 = int(width * x1_pct)
             x2 = int(width * x2_pct)
             
-            region = yellow_mask[y1:y2, x1:x2]
+            region = combined_mask[y1:y2, x1:x2]
             yellow_pixels = cv2.countNonZero(region)
             
-            if yellow_pixels > max_yellow_pixels and yellow_pixels > 50:  # Threshold
+            # Lower threshold for more sensitive detection
+            if yellow_pixels > max_yellow_pixels and yellow_pixels > 20:  # Was 50, now 20
                 max_yellow_pixels = yellow_pixels
                 button_seat = seat
+                logger.info(f"Button candidate at seat {seat}: {yellow_pixels} yellow pixels")
+        
+        if button_seat:
+            logger.info(f"✓ Dealer button detected at seat {button_seat}")
+        else:
+            logger.warning("⚠ No dealer button detected in frame")
         
         return button_seat
     
