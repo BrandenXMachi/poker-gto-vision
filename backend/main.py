@@ -1,25 +1,24 @@
 """
 Main FastAPI server for Poker GTO Vision
-Handles WebSocket connections and frame processing
+Powered by Gemini Flash 2.5 for AI-driven poker analysis
 """
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import logging
-from io import BytesIO
-from PIL import Image
-import numpy as np
+from dotenv import load_dotenv
 
-from cv.detector import PokerDetector
-from game.state import GameStateManager
-from solver.gto import GTOSolver
+# Load environment variables
+load_dotenv()
+
+from gemini_analyzer import GeminiPokerAnalyzer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Poker GTO Vision Backend")
+app = FastAPI(title="Poker GTO Vision Backend - Gemini Powered")
 
 # CORS middleware for frontend communication
 import os
@@ -46,22 +45,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize components
-detector = PokerDetector()
-game_state = GameStateManager()
-solver = GTOSolver()
+# Initialize Gemini analyzer
+analyzer = GeminiPokerAnalyzer()
 
 
 @app.get("/")
 async def root():
     """Health check endpoint"""
-    return {"status": "Poker GTO Vision Backend Running", "version": "1.0.0"}
+    return {
+        "status": "Poker GTO Vision Backend - Gemini Powered",
+        "version": "2.0.0",
+        "model": "Gemini Flash 2.5"
+    }
 
 
 @app.post("/analyze")
 async def analyze_image(image: UploadFile = File(...)):
     """
-    Analyze a poker table image and return GTO recommendation
+    Analyze poker table image using Gemini AI
+    Returns: Main display data + detailed side panel info
     """
     try:
         logger.info(f"📸 Received image: {image.filename}")
@@ -69,50 +71,24 @@ async def analyze_image(image: UploadFile = File(...)):
         # Read image data
         image_data = await image.read()
         
-        # Convert to PIL Image
-        pil_image = Image.open(BytesIO(image_data))
-        frame = np.array(pil_image)
+        logger.info(f"🖼️  Sending to Gemini for analysis...")
         
-        logger.info(f"🖼️  Image size: {frame.shape}")
+        # Analyze with Gemini
+        result = analyzer.analyze_poker_table(image_data)
         
-        # Detect poker UI elements
-        detections = detector.detect(frame)
-        
-        # Update game state
-        game_state.update(detections)
-        
-        # Check if it's hero's turn
-        if game_state.is_hero_turn():
-            # Get GTO recommendation
-            recommendation = solver.get_recommendation(game_state)
-            
-            logger.info(f"✅ Hero turn detected! Recommendation: {recommendation['action']}")
-            
+        if not result.get("success"):
             return {
-                "success": True,
-                "hero_turn": True,
-                "recommendation": {
-                    "action": recommendation["action"],
-                    "pot_size": recommendation.get("pot_size"),
-                    "ev": recommendation.get("ev"),
-                    "reasoning": recommendation.get("reasoning")
-                },
-                "detections": {
-                    "buttons_visible": detections.get("buttons_visible"),
-                    "timer_active": detections.get("timer_active")
-                }
+                "success": False,
+                "error": result.get("error", "Analysis failed"),
+                "message": "Failed to analyze poker table. Please try again."
             }
-        else:
-            logger.info("ℹ️  Not hero's turn")
-            return {
-                "success": True,
-                "hero_turn": False,
-                "message": "Not your turn yet. Capture when action is on you.",
-                "detections": {
-                    "buttons_visible": detections.get("buttons_visible"),
-                    "timer_active": detections.get("timer_active")
-                }
-            }
+        
+        # Format for frontend
+        formatted = analyzer.format_for_frontend(result["analysis"])
+        
+        logger.info(f"✅ Analysis complete: {formatted['recommendation']['action']}")
+        
+        return formatted
             
     except Exception as e:
         logger.error(f"❌ Analysis error: {e}")
