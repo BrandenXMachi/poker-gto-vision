@@ -41,7 +41,8 @@ Your response MUST be valid JSON with this exact structure:
   "pot_odds": "<ratio like 3:1>",
   "hand_equity": "<percentage like 45%>",
   "recommendation": {
-    "action": "<Fold|Call|Raise>",
+    "action": "<Fold|Call|Raise to X BB>",
+    "raise_amount_bb": <number or null>,
     "reasoning": "<brief explanation>"
   },
   "detailed_analysis": {
@@ -100,9 +101,18 @@ CRITICAL ANALYSIS GUIDELINES:
    - Calculate pot odds: (amount to call) : (current pot + amount to call)
    - Estimate equity based on position, action, and visible cards
    
-9. **GTO Recommendation**: 
+9. **GTO Recommendation with Raise Sizing**: 
    - Provide theoretically optimal play based on position, pot odds, and situation
    - Consider: position strength, pot odds, likely ranges, stack depths
+   - **IMPORTANT: When recommending Raise:**
+     * Include specific raise size in BB (big blinds)
+     * Action should be "Raise to X BB" (e.g., "Raise to 6 BB")
+     * Set raise_amount_bb to the specific number (e.g., 6)
+     * Standard preflop raises: 2.5-3x open, 3x 3-bet
+     * Standard postflop raises: 50-75% pot (smaller sizing), 100-150% pot (larger sizing)
+   - **For Fold or Call:**
+     * Action should be "Fold" or "Call"
+     * Set raise_amount_bb to null
 
 REMEMBER: The "D" button marker is THE KEY to determining position correctly!
 

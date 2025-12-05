@@ -202,7 +202,7 @@ export default function Home() {
       {/* Main content area */}
       <div className="flex-1 px-4 py-6">
         <div className="container mx-auto max-w-4xl">
-          <h1 className="text-3xl font-bold text-center mb-6">Poker GTO Vision - Gemini AI</h1>
+          <h1 className="text-3xl font-bold text-center mb-6">Poker GTO Vision - Claude AI</h1>
           
           {/* Error display */}
           {error && (
@@ -267,7 +267,7 @@ export default function Home() {
               <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center rounded-lg">
                 <div className="text-center">
                   <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <div className="text-xl font-bold">🤖 Gemini AI Analyzing...</div>
+                  <div className="text-xl font-bold">🤖 Claude AI Analyzing...</div>
                 </div>
               </div>
             )}
