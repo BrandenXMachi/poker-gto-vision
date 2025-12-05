@@ -116,12 +116,13 @@ class GeminiPokerAnalyzer:
         self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
         logger.info("✅ Gemini analyzer initialized")
     
-    def analyze_poker_table(self, image_data: bytes) -> Dict[str, Any]:
+    def analyze_poker_table(self, image_data: bytes, hero_position: str = "BTN") -> Dict[str, Any]:
         """
         Analyze poker table image using Gemini
         
         Args:
             image_data: Raw image bytes
+            hero_position: Hero's position (BTN, SB, BB, UTG, MP, CO)
             
         Returns:
             Dictionary with analysis results
@@ -135,14 +136,17 @@ class GeminiPokerAnalyzer:
             }
         
         try:
-            logger.info("🤖 Sending image to Gemini for analysis...")
+            logger.info(f"🤖 Sending image to Gemini for analysis... Hero position: {hero_position}")
             
             # Convert bytes to PIL Image
             image = Image.open(BytesIO(image_data))
             
+            # Create position-specific prompt
+            position_prompt = f"{POKER_ANALYSIS_PROMPT}\n\nIMPORTANT: Hero is seated at {hero_position} position."
+            
             # Generate analysis
             response = self.model.generate_content([
-                POKER_ANALYSIS_PROMPT,
+                position_prompt,
                 image
             ])
             

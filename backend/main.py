@@ -3,7 +3,7 @@ Main FastAPI server for Poker GTO Vision
 Powered by Gemini Flash 2.5 for AI-driven poker analysis
 """
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import logging
@@ -60,13 +60,16 @@ async def root():
 
 
 @app.post("/analyze")
-async def analyze_image(image: UploadFile = File(...)):
+async def analyze_image(
+    image: UploadFile = File(...),
+    position: str = Form("BTN")
+):
     """
     Analyze poker table image using Gemini AI
     Returns: Main display data + detailed side panel info
     """
     try:
-        logger.info(f"📸 Received image: {image.filename}")
+        logger.info(f"📸 Received image: {image.filename}, position: {position}")
         
         # Read image data
         image_data = await image.read()
@@ -74,7 +77,7 @@ async def analyze_image(image: UploadFile = File(...)):
         logger.info(f"🖼️  Sending to Gemini for analysis...")
         
         # Analyze with Gemini
-        result = analyzer.analyze_poker_table(image_data)
+        result = analyzer.analyze_poker_table(image_data, hero_position=position)
         
         if not result.get("success"):
             return {
