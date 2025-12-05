@@ -41,6 +41,7 @@ Your response MUST be valid JSON with this exact structure:
   "hand_equity": "<percentage like 45%>",
   "recommendation": {
     "action": "<Fold|Call|Raise>",
+    "bet_size": "<specific bet size recommendation in BB, e.g., '3 BB', '12.5 BB', or 'N/A' for Fold/Call>",
     "reasoning": "<brief explanation>"
   },
   "detailed_analysis": {
@@ -204,12 +205,13 @@ class GeminiPokerAnalyzer:
                 "success": True,
                 "hero_turn": game_info.get("is_hero_turn", False),
                 
-                # Main display (pot odds, equity, action)
+                # Main display (pot odds, equity, action, bet size)
                 "recommendation": {
                     "action": recommendation.get("action", "Unknown"),
                     "pot_odds": analysis.get("pot_odds", "N/A"),
                     "hand_equity": analysis.get("hand_equity", "N/A"),
                     "pot_size": f"{game_info.get('pot_size_bb', 0)} BB",
+                    "bet_size": recommendation.get("bet_size", "N/A"),
                     "position": game_info.get("hero_position", "Unknown")
                 },
                 

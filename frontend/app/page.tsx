@@ -32,7 +32,7 @@ export default function Home() {
   const [potOdds, setPotOdds] = useState<string>('')
   const [handEquity, setHandEquity] = useState<string>('')
   const [potSize, setPotSize] = useState<string>('')
-  const [position, setPosition] = useState<string>('')
+  const [betSize, setBetSize] = useState<string>('')
   
   // Detailed side panel info
   const [detailedInfo, setDetailedInfo] = useState<DetailedInfo | null>(null)
@@ -163,7 +163,7 @@ export default function Home() {
         setPotOdds(rec.pot_odds)
         setHandEquity(rec.hand_equity)
         setPotSize(rec.pot_size || 'N/A')
-        setPosition(rec.position || 'Unknown')
+        setBetSize(rec.bet_size || 'N/A')
         setDetailedInfo(data.detailed_info || null)
         
         // Speak the action
@@ -206,7 +206,7 @@ export default function Home() {
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-8">
             <h1 className="text-5xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-500 to-teal-400 bg-clip-text text-transparent mb-2">
-              🎰 Poker GTO Vision
+              🎰 Poker Vision
             </h1>
             <p className="text-gray-400 text-lg">Powered by Google Gemini AI 🤖</p>
           </div>
@@ -238,8 +238,8 @@ export default function Home() {
                   <div className="text-3xl font-bold text-white drop-shadow">{handEquity}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Position</div>
-                  <div className="text-3xl font-bold text-white drop-shadow">{position}</div>
+                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Bet Size</div>
+                  <div className="text-3xl font-bold text-white drop-shadow">{betSize}</div>
                 </div>
               </div>
               
