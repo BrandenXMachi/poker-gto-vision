@@ -23,7 +23,7 @@ else:
     logger.warning("⚠️ GEMINI_API_KEY not set - add it to environment variables on Render")
 
 # Poker analysis prompt
-POKER_ANALYSIS_PROMPT = """You are an expert poker GTO (Game Theory Optimal) advisor analyzing a poker table screenshot.
+POKER_ANALYSIS_PROMPT = """You are an expert poker GTO (Game Theory Optimal) advisor analyzing a poker table screenshot from GGPoker.
 
 Analyze this poker table image and provide a comprehensive analysis in JSON format.
 
@@ -53,14 +53,57 @@ Your response MUST be valid JSON with this exact structure:
   }
 }
 
-Analysis Guidelines:
-1. **Pot Size**: Look for text like "Total Pot : $X.XX" or "Pot: X BB"
-2. **Position**: Identify dealer button (D marker) and calculate hero's position
-3. **Street**: Check for board cards (none = preflop)
-4. **Hero's Turn**: Look for action buttons (Fold, Call, Raise/Bet)
-5. **Pot Odds**: Calculate based on bet to call vs pot size
-6. **Hand Equity**: Estimate based on position, pot size, and visible info
-7. **GTO Recommendation**: Provide theoretically optimal play
+CRITICAL ANALYSIS GUIDELINES:
+
+1. **DEALER BUTTON IDENTIFICATION** (MOST IMPORTANT):
+   - Look for a YELLOW circular marker with the letter "D" next to a player's name
+   - This "D" button appears on the right side of the player's seat card
+   - It's a small yellow/gold circle - this is THE dealer button
+   - Example: If you see "D" next to player "ag3nt911", that player IS the dealer/button
+   
+2. **HERO IDENTIFICATION**:
+   - Hero is ALWAYS at the BOTTOM-CENTER position of the table
+   - Hero's cards are visible at the bottom (e.g., showing pocket cards like JJ, 77, etc.)
+   - Hero's action buttons (Fold, Call, Raise) appear at the bottom when it's their turn
+   - Hero's username is at the bottom-center seat
+   
+3. **POSITION CALCULATION** (Count clockwise from dealer button):
+   - Start at the player WITH the "D" button marker = Button (BTN)
+   - Move clockwise (to the left looking at the table from hero's perspective):
+     * Button (BTN) = Has the "D" marker
+     * Small Blind (SB) = 1 seat clockwise from button
+     * Big Blind (BB) = 2 seats clockwise from button
+     * Under The Gun (UTG) = 3 seats clockwise from button (first to act preflop)
+     * Middle Position (MP) = 4 seats clockwise from button
+     * Cutoff (CO) = 5 seats clockwise from button (1 seat before button)
+   
+4. **6-Max Table Layout**:
+   - Seats are arranged in a circle: Top-Center, Top-Right, Bottom-Right, Bottom-Center (HERO), Bottom-Left, Top-Left
+   - Count positions clockwise starting from whoever has the "D" button
+   
+5. **Pot Size**: 
+   - Look for "Total Pot : $X.XX" text on the table
+   - Convert to big blinds by dividing by BB amount
+   
+6. **Street**: 
+   - No community cards = preflop
+   - 3 cards on board = flop
+   - 4 cards = turn
+   - 5 cards = river
+   
+7. **Hero's Turn**: 
+   - Check if action buttons (Fold, Call, Raise/Bet) are visible at bottom
+   - Check if there's a timer or highlight on hero's seat
+   
+8. **Pot Odds & Equity**:
+   - Calculate pot odds: (amount to call) : (current pot + amount to call)
+   - Estimate equity based on position, action, and visible cards
+   
+9. **GTO Recommendation**: 
+   - Provide theoretically optimal play based on position, pot odds, and situation
+   - Consider: position strength, pot odds, likely ranges, stack depths
+
+REMEMBER: The "D" button marker is THE KEY to determining position correctly!
 
 Return ONLY valid JSON, no markdown, no extra text."""
 
