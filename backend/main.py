@@ -1,6 +1,6 @@
 """
 Main FastAPI server for Poker GTO Vision
-Powered by Gemini Flash 2.5 for AI-driven poker analysis
+Powered by Claude Sonnet 3.5 for AI-driven poker analysis
 """
 
 from fastapi import FastAPI, File, UploadFile
@@ -12,13 +12,13 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-from gemini_analyzer import GeminiPokerAnalyzer
+from claude_analyzer import ClaudePokerAnalyzer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Poker GTO Vision Backend - Gemini Powered")
+app = FastAPI(title="Poker GTO Vision Backend - Claude Powered")
 
 # CORS middleware for frontend communication
 import os
@@ -45,24 +45,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Gemini analyzer
-analyzer = GeminiPokerAnalyzer()
+# Initialize Claude analyzer
+analyzer = ClaudePokerAnalyzer()
 
 
 @app.get("/")
 async def root():
     """Health check endpoint"""
     return {
-        "status": "Poker GTO Vision Backend - Gemini Powered",
+        "status": "Poker GTO Vision Backend - Claude Powered",
         "version": "2.0.0",
-        "model": "Gemini Flash 2.5"
+        "model": "Claude Sonnet 3.5"
     }
 
 
 @app.post("/analyze")
 async def analyze_image(image: UploadFile = File(...)):
     """
-    Analyze poker table image using Gemini AI
+    Analyze poker table image using Claude AI
     Returns: Main display data + detailed side panel info
     """
     try:
@@ -71,9 +71,9 @@ async def analyze_image(image: UploadFile = File(...)):
         # Read image data
         image_data = await image.read()
         
-        logger.info(f"🖼️  Sending to Gemini for analysis...")
+        logger.info(f"🖼️  Sending to Claude for analysis...")
         
-        # Analyze with Gemini
+        # Analyze with Claude
         result = analyzer.analyze_poker_table(image_data)
         
         if not result.get("success"):

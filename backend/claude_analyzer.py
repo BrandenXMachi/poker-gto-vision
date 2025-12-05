@@ -1,6 +1,6 @@
 """
-Gemini-powered poker table analyzer
-Uses Google's Gemini Flash 2.5 for comprehensive poker analysis
+Claude-powered poker table analyzer
+Uses Anthropic's Claude Sonnet 3.5 for comprehensive poker analysis
 """
 
 import os
@@ -8,19 +8,20 @@ import base64
 import json
 import logging
 from typing import Dict, Any
-import google.generativeai as genai
+from anthropic import Anthropic
 from PIL import Image
 from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
-# Configure Gemini (will be checked on first use)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    logger.info("✅ Gemini API key configured")
+# Configure Claude
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+if ANTHROPIC_API_KEY:
+    client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    logger.info("✅ Claude API key configured")
 else:
-    logger.warning("⚠️ GEMINI_API_KEY not set - add it to environment variables on Render")
+    client = None
+    logger.warning("⚠️ ANTHROPIC_API_KEY not set - add it to environment variables on Render")
 
 # Poker analysis prompt
 POKER_ANALYSIS_PROMPT = """You are an expert poker GTO (Game Theory Optimal) advisor analyzing a poker table screenshot from GGPoker.
@@ -108,17 +109,19 @@ REMEMBER: The "D" button marker is THE KEY to determining position correctly!
 Return ONLY valid JSON, no markdown, no extra text."""
 
 
-class GeminiPokerAnalyzer:
-    """Poker table analyzer using Gemini vision"""
+class ClaudePokerAnalyzer:
+    """Poker table analyzer using Claude Sonnet 3.5"""
     
     def __init__(self):
-        """Initialize Gemini model"""
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        logger.info("✅ Gemini analyzer initialized")
+        """Initialize Claude client"""
+        if not client:
+            logger.warning("⚠️ Claude client not initialized - API key missing")
+        else:
+            logger.info("✅ Claude analyzer initialized")
     
     def analyze_poker_table(self, image_data: bytes) -> Dict[str, Any]:
         """
-        Analyze poker table image using Gemini
+        Analyze poker table image using Claude
         
         Args:
             image_data: Raw image bytes
@@ -127,27 +130,55 @@ class GeminiPokerAnalyzer:
             Dictionary with analysis results
         """
         # Check if API key is configured
-        if not GEMINI_API_KEY:
-            logger.error("❌ GEMINI_API_KEY not configured!")
+        if not ANTHROPIC_API_KEY or not client:
+            logger.error("❌ ANTHROPIC_API_KEY not configured!")
             return {
                 "success": False,
-                "error": "GEMINI_API_KEY not configured. Please add it to Render environment variables."
+                "error": "ANTHROPIC_API_KEY not configured. Please add it to Render environment variables."
             }
         
         try:
-            logger.info("🤖 Sending image to Gemini for analysis...")
+            logger.info("🤖 Sending image to Claude for analysis...")
             
-            # Convert bytes to PIL Image
-            image = Image.open(BytesIO(image_data))
+            # Convert image to base64
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
             
-            # Generate analysis
-            response = self.model.generate_content([
-                POKER_ANALYSIS_PROMPT,
-                image
-            ])
+            # Determine image type
+            try:
+                img = Image.open(BytesIO(image_data))
+                img_format = img.format.lower() if img.format else 'jpeg'
+                if img_format == 'jpg':
+                    img_format = 'jpeg'
+            except:
+                img_format = 'jpeg'
             
-            # Parse JSON response
-            analysis_text = response.text.strip()
+            # Generate analysis using Claude
+            message = client.messages.create(
+                model="claude-sonnet-3-5-20241022",
+                max_tokens=2048,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": f"image/{img_format}",
+                                    "data": image_base64,
+                                },
+                            },
+                            {
+                                "type": "text",
+                                "text": POKER_ANALYSIS_PROMPT
+                            }
+                        ],
+                    }
+                ],
+            )
+            
+            # Extract response text
+            analysis_text = message.content[0].text.strip()
             
             # Remove markdown code blocks if present
             if analysis_text.startswith("```json"):
@@ -162,7 +193,7 @@ class GeminiPokerAnalyzer:
             # Parse JSON
             analysis = json.loads(analysis_text)
             
-            logger.info(f"✅ Gemini analysis complete: {analysis['recommendation']['action']}")
+            logger.info(f"✅ Claude analysis complete: {analysis['recommendation']['action']}")
             
             return {
                 "success": True,
@@ -170,16 +201,16 @@ class GeminiPokerAnalyzer:
             }
             
         except json.JSONDecodeError as e:
-            logger.error(f"❌ Failed to parse Gemini response as JSON: {e}")
-            logger.error(f"Raw response: {response.text[:500]}")
+            logger.error(f"❌ Failed to parse Claude response as JSON: {e}")
+            logger.error(f"Raw response: {analysis_text[:500] if 'analysis_text' in locals() else 'N/A'}")
             return {
                 "success": False,
                 "error": "Failed to parse analysis response",
-                "raw_response": response.text[:500]
+                "raw_response": analysis_text[:500] if 'analysis_text' in locals() else 'N/A'
             }
             
         except Exception as e:
-            logger.error(f"❌ Gemini analysis error: {e}")
+            logger.error(f"❌ Claude analysis error: {e}")
             return {
                 "success": False,
                 "error": str(e)
@@ -187,7 +218,7 @@ class GeminiPokerAnalyzer:
     
     def format_for_frontend(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Format Gemini analysis for frontend display
+        Format Claude analysis for frontend display
         
         Returns simplified view for main UI and detailed side panel data
         """
