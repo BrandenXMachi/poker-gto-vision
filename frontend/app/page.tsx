@@ -198,45 +198,53 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-gray-900 text-white flex">
+    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-green-900 to-gray-900 text-white flex">
       {/* Main content area */}
       <div className="flex-1 px-4 py-6">
         <div className="container mx-auto max-w-4xl">
-          <h1 className="text-3xl font-bold text-center mb-6">Poker GTO Vision - Gemini AI</h1>
+          <div className="text-center mb-8">
+            <h1 className="text-5xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-500 to-teal-400 bg-clip-text text-transparent mb-2">
+              🎰 Poker GTO Vision
+            </h1>
+            <p className="text-gray-400 text-lg">Powered by Google Gemini AI 🤖</p>
+          </div>
           
           {/* Error display */}
           {error && (
-            <div className="bg-red-500 text-white p-4 rounded-lg mb-4">
-              {error}
+            <div className="bg-red-500/90 backdrop-blur text-white p-5 rounded-xl mb-6 border-2 border-red-400 shadow-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">⚠️</span>
+                <span className="font-semibold">{error}</span>
+              </div>
             </div>
           )}
 
-          {/* Main recommendation display - Simplified */}
+          {/* Main recommendation display - Enhanced */}
           {action && (
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8 rounded-xl mb-4 shadow-2xl">
-              <div className="text-4xl font-bold text-center mb-6">
+            <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 border-emerald-400/30 backdrop-blur">
+              <div className="text-5xl font-extrabold text-center mb-8 drop-shadow-lg">
                 {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
               </div>
               
-              <div className="grid grid-cols-3 gap-6 text-center">
-                <div className="bg-blue-800 bg-opacity-40 p-4 rounded-lg">
-                  <div className="text-blue-200 text-sm mb-1">Pot Odds</div>
-                  <div className="text-2xl font-bold">{potOdds}</div>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
+                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Pot Odds</div>
+                  <div className="text-3xl font-bold text-white drop-shadow">{potOdds}</div>
                 </div>
-                <div className="bg-blue-800 bg-opacity-40 p-4 rounded-lg">
-                  <div className="text-blue-200 text-sm mb-1">Hand Equity</div>
-                  <div className="text-2xl font-bold">{handEquity}</div>
+                <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
+                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Hand Equity</div>
+                  <div className="text-3xl font-bold text-white drop-shadow">{handEquity}</div>
                 </div>
-                <div className="bg-blue-800 bg-opacity-40 p-4 rounded-lg">
-                  <div className="text-blue-200 text-sm mb-1">Position</div>
-                  <div className="text-2xl font-bold">{position}</div>
+                <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
+                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Position</div>
+                  <div className="text-3xl font-bold text-white drop-shadow">{position}</div>
                 </div>
               </div>
               
               {detailedInfo && (
                 <button
                   onClick={() => setShowSidePanel(!showSidePanel)}
-                  className="mt-4 w-full bg-white text-blue-600 font-semibold py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="mt-6 w-full bg-white text-emerald-700 font-bold py-3 rounded-xl hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 >
                   {showSidePanel ? '← Hide Details' : 'View Detailed Analysis →'}
                 </button>
@@ -245,12 +253,12 @@ export default function Home() {
           )}
 
           {/* Video/Image display */}
-          <div className="relative">
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-gray-700">
             {capturedImage ? (
               <img
                 src={capturedImage}
                 alt="Captured poker table"
-                className="w-full rounded-lg"
+                className="w-full"
               />
             ) : (
               <video
@@ -258,16 +266,17 @@ export default function Home() {
                 autoPlay
                 playsInline
                 muted
-                className="w-full rounded-lg bg-black"
+                className="w-full bg-black"
               />
             )}
             
             {/* Analyzing overlay */}
             {isAnalyzing && (
-              <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center rounded-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/95 to-teal-900/95 backdrop-blur-sm flex items-center justify-center">
                 <div className="text-center">
-                  <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <div className="text-xl font-bold">🤖 Gemini AI Analyzing...</div>
+                  <div className="w-20 h-20 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+                  <div className="text-2xl font-bold text-white drop-shadow-lg">🤖 Gemini AI Analyzing...</div>
+                  <div className="text-emerald-300 mt-2">Processing poker table...</div>
                 </div>
               </div>
             )}
@@ -277,18 +286,18 @@ export default function Home() {
           <canvas ref={canvasRef} className="hidden" />
 
           {/* Control buttons */}
-          <div className="flex justify-center gap-4 mt-6">
+          <div className="flex justify-center gap-4 mt-8">
             {capturedImage ? (
               <button
                 onClick={captureAgain}
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-colors"
+                className="px-10 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 🔄 Capture Again
               </button>
             ) : !isCameraActive ? (
               <button
                 onClick={startCamera}
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-colors"
+                className="px-10 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 📷 Start Camera
               </button>
@@ -297,15 +306,17 @@ export default function Home() {
                 <button
                   onClick={captureAndAnalyze}
                   disabled={isAnalyzing}
-                  className={`px-8 py-4 rounded-lg font-semibold text-lg transition-colors ${
-                    isAnalyzing ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                  className={`px-10 py-4 rounded-xl font-bold text-lg transition-all shadow-lg transform ${
+                    isAnalyzing 
+                      ? 'bg-gray-600 cursor-not-allowed opacity-70' 
+                      : 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 hover:shadow-xl hover:scale-105'
                   }`}
                 >
                   {isAnalyzing ? '⏳ Analyzing...' : '📸 Capture & Analyze'}
                 </button>
                 <button
                   onClick={stopCamera}
-                  className="px-8 py-4 bg-red-600 hover:bg-red-700 rounded-lg font-semibold text-lg transition-colors"
+                  className="px-10 py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   ❌ Stop
                 </button>
