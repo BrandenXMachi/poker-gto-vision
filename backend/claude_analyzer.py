@@ -212,18 +212,21 @@ class ClaudePokerAnalyzer:
             
         except json.JSONDecodeError as e:
             logger.error(f"❌ Failed to parse Claude response as JSON: {e}")
-            logger.error(f"Raw response: {analysis_text[:500] if 'analysis_text' in locals() else 'N/A'}")
+            raw_text = analysis_text[:1000] if 'analysis_text' in locals() else 'N/A'
+            logger.error(f"Raw response: {raw_text}")
             return {
                 "success": False,
-                "error": "Failed to parse analysis response",
-                "raw_response": analysis_text[:500] if 'analysis_text' in locals() else 'N/A'
+                "error": f"JSON parse error: {str(e)}",
+                "raw_response": raw_text
             }
             
         except Exception as e:
-            logger.error(f"❌ Claude analysis error: {e}")
+            logger.error(f"❌ Claude analysis error: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": f"{type(e).__name__}: {str(e)}"
             }
     
     def format_for_frontend(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
