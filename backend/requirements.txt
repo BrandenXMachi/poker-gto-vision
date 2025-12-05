@@ -4,7 +4,7 @@ uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 
 # Claude AI
-anthropic==0.39.0
+anthropic==0.40.0
 
 # Image Processing (lightweight - just for loading images)
 Pillow>=10.0.0
