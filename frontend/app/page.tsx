@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface DetailedInfo {
   game_state: {
@@ -17,6 +18,7 @@ interface DetailedInfo {
 }
 
 export default function Home() {
+  const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
@@ -34,9 +36,8 @@ export default function Home() {
   const [potSize, setPotSize] = useState<string>('')
   const [betSize, setBetSize] = useState<string>('')
   
-  // Detailed side panel info
+  // Detailed info for navigation to details page
   const [detailedInfo, setDetailedInfo] = useState<DetailedInfo | null>(null)
-  const [showSidePanel, setShowSidePanel] = useState(false)
 
   // Initialize speech synthesis
   useEffect(() => {
@@ -188,7 +189,6 @@ export default function Home() {
     setCapturedImage('')
     setAction('')
     setError('')
-    setShowSidePanel(false)
     startCamera()
   }
 
@@ -245,10 +245,17 @@ export default function Home() {
               
               {detailedInfo && (
                 <button
-                  onClick={() => setShowSidePanel(!showSidePanel)}
+                  onClick={() => {
+                    // Store data in localStorage
+                    localStorage.setItem('poker_detailed_info', JSON.stringify(detailedInfo))
+                    localStorage.setItem('poker_action', action)
+                    localStorage.setItem('poker_pot_size', potSize)
+                    // Navigate to details page
+                    router.push('/details')
+                  }}
                   className="mt-6 w-full bg-white text-emerald-700 font-bold py-3 rounded-xl hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 >
-                  {showSidePanel ? '← Hide Details' : 'View Detailed Analysis →'}
+                  View Detailed Analysis →
                 </button>
               )}
             </div>
@@ -354,87 +361,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      {/* Side panel - Detailed analysis */}
-      {showSidePanel && detailedInfo && (
-        <div className="w-96 bg-gray-800 border-l border-gray-700 p-6 overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Detailed Analysis</h2>
-            <button
-              onClick={() => setShowSidePanel(false)}
-              className="text-gray-400 hover:text-white"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Game State */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-blue-400 mb-2">Game State</h3>
-            <div className="bg-gray-700 p-3 rounded">
-              <div><span className="text-gray-400">Street:</span> <span className="capitalize">{detailedInfo.game_state.street}</span></div>
-              <div><span className="text-gray-400">Pot:</span> {detailedInfo.game_state.pot_dollars} ({potSize})</div>
-              {detailedInfo.game_state.board_cards.length > 0 && (
-                <div><span className="text-gray-400">Board:</span> {detailedInfo.game_state.board_cards.join(' ')}</div>
-              )}
-            </div>
-          </div>
-
-          {/* Reasoning */}
-          {detailedInfo.reasoning && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-blue-400 mb-2">Reasoning</h3>
-              <div className="bg-gray-700 p-3 rounded text-sm">
-                {detailedInfo.reasoning}
-              </div>
-            </div>
-          )}
-
-          {/* Range Analysis */}
-          {detailedInfo.range_analysis && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-blue-400 mb-2">Range Analysis</h3>
-              <div className="bg-gray-700 p-3 rounded text-sm">
-                {detailedInfo.range_analysis}
-              </div>
-            </div>
-          )}
-
-          {/* EV Calculation */}
-          {detailedInfo.ev_calculation && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-blue-400 mb-2">EV Breakdown</h3>
-              <div className="bg-gray-700 p-3 rounded text-sm">
-                {detailedInfo.ev_calculation}
-              </div>
-            </div>
-          )}
-
-          {/* Action History */}
-          {detailedInfo.action_history && detailedInfo.action_history.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-blue-400 mb-2">Action History</h3>
-              <div className="bg-gray-700 p-3 rounded text-sm space-y-1">
-                {detailedInfo.action_history.map((action, idx) => (
-                  <div key={idx}>• {action}</div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Alternative Lines */}
-          {detailedInfo.alternative_lines && detailedInfo.alternative_lines.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-blue-400 mb-2">Alternative Lines</h3>
-              <div className="bg-gray-700 p-3 rounded text-sm space-y-1">
-                {detailedInfo.alternative_lines.map((line, idx) => (
-                  <div key={idx}>• {line}</div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </main>
   )
 }
