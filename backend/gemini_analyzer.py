@@ -23,9 +23,9 @@ else:
     logger.warning("⚠️ GEMINI_API_KEY not set - add it to environment variables on Render")
 
 # Poker analysis prompt
-POKER_ANALYSIS_PROMPT = """You are an expert poker GTO (Game Theory Optimal) advisor analyzing a poker table screenshot from GGPoker.
+POKER_ANALYSIS_PROMPT = """You are an expert poker GTO (Game Theory Optimal) advisor with deep understanding of game theory, exploitative play, and hand reading.
 
-Analyze this poker table image and provide a comprehensive analysis in JSON format.
+Analyze this poker table screenshot from GGPoker and provide a comprehensive mathematical analysis.
 
 Your response MUST be valid JSON with this exact structure:
 
@@ -37,12 +37,14 @@ Your response MUST be valid JSON with this exact structure:
     "street": "<preflop|flop|turn|river>",
     "is_hero_turn": <boolean>
   },
-  "pot_odds": "<ratio like 3:1>",
-  "hand_equity": "<percentage like 45%>",
   "recommendation": {
-    "action": "<Fold|Call|Raise>",
-    "bet_size": "<specific bet size recommendation in BB, e.g., '3 BB', '12.5 BB', or 'N/A' for Fold/Call>",
-    "reasoning": "<brief explanation>"
+    "action": "<Fold|Call|Check|Raise>",
+    "raise_amount_dollars": "<exact dollar amount like '$4.50' or 'N/A' if not raising>",
+    "pot_odds": "<ratio like 3:1 or percentage like 25%>",
+    "equity_vs_range": "<percentage like 45%>",
+    "fold_equity": "<percentage like 35%>",
+    "expected_value": "<dollar amount like '+$2.10' or '-$1.50'>",
+    "reasoning": "<brief 1-2 sentence explanation>"
   },
   "detailed_analysis": {
     "board_cards": [<list of cards or empty>],
@@ -96,15 +98,65 @@ CRITICAL ANALYSIS GUIDELINES:
    - Check if action buttons (Fold, Call, Raise/Bet) are visible at bottom
    - Check if there's a timer or highlight on hero's seat
    
-8. **Pot Odds & Equity**:
-   - Calculate pot odds: (amount to call) : (current pot + amount to call)
-   - Estimate equity based on position, action, and visible cards
-   
-9. **GTO Recommendation**: 
-   - Provide theoretically optimal play based on position, pot odds, and situation
-   - Consider: position strength, pot odds, likely ranges, stack depths
+8. **INFER GAME HISTORY & ACTION**:
+   From the snapshot, deduce:
+   - **Who is the aggressor**: Look at bet sizes, who has chips in front of them, position
+   - **Action sequence**: Infer if there was a raise, 3-bet, 4-bet based on pot size and stack changes
+   - **Bet sizes**: Calculate from visible chips and pot
+   - **Likely holdings**: Based on position, action, and bet sizing
 
-REMEMBER: The "D" button marker is THE KEY to determining position correctly!
+9. **VPIP EXPLOITATION**:
+   - Look for VPIP percentage ABOVE each player's name (small text)
+   - VPIP > 35% = Loose player (wider range, exploit with value betting)
+   - VPIP 20-35% = Standard player (balanced range)
+   - VPIP < 20% = Tight player (narrow range, can bluff more)
+   - Adjust your range construction and fold equity estimates accordingly
+
+10. **BOARD TEXTURE ANALYSIS**:
+   - Dry boards (K♠72♦) = Less fold equity, value-bet heavy
+   - Wet boards (JT9♠♠) = More fold equity, can semi-bluff draws
+   - Coordinated boards favor the aggressor's range
+   - Static vs dynamic boards affect equity realization
+
+11. **CALCULATE THE 4 DECISION METRICS**:
+
+   **A. Pot Odds**:
+   - Formula: (Amount to call) / (Pot after you call)
+   - Express as ratio (3:1) or percentage (25%)
+   
+   **B. Equity vs Villain's Range**:
+   - Construct villain's likely range based on:
+     * Position (tighter from early, wider from late)
+     * Action (aggressor has stronger range)
+     * VPIP stats (adjust range width)
+     * Board texture (remove unlikely hands)
+   - Calculate hero's equity against this range
+   - Consider blockers (hero's cards that reduce villain's combos)
+   
+   **C. Fold Equity**:
+   - Estimate % chance villain folds to a raise
+   - Factors: Villain's VPIP, board texture, pot size, stack depth
+   - Tight players (low VPIP) fold more to aggression
+   - Smaller pots = easier to fold
+   
+   **D. Expected Value (EV)**:
+   - For Call: EV = (Equity × Pot) - Call Amount
+   - For Raise: EV = (Fold Equity × Current Pot) + ((1 - Fold Equity) × ((Equity × Total Pot) - Raise Amount))
+   - Express in dollars (e.g., "+$2.10" or "-$0.75")
+
+12. **RAISE SIZING**:
+   - If recommending Raise, provide EXACT dollar amount (e.g., "$4.50")
+   - Sizing guidelines:
+     * Value raises: 2.5-3x pot
+     * Bluff raises: 0.5-0.75x pot
+     * 3-bets: 3-4x initial raise
+   - Consider stack-to-pot ratio (SPR) for all-in decisions
+
+REMEMBER: 
+- Use visible clues to reconstruct the hand history
+- Let VPIP stats guide your exploitation strategy
+- Calculate all 4 metrics with precision
+- Provide exact raise amounts in dollars
 
 Return ONLY valid JSON, no markdown, no extra text."""
 
@@ -194,24 +246,35 @@ class GeminiPokerAnalyzer:
         """
         Format Gemini analysis for frontend display
         
-        Returns simplified view for main UI and detailed side panel data
+        Returns simplified view for main UI with 4 decision metrics
         """
         try:
             game_info = analysis.get("game_info", {})
             recommendation = analysis.get("recommendation", {})
             detailed = analysis.get("detailed_analysis", {})
             
+            # Format action with raise amount if applicable
+            action = recommendation.get("action", "Unknown")
+            raise_amount = recommendation.get("raise_amount_dollars", "N/A")
+            
+            # If action is Raise and we have an amount, combine them
+            if action == "Raise" and raise_amount != "N/A":
+                action_display = f"Raise {raise_amount}"
+            else:
+                action_display = action
+            
             return {
                 "success": True,
                 "hero_turn": game_info.get("is_hero_turn", False),
                 
-                # Main display (pot odds, equity, action, bet size)
+                # Main display - 4 decision metrics
                 "recommendation": {
-                    "action": recommendation.get("action", "Unknown"),
-                    "pot_odds": analysis.get("pot_odds", "N/A"),
-                    "hand_equity": analysis.get("hand_equity", "N/A"),
+                    "action": action_display,
+                    "pot_odds": recommendation.get("pot_odds", "N/A"),
+                    "equity_vs_range": recommendation.get("equity_vs_range", "N/A"),
+                    "fold_equity": recommendation.get("fold_equity", "N/A"),
+                    "expected_value": recommendation.get("expected_value", "N/A"),
                     "pot_size": f"{game_info.get('pot_size_bb', 0)} BB",
-                    "bet_size": recommendation.get("bet_size", "N/A"),
                     "position": game_info.get("hero_position", "Unknown")
                 },
                 

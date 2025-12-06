@@ -32,9 +32,10 @@ export default function Home() {
   // Main display info
   const [action, setAction] = useState<string>('')
   const [potOdds, setPotOdds] = useState<string>('')
-  const [handEquity, setHandEquity] = useState<string>('')
+  const [equityVsRange, setEquityVsRange] = useState<string>('')
+  const [foldEquity, setFoldEquity] = useState<string>('')
+  const [expectedValue, setExpectedValue] = useState<string>('')
   const [potSize, setPotSize] = useState<string>('')
-  const [betSize, setBetSize] = useState<string>('')
   
   // Detailed info for navigation to details page
   const [detailedInfo, setDetailedInfo] = useState<DetailedInfo | null>(null)
@@ -161,10 +162,11 @@ export default function Home() {
       if (data.success && data.recommendation) {
         const rec = data.recommendation
         setAction(rec.action)
-        setPotOdds(rec.pot_odds)
-        setHandEquity(rec.hand_equity)
+        setPotOdds(rec.pot_odds || 'N/A')
+        setEquityVsRange(rec.equity_vs_range || 'N/A')
+        setFoldEquity(rec.fold_equity || 'N/A')
+        setExpectedValue(rec.expected_value || 'N/A')
         setPotSize(rec.pot_size || 'N/A')
-        setBetSize(rec.bet_size || 'N/A')
         setDetailedInfo(data.detailed_info || null)
         
         // Speak the action
@@ -228,18 +230,22 @@ export default function Home() {
                 {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
               </div>
               
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
                   <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Pot Odds</div>
-                  <div className="text-3xl font-bold text-white drop-shadow">{potOdds}</div>
+                  <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{potOdds}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Hand Equity</div>
-                  <div className="text-3xl font-bold text-white drop-shadow">{handEquity}</div>
+                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Equity</div>
+                  <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{equityVsRange}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Bet Size</div>
-                  <div className="text-3xl font-bold text-white drop-shadow">{betSize}</div>
+                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Fold Equity</div>
+                  <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{foldEquity}</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
+                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">EV</div>
+                  <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{expectedValue}</div>
                 </div>
               </div>
               
