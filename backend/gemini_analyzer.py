@@ -196,8 +196,8 @@ class GeminiPokerAnalyzer:
     
     def __init__(self):
         """Initialize Gemini model"""
-        self.model = genai.GenerativeModel('gemini-1.5-pro')
-        logger.info("✅ Gemini 1.5 Pro analyzer initialized")
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        logger.info("✅ Gemini 1.5 Flash analyzer initialized")
     
     def _get_relative_positions(self, hero_position: str) -> str:
         """
