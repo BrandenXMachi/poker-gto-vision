@@ -1,6 +1,6 @@
 """
 Gemini-powered poker table analyzer
-Uses Google's Gemini Flash 2.5 for comprehensive poker analysis
+Uses Google's Gemini Flash 2.0 for comprehensive poker analysis
 """
 
 import os
@@ -196,8 +196,8 @@ class GeminiPokerAnalyzer:
     
     def __init__(self):
         """Initialize Gemini model"""
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
-        logger.info("✅ Gemini 1.5 Flash analyzer initialized")
+        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        logger.info("✅ Gemini 2.0 Flash analyzer initialized")
     
     def _get_relative_positions(self, hero_position: str) -> str:
         """

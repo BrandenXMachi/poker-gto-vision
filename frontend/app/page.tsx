@@ -210,7 +210,7 @@ export default function Home() {
             <h1 className="text-5xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-500 to-teal-400 bg-clip-text text-transparent mb-2">
               🎰 Poker Vision
             </h1>
-            <p className="text-gray-400 text-lg">Powered by Gemini 1.5 Flash 🤖</p>
+            <p className="text-gray-400 text-lg">Powered by Gemini 2.0 Flash 🤖</p>
           </div>
           
           {/* Error display */}
