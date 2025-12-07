@@ -131,7 +131,7 @@ export default function DetailsPage() {
               <span className="font-bold">{detailedInfo.game_state.pot_dollars} ({potSize})</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Hero's Hand:</span>
+              <span className="text-gray-400">Hero&apos;s Hand:</span>
               <span className="font-bold text-xl">
                 {detailedInfo.game_state.hero_cards && detailedInfo.game_state.hero_cards.length > 0
                   ? detailedInfo.game_state.hero_cards.join(' ')
