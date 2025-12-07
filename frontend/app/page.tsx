@@ -32,7 +32,8 @@ export default function Home() {
   // Main display info
   const [action, setAction] = useState<string>('')
   const [potOdds, setPotOdds] = useState<string>('')
-  const [equityVsRange, setEquityVsRange] = useState<string>('')
+  const [handEquity, setHandEquity] = useState<string>('')
+  const [impliedOdds, setImpliedOdds] = useState<string>('')
   const [foldEquity, setFoldEquity] = useState<string>('')
   const [expectedValue, setExpectedValue] = useState<string>('')
   const [potSize, setPotSize] = useState<string>('')
@@ -163,7 +164,8 @@ export default function Home() {
         const rec = data.recommendation
         setAction(rec.action)
         setPotOdds(rec.pot_odds || 'N/A')
-        setEquityVsRange(rec.equity_vs_range || 'N/A')
+        setHandEquity(rec.hand_equity || 'N/A')
+        setImpliedOdds(rec.implied_odds || 'N/A')
         setFoldEquity(rec.fold_equity || 'N/A')
         setExpectedValue(rec.expected_value || 'N/A')
         setPotSize(rec.pot_size || 'N/A')
@@ -236,8 +238,12 @@ export default function Home() {
                   <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{potOdds}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Equity</div>
-                  <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{equityVsRange}</div>
+                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Hand Equity</div>
+                  <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{handEquity}</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
+                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Implied Odds</div>
+                  <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{impliedOdds}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
                   <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Fold Equity</div>

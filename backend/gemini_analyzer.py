@@ -23,7 +23,7 @@ else:
     logger.warning("⚠️ GEMINI_API_KEY not set - add it to environment variables on Render")
 
 # Poker analysis prompt
-POKER_ANALYSIS_PROMPT = """You are an expert poker GTO (Game Theory Optimal) advisor with deep understanding of game theory, exploitative play, and hand reading.
+POKER_ANALYSIS_PROMPT = """You are an expert poker mathematician specializing in GTO (Game Theory Optimal) analysis.
 
 Analyze this poker table screenshot from GGPoker and provide a comprehensive mathematical analysis.
 
@@ -38,13 +38,14 @@ Your response MUST be valid JSON with this exact structure:
     "is_hero_turn": <boolean>
   },
   "recommendation": {
-    "action": "<Fold|Call|Check|Raise>",
+    "action": "<Fold|Call|Check|Raise|Bet>",
     "raise_amount_dollars": "<exact dollar amount like '$4.50' or 'N/A' if not raising>",
     "pot_odds": "<ratio like 3:1 or percentage like 25%>",
-    "equity_vs_range": "<percentage like 45%>",
+    "hand_equity": "<percentage like 45%>",
+    "implied_odds": "<ratio like 5:1 or 'High/Medium/Low'>",
     "fold_equity": "<percentage like 35%>",
     "expected_value": "<dollar amount like '+$2.10' or '-$1.50'>",
-    "reasoning": "<brief 1-2 sentence explanation>"
+    "reasoning": "<brief 1-2 sentence explanation based on the 5 metrics>"
   },
   "detailed_analysis": {
     "board_cards": [<list of cards or empty>],
@@ -58,17 +59,15 @@ Your response MUST be valid JSON with this exact structure:
 
 CRITICAL ANALYSIS GUIDELINES:
 
-1. **DEALER BUTTON IDENTIFICATION** (MOST IMPORTANT):
+1. **DEALER BUTTON IDENTIFICATION**:
    - Look for a YELLOW circular marker with the letter "D" next to a player's name
    - This "D" button appears on the right side of the player's seat card
    - It's a small yellow/gold circle - this is THE dealer button
-   - Example: If you see "D" next to player "ag3nt911", that player IS the dealer/button
    
 2. **HERO IDENTIFICATION**:
    - Hero is ALWAYS at the BOTTOM-CENTER position of the table
    - Hero's cards are visible at the bottom (e.g., showing pocket cards like JJ, 77, etc.)
    - Hero's action buttons (Fold, Call, Raise) appear at the bottom when it's their turn
-   - Hero's username is at the bottom-center seat
    
 3. **POSITION CALCULATION** (Count clockwise from dealer button):
    - Start at the player WITH the "D" button marker = Button (BTN)
@@ -76,29 +75,17 @@ CRITICAL ANALYSIS GUIDELINES:
      * Button (BTN) = Has the "D" marker
      * Small Blind (SB) = 1 seat clockwise from button
      * Big Blind (BB) = 2 seats clockwise from button
-     * Under The Gun (UTG) = 3 seats clockwise from button (first to act preflop)
+     * Under The Gun (UTG) = 3 seats clockwise from button
      * Middle Position (MP) = 4 seats clockwise from button
-     * Cutoff (CO) = 5 seats clockwise from button (1 seat before button)
+     * Cutoff (CO) = 5 seats clockwise from button
    
-4. **6-Max Table Layout**:
-   - Seats are arranged in a circle: Top-Center, Top-Right, Bottom-Right, Bottom-Center (HERO), Bottom-Left, Top-Left
-   - Count positions clockwise starting from whoever has the "D" button
-   
-5. **Pot Size**: 
-   - Look for "Total Pot : $X.XX" text on the table
-   - Convert to big blinds by dividing by BB amount
-   
-6. **Street**: 
+4. **STREET IDENTIFICATION**:
    - No community cards = preflop
    - 3 cards on board = flop
    - 4 cards = turn
    - 5 cards = river
-   
-7. **Hero's Turn**: 
-   - Check if action buttons (Fold, Call, Raise/Bet) are visible at bottom
-   - Check if there's a timer or highlight on hero's seat
 
-8. **CRITICAL: ACCURATE HAND READING** (DO NOT HALLUCINATE DRAWS):
+5. **CRITICAL: ACCURATE HAND READING** (DO NOT HALLUCINATE):
    
    **Read Hero's Exact Cards:**
    - Identify BOTH hero's cards precisely (rank AND suit)
@@ -110,7 +97,6 @@ CRITICAL ANALYSIS GUIDELINES:
    
    **Flush Draws - VERIFY SUITS:**
    - Flush draw = 4 cards of SAME suit (e.g., hero has 2 spades + 2 spades on board)
-   - Backdoor flush = hero has 2 cards of same suit + 1 of that suit on board
    - If hero has spades and board has diamonds: NO FLUSH DRAW
    - DO NOT assume flush draws - COUNT the suits!
    
@@ -118,75 +104,72 @@ CRITICAL ANALYSIS GUIDELINES:
    - Open-ended = 4 cards in sequence, missing either end (e.g., 6789 needs 5 or T)
    - Gutshot = 4 cards with 1 gap (e.g., 5689 needs 7)
    - For AQ on 689 board: NO straight draw (AQ doesn't connect)
-   - For 78 on 69T board: YES gutshot (needs 8)
    - DO NOT assume straight draws - CHECK if cards actually connect!
    
-   **Backdoor Draws:**
-   - Backdoor straight = needs BOTH turn AND river to complete (e.g., needs running cards)
-   - Only mention backdoor draws if they're realistic and affect equity
-   - Don't overvalue backdoor draws in reasoning
-   
    **RULE: If you can't see a clear draw, DON'T mention it in reasoning!**
+
+6. **POST-FLOP DECISION MAKING** (FLOP/TURN/RIVER):
    
-9. **INFER GAME HISTORY & ACTION**:
-   From the snapshot, deduce:
-   - **Who is the aggressor**: Look at bet sizes, who has chips in front of them, position
-   - **Action sequence**: Infer if there was a raise, 3-bet, 4-bet based on pot size and stack changes
-   - **Bet sizes**: Calculate from visible chips and pot
-   - **Likely holdings**: Based on position, action, and bet sizing
-
-10. **VPIP EXPLOITATION**:
-   - Look for VPIP percentage ABOVE each player's name (small text)
-   - VPIP > 35% = Loose player (wider range, exploit with value betting)
-   - VPIP 20-35% = Standard player (balanced range)
-   - VPIP < 20% = Tight player (narrow range, can bluff more)
-   - Adjust your range construction and fold equity estimates accordingly
-
-11. **BOARD TEXTURE ANALYSIS**:
-   - Dry boards (K♠72♦) = Less fold equity, value-bet heavy
-   - Wet boards (JT9♠♠) = More fold equity, can semi-bluff draws
-   - Coordinated boards favor the aggressor's range
-   - Static vs dynamic boards affect equity realization
-
-12. **CALCULATE THE 4 DECISION METRICS**:
-
-   **A. Pot Odds**:
+   Your decision MUST be based SOLELY on these 5 mathematical metrics:
+   
+   **A. POT ODDS**:
    - Formula: (Amount to call) / (Pot after you call)
    - Express as ratio (3:1) or percentage (25%)
+   - Critical for call/fold decisions
    
-   **B. Equity vs Villain's Range**:
-   - Construct villain's likely range based on:
+   **B. HAND EQUITY**:
+   - Calculate hero's exact winning percentage against villain's range
+   - Consider:
      * Position (tighter from early, wider from late)
      * Action (aggressor has stronger range)
-     * VPIP stats (adjust range width)
      * Board texture (remove unlikely hands)
-   - Calculate hero's equity against this range
-   - Consider blockers (hero's cards that reduce villain's combos)
+   - Express as percentage (e.g., "45%")
    
-   **C. Fold Equity**:
-   - Estimate % chance villain folds to a raise
-   - Factors: Villain's VPIP, board texture, pot size, stack depth
-   - Tight players (low VPIP) fold more to aggression
-   - Smaller pots = easier to fold
+   **C. IMPLIED ODDS**:
+   - Estimate additional chips you can win on future streets if you hit
+   - Factors:
+     * Remaining stack depths
+     * Board texture (wet boards = lower implied odds)
+     * Villain's playing style (loose = higher implied odds)
+   - Express as ratio (e.g., "5:1") or description ("High/Medium/Low")
    
-   **D. Expected Value (EV)**:
-   - For Call: EV = (Equity × Pot) - Call Amount
-   - For Raise: EV = (Fold Equity × Current Pot) + ((1 - Fold Equity) × ((Equity × Total Pot) - Raise Amount))
+   **D. FOLD EQUITY**:
+   - Estimate % chance villain folds to a bet/raise
+   - Factors:
+     * Villain's VPIP (tight players fold more)
+     * Board texture (scary boards = more folds)
+     * Bet sizing (larger bets = more folds)
+     * Pot size (small pots = easier folds)
+   - Express as percentage (e.g., "35%")
+   
+   **E. EXPECTED VALUE (EV)**:
+   - For Call: EV = (Hand Equity × Pot) - Call Amount + (Implied Odds Factor)
+   - For Bet/Raise: EV = (Fold Equity × Current Pot) + ((1 - Fold Equity) × ((Hand Equity × Total Pot) - Bet Amount))
    - Express in dollars (e.g., "+$2.10" or "-$0.75")
+   
+   **DECISION LOGIC POST-FLOP:**
+   - If Pot Odds < Hand Equity + Implied Odds → CALL is profitable
+   - If EV(Bet/Raise) > EV(Call) → BET/RAISE is optimal
+   - If all EVs are negative → FOLD
+   - Fold Equity justifies bluffs when combined with some equity
+   
+7. **PREFLOP DECISION MAKING**:
+   - Preflop can use broader strategic considerations
+   - Position, ranges, and GTO principles apply
+   - But still calculate the 5 metrics where applicable
 
-13. **RAISE SIZING**:
-   - If recommending Raise, provide EXACT dollar amount (e.g., "$4.50")
+8. **RAISE SIZING**:
+   - If recommending Raise/Bet, provide EXACT dollar amount (e.g., "$4.50")
    - Sizing guidelines:
-     * Value raises: 2.5-3x pot
-     * Bluff raises: 0.5-0.75x pot
-     * 3-bets: 3-4x initial raise
-   - Consider stack-to-pot ratio (SPR) for all-in decisions
+     * Value bets: 60-75% pot
+     * Bluffs: 50-60% pot
+     * 3-bets preflop: 3-4x initial raise
 
-REMEMBER: 
-- Use visible clues to reconstruct the hand history
-- Let VPIP stats guide your exploitation strategy
-- Calculate all 4 metrics with precision
-- Provide exact raise amounts in dollars
+REMEMBER FOR POST-FLOP: 
+- Base your decision PURELY on the 5 metrics
+- No subjective reads or "feel" - only mathematics
+- Calculate each metric precisely
+- Show your work in the reasoning
 
 Return ONLY valid JSON, no markdown, no extra text."""
 
@@ -200,38 +183,18 @@ class GeminiPokerAnalyzer:
         logger.info("✅ Gemini 2.0 Flash Experimental analyzer initialized")
     
     def _get_relative_positions(self, hero_position: str) -> str:
-        """
-        Generate a position map relative to hero's position
-        
-        6-max table screen positions (from hero's view):
-        - Top-Left, Top-Center, Top-Right
-        - Bottom-Left, Bottom-Center (HERO), Bottom-Right
-        
-        Positions move clockwise: BTN -> SB -> BB -> UTG -> MP -> CO
-        """
-        # Define all positions in clockwise order
+        """Generate a position map relative to hero's position"""
         positions = ["BTN", "SB", "BB", "UTG", "MP", "CO"]
-        
-        # Screen positions in clockwise order starting from Bottom-Center
         screen_positions = [
-            "Bottom-Center",  # Hero's seat
-            "Bottom-Left",    # 1 seat clockwise from hero
-            "Top-Left",       # 2 seats clockwise
-            "Top-Center",     # 3 seats clockwise
-            "Top-Right",      # 4 seats clockwise
-            "Bottom-Right"    # 5 seats clockwise
+            "Bottom-Center",  # Hero
+            "Bottom-Left", "Top-Left", "Top-Center", "Top-Right", "Bottom-Right"
         ]
         
-        # Find hero's index
         hero_idx = positions.index(hero_position)
-        
-        # Build mapping
         mapping_lines = []
         for i, screen_pos in enumerate(screen_positions):
-            # Calculate actual position index (hero + i) mod 6
             pos_idx = (hero_idx + i) % 6
             actual_position = positions[pos_idx]
-            
             if i == 0:
                 mapping_lines.append(f"- {screen_pos}: {actual_position} (HERO - YOU)")
             else:
@@ -240,32 +203,18 @@ class GeminiPokerAnalyzer:
         return "\n".join(mapping_lines)
     
     def analyze_poker_table(self, image_data: bytes, hero_position: str = "BTN") -> Dict[str, Any]:
-        """
-        Analyze poker table image using Gemini
-        
-        Args:
-            image_data: Raw image bytes
-            hero_position: Hero's position (BTN, SB, BB, UTG, MP, CO)
-            
-        Returns:
-            Dictionary with analysis results
-        """
-        # Check if API key is configured
+        """Analyze poker table image using Gemini"""
         if not GEMINI_API_KEY:
             logger.error("❌ GEMINI_API_KEY not configured!")
             return {
                 "success": False,
-                "error": "GEMINI_API_KEY not configured. Please add it to Render environment variables."
+                "error": "GEMINI_API_KEY not configured."
             }
         
         try:
             logger.info(f"🤖 Sending image to Gemini for analysis... Hero position: {hero_position}")
             
-            # Convert bytes to PIL Image
             image = Image.open(BytesIO(image_data))
-            
-            # Create position-specific prompt with relative positioning
-            # Generate relative position map based on hero's position
             position_map = self._get_relative_positions(hero_position)
             
             position_prompt = f"""{POKER_ANALYSIS_PROMPT}
@@ -276,15 +225,9 @@ Hero is seated at {hero_position} position (bottom-center of screen).
 RELATIVE POSITIONS FROM HERO:
 {position_map}
 
-USE THIS MAPPING: When analyzing other players, use the screen position (Top-Center, Top-Right, etc.) to determine their poker position based on the above mapping. DO NOT try to count from the dealer button - use Hero's known position as the anchor point."""
+USE THIS MAPPING: Use the screen position to determine poker positions based on the mapping above."""
             
-            # Generate analysis
-            response = self.model.generate_content([
-                position_prompt,
-                image
-            ])
-            
-            # Parse JSON response
+            response = self.model.generate_content([position_prompt, image])
             analysis_text = response.text.strip()
             
             # Remove markdown code blocks if present
@@ -296,8 +239,6 @@ USE THIS MAPPING: When analyzing other players, use the screen position (Top-Cen
                 analysis_text = analysis_text[:-3]
             
             analysis_text = analysis_text.strip()
-            
-            # Parse JSON
             analysis = json.loads(analysis_text)
             
             logger.info(f"✅ Gemini analysis complete: {analysis['recommendation']['action']}")
@@ -324,23 +265,17 @@ USE THIS MAPPING: When analyzing other players, use the screen position (Top-Cen
             }
     
     def format_for_frontend(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Format Gemini analysis for frontend display
-        
-        Returns simplified view for main UI with 4 decision metrics
-        """
+        """Format Gemini analysis for frontend display with 5 metrics"""
         try:
             game_info = analysis.get("game_info", {})
             recommendation = analysis.get("recommendation", {})
             detailed = analysis.get("detailed_analysis", {})
             
-            # Format action with raise amount if applicable
             action = recommendation.get("action", "Unknown")
             raise_amount = recommendation.get("raise_amount_dollars", "N/A")
             
-            # If action is Raise and we have an amount, combine them
-            if action == "Raise" and raise_amount != "N/A":
-                action_display = f"Raise {raise_amount}"
+            if action in ["Raise", "Bet"] and raise_amount != "N/A":
+                action_display = f"{action} {raise_amount}"
             else:
                 action_display = action
             
@@ -348,11 +283,12 @@ USE THIS MAPPING: When analyzing other players, use the screen position (Top-Cen
                 "success": True,
                 "hero_turn": game_info.get("is_hero_turn", False),
                 
-                # Main display - 4 decision metrics
+                # Main display - 5 decision metrics
                 "recommendation": {
                     "action": action_display,
                     "pot_odds": recommendation.get("pot_odds", "N/A"),
-                    "equity_vs_range": recommendation.get("equity_vs_range", "N/A"),
+                    "hand_equity": recommendation.get("hand_equity", "N/A"),
+                    "implied_odds": recommendation.get("implied_odds", "N/A"),
                     "fold_equity": recommendation.get("fold_equity", "N/A"),
                     "expected_value": recommendation.get("expected_value", "N/A"),
                     "pot_size": f"{game_info.get('pot_size_bb', 0)} BB",
