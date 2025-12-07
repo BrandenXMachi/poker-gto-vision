@@ -169,6 +169,46 @@ class GeminiPokerAnalyzer:
         self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
         logger.info("✅ Gemini analyzer initialized")
     
+    def _get_relative_positions(self, hero_position: str) -> str:
+        """
+        Generate a position map relative to hero's position
+        
+        6-max table screen positions (from hero's view):
+        - Top-Left, Top-Center, Top-Right
+        - Bottom-Left, Bottom-Center (HERO), Bottom-Right
+        
+        Positions move clockwise: BTN -> SB -> BB -> UTG -> MP -> CO
+        """
+        # Define all positions in clockwise order
+        positions = ["BTN", "SB", "BB", "UTG", "MP", "CO"]
+        
+        # Screen positions in clockwise order starting from Bottom-Center
+        screen_positions = [
+            "Bottom-Center",  # Hero's seat
+            "Bottom-Left",    # 1 seat clockwise from hero
+            "Top-Left",       # 2 seats clockwise
+            "Top-Center",     # 3 seats clockwise
+            "Top-Right",      # 4 seats clockwise
+            "Bottom-Right"    # 5 seats clockwise
+        ]
+        
+        # Find hero's index
+        hero_idx = positions.index(hero_position)
+        
+        # Build mapping
+        mapping_lines = []
+        for i, screen_pos in enumerate(screen_positions):
+            # Calculate actual position index (hero + i) mod 6
+            pos_idx = (hero_idx + i) % 6
+            actual_position = positions[pos_idx]
+            
+            if i == 0:
+                mapping_lines.append(f"- {screen_pos}: {actual_position} (HERO - YOU)")
+            else:
+                mapping_lines.append(f"- {screen_pos}: {actual_position}")
+        
+        return "\n".join(mapping_lines)
+    
     def analyze_poker_table(self, image_data: bytes, hero_position: str = "BTN") -> Dict[str, Any]:
         """
         Analyze poker table image using Gemini
@@ -194,8 +234,19 @@ class GeminiPokerAnalyzer:
             # Convert bytes to PIL Image
             image = Image.open(BytesIO(image_data))
             
-            # Create position-specific prompt
-            position_prompt = f"{POKER_ANALYSIS_PROMPT}\n\nIMPORTANT: Hero is seated at {hero_position} position."
+            # Create position-specific prompt with relative positioning
+            # Generate relative position map based on hero's position
+            position_map = self._get_relative_positions(hero_position)
+            
+            position_prompt = f"""{POKER_ANALYSIS_PROMPT}
+
+CRITICAL POSITION INFORMATION:
+Hero is seated at {hero_position} position (bottom-center of screen).
+
+RELATIVE POSITIONS FROM HERO:
+{position_map}
+
+USE THIS MAPPING: When analyzing other players, use the screen position (Top-Center, Top-Right, etc.) to determine their poker position based on the above mapping. DO NOT try to count from the dealer button - use Hero's known position as the anchor point."""
             
             # Generate analysis
             response = self.model.generate_content([
