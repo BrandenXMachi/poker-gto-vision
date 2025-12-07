@@ -97,28 +97,58 @@ CRITICAL ANALYSIS GUIDELINES:
 7. **Hero's Turn**: 
    - Check if action buttons (Fold, Call, Raise/Bet) are visible at bottom
    - Check if there's a timer or highlight on hero's seat
+
+8. **CRITICAL: ACCURATE HAND READING** (DO NOT HALLUCINATE DRAWS):
    
-8. **INFER GAME HISTORY & ACTION**:
+   **Read Hero's Exact Cards:**
+   - Identify BOTH hero's cards precisely (rank AND suit)
+   - Example: A♠ Q♠ = Ace of Spades, Queen of Spades
+   
+   **Read Board Cards:**
+   - Identify ALL board cards precisely (rank AND suit)
+   - Example: 8♦ 6♦ 9♥ = Eight of Diamonds, Six of Diamonds, Nine of Hearts
+   
+   **Flush Draws - VERIFY SUITS:**
+   - Flush draw = 4 cards of SAME suit (e.g., hero has 2 spades + 2 spades on board)
+   - Backdoor flush = hero has 2 cards of same suit + 1 of that suit on board
+   - If hero has spades and board has diamonds: NO FLUSH DRAW
+   - DO NOT assume flush draws - COUNT the suits!
+   
+   **Straight Draws - VERIFY CONNECTIVITY:**
+   - Open-ended = 4 cards in sequence, missing either end (e.g., 6789 needs 5 or T)
+   - Gutshot = 4 cards with 1 gap (e.g., 5689 needs 7)
+   - For AQ on 689 board: NO straight draw (AQ doesn't connect)
+   - For 78 on 69T board: YES gutshot (needs 8)
+   - DO NOT assume straight draws - CHECK if cards actually connect!
+   
+   **Backdoor Draws:**
+   - Backdoor straight = needs BOTH turn AND river to complete (e.g., needs running cards)
+   - Only mention backdoor draws if they're realistic and affect equity
+   - Don't overvalue backdoor draws in reasoning
+   
+   **RULE: If you can't see a clear draw, DON'T mention it in reasoning!**
+   
+9. **INFER GAME HISTORY & ACTION**:
    From the snapshot, deduce:
    - **Who is the aggressor**: Look at bet sizes, who has chips in front of them, position
    - **Action sequence**: Infer if there was a raise, 3-bet, 4-bet based on pot size and stack changes
    - **Bet sizes**: Calculate from visible chips and pot
    - **Likely holdings**: Based on position, action, and bet sizing
 
-9. **VPIP EXPLOITATION**:
+10. **VPIP EXPLOITATION**:
    - Look for VPIP percentage ABOVE each player's name (small text)
    - VPIP > 35% = Loose player (wider range, exploit with value betting)
    - VPIP 20-35% = Standard player (balanced range)
    - VPIP < 20% = Tight player (narrow range, can bluff more)
    - Adjust your range construction and fold equity estimates accordingly
 
-10. **BOARD TEXTURE ANALYSIS**:
+11. **BOARD TEXTURE ANALYSIS**:
    - Dry boards (K♠72♦) = Less fold equity, value-bet heavy
    - Wet boards (JT9♠♠) = More fold equity, can semi-bluff draws
    - Coordinated boards favor the aggressor's range
    - Static vs dynamic boards affect equity realization
 
-11. **CALCULATE THE 4 DECISION METRICS**:
+12. **CALCULATE THE 4 DECISION METRICS**:
 
    **A. Pot Odds**:
    - Formula: (Amount to call) / (Pot after you call)
@@ -144,7 +174,7 @@ CRITICAL ANALYSIS GUIDELINES:
    - For Raise: EV = (Fold Equity × Current Pot) + ((1 - Fold Equity) × ((Equity × Total Pot) - Raise Amount))
    - Express in dollars (e.g., "+$2.10" or "-$0.75")
 
-12. **RAISE SIZING**:
+13. **RAISE SIZING**:
    - If recommending Raise, provide EXACT dollar amount (e.g., "$4.50")
    - Sizing guidelines:
      * Value raises: 2.5-3x pot
