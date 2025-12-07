@@ -1,6 +1,6 @@
 """
 Gemini-powered poker table analyzer
-Uses Google's Gemini Flash 2.0 for comprehensive poker analysis
+Uses Google's Gemini Flash 2.0 Experimental for comprehensive poker analysis
 """
 
 import os
