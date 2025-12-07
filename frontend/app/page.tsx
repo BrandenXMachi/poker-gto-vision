@@ -262,6 +262,7 @@ export default function Home() {
                     localStorage.setItem('poker_detailed_info', JSON.stringify(detailedInfo))
                     localStorage.setItem('poker_action', action)
                     localStorage.setItem('poker_pot_size', potSize)
+                    localStorage.setItem('poker_captured_image', capturedImage)
                     // Navigate to details page
                     router.push('/details')
                   }}

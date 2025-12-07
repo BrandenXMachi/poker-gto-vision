@@ -39,6 +39,7 @@ Your response MUST be valid JSON with this exact structure:
   "is_hero_turn": <true|false>,
   "villain_positions": {
     "BB": {
+      "player_name": "PlayerName",
       "screen_position": "Top-Center",
       "stack": "100 BB",
       "vpip": "28%" or "N/A",

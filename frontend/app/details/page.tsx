@@ -7,14 +7,35 @@ interface DetailedInfo {
   game_state: {
     street: string
     pot_dollars: string
+    hero_cards: string[]
     board_cards: string[]
   }
-  reasoning: string
-  range_analysis: string
-  ev_calculation: string
+  players: Record<string, {
+    name: string
+    position: string
+  }>
+  pot_odds: {
+    value: string
+    calculation: string
+  }
+  hand_equity: {
+    value: string
+    calculation: string
+  }
+  implied_odds: {
+    value: string
+    calculation: string
+  }
+  fold_equity: {
+    value: string
+    calculation: string
+  }
+  expected_value: {
+    value: string
+    calculation: string
+  }
+  optimal_play: string
   action_history: string[]
-  stack_sizes: Record<string, number>
-  alternative_lines: string[]
 }
 
 export default function DetailsPage() {
@@ -22,12 +43,14 @@ export default function DetailsPage() {
   const [detailedInfo, setDetailedInfo] = useState<DetailedInfo | null>(null)
   const [action, setAction] = useState<string>('')
   const [potSize, setPotSize] = useState<string>('')
+  const [capturedImage, setCapturedImage] = useState<string>('')
 
   useEffect(() => {
     // Load detailed info from localStorage
     const storedInfo = localStorage.getItem('poker_detailed_info')
     const storedAction = localStorage.getItem('poker_action')
     const storedPotSize = localStorage.getItem('poker_pot_size')
+    const storedImage = localStorage.getItem('poker_captured_image')
     
     if (storedInfo) {
       setDetailedInfo(JSON.parse(storedInfo))
@@ -37,6 +60,9 @@ export default function DetailsPage() {
     }
     if (storedPotSize) {
       setPotSize(storedPotSize)
+    }
+    if (storedImage) {
+      setCapturedImage(storedImage)
     }
   }, [])
 
@@ -80,10 +106,22 @@ export default function DetailsPage() {
           </div>
         </div>
 
+        {/* Captured Image */}
+        {capturedImage && (
+          <div className="mb-6 bg-gray-800/90 backdrop-blur p-4 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
+            <h2 className="text-2xl font-bold text-emerald-400 mb-4">📸 Analyzed Table</h2>
+            <img
+              src={capturedImage}
+              alt="Analyzed poker table"
+              className="w-full rounded-xl"
+            />
+          </div>
+        )}
+
         {/* Game State */}
         <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
-          <h2 className="text-2xl font-bold text-emerald-400 mb-4">Game State</h2>
-          <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-emerald-400 mb-4">🎮 Game State</h2>
+          <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-400">Street:</span>
               <span className="font-bold capitalize">{detailedInfo.game_state.street}</span>
@@ -92,58 +130,119 @@ export default function DetailsPage() {
               <span className="text-gray-400">Pot:</span>
               <span className="font-bold">{detailedInfo.game_state.pot_dollars} ({potSize})</span>
             </div>
-            {detailedInfo.game_state.board_cards.length > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-400">Hero's Hand:</span>
+              <span className="font-bold text-xl">
+                {detailedInfo.game_state.hero_cards && detailedInfo.game_state.hero_cards.length > 0
+                  ? detailedInfo.game_state.hero_cards.join(' ')
+                  : 'N/A'}
+              </span>
+            </div>
+            {detailedInfo.game_state.board_cards && detailedInfo.game_state.board_cards.length > 0 && (
               <div className="flex justify-between">
                 <span className="text-gray-400">Board:</span>
-                <span className="font-bold">{detailedInfo.game_state.board_cards.join(' ')}</span>
+                <span className="font-bold text-xl">{detailedInfo.game_state.board_cards.join(' ')}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Reasoning */}
-        {detailedInfo.reasoning && (
+        {/* Players */}
+        {detailedInfo.players && Object.keys(detailedInfo.players).length > 0 && (
           <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
-            <h2 className="text-2xl font-bold text-emerald-400 mb-4">💡 Reasoning</h2>
-            <p className="text-gray-200 leading-relaxed">{detailedInfo.reasoning}</p>
-          </div>
-        )}
-
-        {/* Range Analysis */}
-        {detailedInfo.range_analysis && (
-          <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
-            <h2 className="text-2xl font-bold text-emerald-400 mb-4">🎯 Range Analysis</h2>
-            <p className="text-gray-200 leading-relaxed">{detailedInfo.range_analysis}</p>
-          </div>
-        )}
-
-        {/* EV Calculation */}
-        {detailedInfo.ev_calculation && (
-          <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
-            <h2 className="text-2xl font-bold text-emerald-400 mb-4">💰 EV Breakdown</h2>
-            <p className="text-gray-200 leading-relaxed">{detailedInfo.ev_calculation}</p>
-          </div>
-        )}
-
-        {/* Action History */}
-        {detailedInfo.action_history && detailedInfo.action_history.length > 0 && (
-          <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
-            <h2 className="text-2xl font-bold text-emerald-400 mb-4">📋 Action History</h2>
+            <h2 className="text-2xl font-bold text-emerald-400 mb-4">👥 Players</h2>
             <div className="space-y-2">
-              {detailedInfo.action_history.map((action, idx) => (
-                <div key={idx} className="text-gray-200">• {action}</div>
+              {Object.entries(detailedInfo.players).map(([position, playerData]) => (
+                <div key={position} className="text-gray-200">
+                  <span className="font-bold text-emerald-300">{playerData.name}</span>
+                  <span className="text-gray-400"> is </span>
+                  <span className="font-bold">{position}</span>
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Alternative Lines */}
-        {detailedInfo.alternative_lines && detailedInfo.alternative_lines.length > 0 && (
+        {/* Pot Odds */}
+        {detailedInfo.pot_odds && (
           <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
-            <h2 className="text-2xl font-bold text-emerald-400 mb-4">🔀 Alternative Lines</h2>
-            <div className="space-y-2">
-              {detailedInfo.alternative_lines.map((line, idx) => (
-                <div key={idx} className="text-gray-200">• {line}</div>
+            <h2 className="text-2xl font-bold text-emerald-400 mb-3">📊 Pot Odds</h2>
+            <div className="text-3xl font-bold text-white mb-3">
+              {typeof detailedInfo.pot_odds === 'object' ? detailedInfo.pot_odds.value : detailedInfo.pot_odds}
+            </div>
+            {typeof detailedInfo.pot_odds === 'object' && detailedInfo.pot_odds.calculation && (
+              <p className="text-gray-300 leading-relaxed">{detailedInfo.pot_odds.calculation}</p>
+            )}
+          </div>
+        )}
+
+        {/* Hand Equity */}
+        {detailedInfo.hand_equity && (
+          <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
+            <h2 className="text-2xl font-bold text-emerald-400 mb-3">🎯 Hand Equity</h2>
+            <div className="text-3xl font-bold text-white mb-3">
+              {typeof detailedInfo.hand_equity === 'object' ? detailedInfo.hand_equity.value : detailedInfo.hand_equity}
+            </div>
+            {typeof detailedInfo.hand_equity === 'object' && detailedInfo.hand_equity.calculation && (
+              <p className="text-gray-300 leading-relaxed">{detailedInfo.hand_equity.calculation}</p>
+            )}
+          </div>
+        )}
+
+        {/* Implied Odds */}
+        {detailedInfo.implied_odds && (
+          <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
+            <h2 className="text-2xl font-bold text-emerald-400 mb-3">💰 Implied Odds</h2>
+            <div className="text-3xl font-bold text-white mb-3">
+              {typeof detailedInfo.implied_odds === 'object' ? detailedInfo.implied_odds.value : detailedInfo.implied_odds}
+            </div>
+            {typeof detailedInfo.implied_odds === 'object' && detailedInfo.implied_odds.calculation && (
+              <p className="text-gray-300 leading-relaxed">{detailedInfo.implied_odds.calculation}</p>
+            )}
+          </div>
+        )}
+
+        {/* Fold Equity */}
+        {detailedInfo.fold_equity && (
+          <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
+            <h2 className="text-2xl font-bold text-emerald-400 mb-3">🃏 Fold Equity</h2>
+            <div className="text-3xl font-bold text-white mb-3">
+              {typeof detailedInfo.fold_equity === 'object' ? detailedInfo.fold_equity.value : detailedInfo.fold_equity}
+            </div>
+            {typeof detailedInfo.fold_equity === 'object' && detailedInfo.fold_equity.calculation && (
+              <p className="text-gray-300 leading-relaxed">{detailedInfo.fold_equity.calculation}</p>
+            )}
+          </div>
+        )}
+
+        {/* Expected Value */}
+        {detailedInfo.expected_value && (
+          <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
+            <h2 className="text-2xl font-bold text-emerald-400 mb-3">💵 Expected Value (EV)</h2>
+            <div className="text-3xl font-bold text-white mb-3">
+              {typeof detailedInfo.expected_value === 'object' ? detailedInfo.expected_value.value : detailedInfo.expected_value}
+            </div>
+            {typeof detailedInfo.expected_value === 'object' && detailedInfo.expected_value.calculation && (
+              <p className="text-gray-300 leading-relaxed">{detailedInfo.expected_value.calculation}</p>
+            )}
+          </div>
+        )}
+
+        {/* Optimal Play */}
+        {detailedInfo.optimal_play && (
+          <div className="mb-6 bg-gradient-to-br from-purple-900/50 to-indigo-900/50 backdrop-blur p-6 rounded-2xl border-2 border-purple-500/30 shadow-xl">
+            <h2 className="text-2xl font-bold text-purple-300 mb-4">🎲 Optimal Play</h2>
+            <p className="text-gray-200 leading-relaxed text-lg">{detailedInfo.optimal_play}</p>
+          </div>
+        )}
+
+        {/* Action History (optional, smaller) */}
+        {detailedInfo.action_history && detailedInfo.action_history.length > 0 && (
+          <div className="mb-6 bg-gray-800/70 backdrop-blur p-4 rounded-2xl border border-gray-700/30 shadow-lg">
+            <h3 className="text-lg font-bold text-gray-400 mb-3">📋 Action History</h3>
+            <div className="space-y-1">
+              {detailedInfo.action_history.map((action, idx) => (
+                <div key={idx} className="text-gray-300 text-sm">• {action}</div>
               ))}
             </div>
           </div>

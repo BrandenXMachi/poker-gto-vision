@@ -46,12 +46,27 @@ OUTPUT FORMAT (must be valid JSON):
   "recommendation": {
     "action": "Fold|Call|Check|Raise|Bet",
     "raise_amount_dollars": "$4.50" or "N/A",
-    "pot_odds": "3:1" or "25%",
-    "hand_equity": "45%",
-    "implied_odds": "5:1" or "High/Medium/Low",
-    "fold_equity": "35%",
-    "expected_value": "+$2.10" or "-$0.75",
-    "reasoning": "Brief 1-2 sentence mathematical explanation"
+    "pot_odds": {
+      "value": "3:1" or "25%",
+      "calculation": "Detailed math showing how pot odds were calculated"
+    },
+    "hand_equity": {
+      "value": "45%",
+      "calculation": "Detailed explanation of hand equity calculation against villain range"
+    },
+    "implied_odds": {
+      "value": "5:1" or "High/Medium/Low",
+      "calculation": "Explanation of implied odds based on stack depth and board texture"
+    },
+    "fold_equity": {
+      "value": "35%",
+      "calculation": "Explanation of fold equity estimation based on villain tendencies"
+    },
+    "expected_value": {
+      "value": "+$2.10" or "-$0.75",
+      "calculation": "Complete EV formula calculation with all components"
+    },
+    "optimal_play": "Based on all the above information and prior action history, this is the most profitable long-term decision: [detailed explanation of the optimal play and why]"
   }
 }
 

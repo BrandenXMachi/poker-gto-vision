@@ -91,6 +91,15 @@ async def analyze_image(
         extracted_data = extraction_result["extracted_data"]
         logger.info(f"✅ Gemini extracted: {len(extracted_data.get('villain_positions', {}))} villains, {extracted_data.get('street', 'unknown')} street")
         
+        # Check if hero's cards were extracted
+        hero_cards = extracted_data.get("hero_cards", [])
+        if not hero_cards or len(hero_cards) == 0:
+            return {
+                "success": False,
+                "error": "Hero's cards not detected",
+                "message": "❌ Failed to identify your hole cards. Please capture again with cards clearly visible."
+            }
+        
         # Check if it's hero's turn
         if not extracted_data.get("is_hero_turn", False):
             return {
@@ -153,17 +162,23 @@ async def analyze_image(
                 "game_state": {
                     "street": extracted_data.get("street", "unknown"),
                     "pot_dollars": extracted_data.get("pot_size_dollars", "N/A"),
+                    "hero_cards": extracted_data.get("hero_cards", []),
                     "board_cards": extracted_data.get("board_cards", [])
                 },
-                "reasoning": recommendation.get("reasoning", ""),
-                "range_analysis": f"Villain positions: {list(extracted_data.get('villain_positions', {}).keys())}",
-                "ev_calculation": recommendation.get("reasoning", ""),  # GPT includes EV reasoning
-                "action_history": extracted_data.get("betting_history", []),
-                "stack_sizes": {
-                    pos: data.get("stack", "N/A") 
+                "players": {
+                    pos: {
+                        "name": data.get("player_name", "Unknown"),
+                        "position": pos
+                    }
                     for pos, data in extracted_data.get("villain_positions", {}).items()
                 },
-                "alternative_lines": []
+                "pot_odds": recommendation.get("pot_odds", {}),
+                "hand_equity": recommendation.get("hand_equity", {}),
+                "implied_odds": recommendation.get("implied_odds", {}),
+                "fold_equity": recommendation.get("fold_equity", {}),
+                "expected_value": recommendation.get("expected_value", {}),
+                "optimal_play": recommendation.get("optimal_play", ""),
+                "action_history": extracted_data.get("betting_history", [])
             },
             
             # Raw data for debugging (optional)
