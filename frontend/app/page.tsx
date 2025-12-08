@@ -164,11 +164,11 @@ export default function Home() {
       if (data.success && data.recommendation) {
         const rec = data.recommendation
         setAction(rec.action)
-        setPotOdds(rec.pot_odds || 'N/A')
-        setHandEquity(rec.hand_equity || 'N/A')
-        setImpliedOdds(rec.implied_odds || 'N/A')
-        setFoldEquity(rec.fold_equity || 'N/A')
-        setExpectedValue(rec.expected_value || 'N/A')
+        setPotOdds(rec.pot_odds?.value || rec.pot_odds || 'N/A')
+        setHandEquity(rec.hand_equity?.value || rec.hand_equity || 'N/A')
+        setImpliedOdds(rec.implied_odds?.value || rec.implied_odds || 'N/A')
+        setFoldEquity(rec.fold_equity?.value || rec.fold_equity || 'N/A')
+        setExpectedValue(rec.expected_value?.value || rec.expected_value || 'N/A')
         setPotSize(rec.pot_size || 'N/A')
         setDetailedInfo(data.detailed_info || null)
         
@@ -228,11 +228,11 @@ export default function Home() {
       if (data.success && data.recommendation) {
         const rec = data.recommendation
         setAction(rec.action)
-        setPotOdds(rec.pot_odds || 'N/A')
-        setHandEquity(rec.hand_equity || 'N/A')
-        setImpliedOdds(rec.implied_odds || 'N/A')
-        setFoldEquity(rec.fold_equity || 'N/A')
-        setExpectedValue(rec.expected_value || 'N/A')
+        setPotOdds(rec.pot_odds?.value || rec.pot_odds || 'N/A')
+        setHandEquity(rec.hand_equity?.value || rec.hand_equity || 'N/A')
+        setImpliedOdds(rec.implied_odds?.value || rec.implied_odds || 'N/A')
+        setFoldEquity(rec.fold_equity?.value || rec.fold_equity || 'N/A')
+        setExpectedValue(rec.expected_value?.value || rec.expected_value || 'N/A')
         setPotSize(rec.pot_size || 'N/A')
         setDetailedInfo(data.detailed_info || null)
         
