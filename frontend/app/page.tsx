@@ -28,6 +28,7 @@ export default function Home() {
   const [error, setError] = useState<string>('')
   const [capturedImage, setCapturedImage] = useState<string>('')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
+  const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
   
   // Main display info
   const [action, setAction] = useState<string>('')
@@ -145,8 +146,9 @@ export default function Home() {
       const formData = new FormData()
       formData.append('image', blob, 'poker_table.jpg')
       formData.append('position', selectedPosition)
+      formData.append('blinds', selectedBlinds)
 
-      console.log(`📸 Sending image to ${backendUrl}/analyze with position: ${selectedPosition}`)
+      console.log(`📸 Sending image to ${backendUrl}/analyze with position: ${selectedPosition}, blinds: ${selectedBlinds}`)
       
       const response = await fetch(`${backendUrl}/analyze`, {
         method: 'POST',
@@ -274,31 +276,57 @@ export default function Home() {
             </div>
           )}
 
-          {/* Position Selector - Only show when camera is active and not analyzing */}
+          {/* Position & Blinds Selector - Only show when camera is active and not analyzing */}
           {isCameraActive && !isAnalyzing && !capturedImage && (
-            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
-              <h3 className="text-center text-lg font-bold text-emerald-400 mb-4">
-                👤 Select Your Position
-              </h3>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                {['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO'].map((pos) => (
-                  <button
-                    key={pos}
-                    onClick={() => setSelectedPosition(pos)}
-                    className={`py-3 px-4 rounded-xl font-bold text-lg transition-all transform hover:scale-105 ${
-                      selectedPosition === pos
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    {pos}
-                  </button>
-                ))}
+            <>
+              <div className="mb-4 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
+                <h3 className="text-center text-lg font-bold text-emerald-400 mb-4">
+                  👤 Select Your Position
+                </h3>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO'].map((pos) => (
+                    <button
+                      key={pos}
+                      onClick={() => setSelectedPosition(pos)}
+                      className={`py-3 px-4 rounded-xl font-bold text-lg transition-all transform hover:scale-105 ${
+                        selectedPosition === pos
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-center text-sm text-gray-400 mt-3">
+                  Selected: <span className="text-emerald-400 font-bold">{selectedPosition}</span>
+                </p>
               </div>
-              <p className="text-center text-sm text-gray-400 mt-3">
-                Selected: <span className="text-emerald-400 font-bold">{selectedPosition}</span>
-              </p>
-            </div>
+
+              <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
+                <h3 className="text-center text-lg font-bold text-emerald-400 mb-4">
+                  💵 Select Blinds
+                </h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {['0.02/0.05', '0.05/0.10', '0.10/0.25'].map((blinds) => (
+                    <button
+                      key={blinds}
+                      onClick={() => setSelectedBlinds(blinds)}
+                      className={`py-3 px-4 rounded-xl font-bold text-lg transition-all transform hover:scale-105 ${
+                        selectedBlinds === blinds
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      ${blinds}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-center text-sm text-gray-400 mt-3">
+                  Selected: <span className="text-emerald-400 font-bold">${selectedBlinds}</span>
+                </p>
+              </div>
+            </>
           )}
 
           {/* Video/Image display */}

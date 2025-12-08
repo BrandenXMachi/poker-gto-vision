@@ -62,7 +62,8 @@ async def root():
 @app.post("/analyze")
 async def analyze_image(
     image: UploadFile = File(...),
-    position: str = Form("BTN")
+    position: str = Form("BTN"),
+    blinds: str = Form("0.02/0.05")
 ):
     """
     Analyze poker table image using Hybrid AI:
@@ -72,7 +73,7 @@ async def analyze_image(
     Returns: 5 decision metrics + action recommendation
     """
     try:
-        logger.info(f"📸 Received image: {image.filename}, position: {position}")
+        logger.info(f"📸 Received image: {image.filename}, position: {position}, blinds: {blinds}")
         
         # Read image data
         image_data = await image.read()
@@ -108,8 +109,11 @@ async def analyze_image(
                 "message": "Not hero's turn detected. Capture when action is on you."
             }
         
+        # Add blinds to extracted data for GPT context
+        extracted_data["blinds"] = blinds
+        
         # STEP 2: GPT makes poker decision
-        logger.info(f"🧠 Step 2: GPT-4o-mini making decision...")
+        logger.info(f"🧠 Step 2: GPT-4o-mini making decision (blinds: {blinds})...")
         decision_result = gpt_logic.make_decision(extracted_data)
         
         if not decision_result.get("success"):
