@@ -307,12 +307,12 @@ export default function Home() {
                 <h3 className="text-center text-lg font-bold text-emerald-400 mb-4">
                   💵 Select Blinds
                 </h3>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   {['0.02/0.05', '0.05/0.10', '0.10/0.25'].map((blinds) => (
                     <button
                       key={blinds}
                       onClick={() => setSelectedBlinds(blinds)}
-                      className={`py-3 px-4 rounded-xl font-bold text-lg transition-all transform hover:scale-105 ${
+                      className={`py-3 px-2 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
                         selectedBlinds === blinds
                           ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105'
                           : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
