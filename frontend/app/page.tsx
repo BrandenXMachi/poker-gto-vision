@@ -28,6 +28,7 @@ export default function Home() {
   const [error, setError] = useState<string>('')
   const [capturedImage, setCapturedImage] = useState<string>('')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
+  const [isDragging, setIsDragging] = useState(false)
   
   // Main display info
   const [action, setAction] = useState<string>('')
@@ -188,12 +189,116 @@ export default function Home() {
     }
   }
 
+  // Handle file upload (drag-and-drop or file input)
+  const analyzeFromFile = async (file: File) => {
+    setIsAnalyzing(true)
+    setError('')
+    setAction('')
+
+    try {
+      // Read file as data URL for display
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setCapturedImage(e.target.result as string)
+        }
+      }
+      reader.readAsDataURL(file)
+
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+      
+      const formData = new FormData()
+      formData.append('image', file, file.name)
+      formData.append('position', selectedPosition)
+
+      console.log(`📸 Sending image to ${backendUrl}/analyze with position: ${selectedPosition}`)
+      
+      const response = await fetch(`${backendUrl}/analyze`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log('✅ Analysis result:', data)
+
+      if (data.success && data.recommendation) {
+        const rec = data.recommendation
+        setAction(rec.action)
+        setPotOdds(rec.pot_odds || 'N/A')
+        setHandEquity(rec.hand_equity || 'N/A')
+        setImpliedOdds(rec.implied_odds || 'N/A')
+        setFoldEquity(rec.fold_equity || 'N/A')
+        setExpectedValue(rec.expected_value || 'N/A')
+        setPotSize(rec.pot_size || 'N/A')
+        setDetailedInfo(data.detailed_info || null)
+        
+        // Speak the action
+        speak(rec.action)
+      } else if (data.hero_turn === false) {
+        setError('Not hero\'s turn detected. Try capturing when action is on you.')
+      } else {
+        setError(data.message || 'Analysis failed. Please try again.')
+      }
+
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Analysis failed'
+      setError(errorMsg)
+      console.error('Analysis error:', err)
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  // Handle file input change
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      analyzeFromFile(file)
+    } else {
+      setError('Please select a valid image file')
+    }
+  }
+
+  // Handle drag events
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    
+    const file = e.dataTransfer.files[0]
+    if (file && file.type.startsWith('image/')) {
+      analyzeFromFile(file)
+    } else {
+      setError('Please drop a valid image file')
+    }
+  }
+
   // Reset and prepare for new capture
   const captureAgain = () => {
     setCapturedImage('')
     setAction('')
     setError('')
     startCamera()
+  }
+
+  // Reset for new analysis (for file upload)
+  const analyzeAgain = () => {
+    setCapturedImage('')
+    setAction('')
+    setError('')
   }
 
   // Cleanup on unmount
@@ -274,6 +379,70 @@ export default function Home() {
             </div>
           )}
 
+          {/* Drag-and-Drop Zone - Show when camera is inactive and no image */}
+          {!isCameraActive && !capturedImage && !isAnalyzing && (
+            <div className="mb-6">
+              <div className="mb-4 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
+                <h3 className="text-center text-lg font-bold text-emerald-400 mb-4">
+                  👤 Select Your Position
+                </h3>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO'].map((pos) => (
+                    <button
+                      key={pos}
+                      onClick={() => setSelectedPosition(pos)}
+                      className={`py-3 px-4 rounded-xl font-bold text-lg transition-all transform hover:scale-105 ${
+                        selectedPosition === pos
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-center text-sm text-gray-400 mt-3">
+                  Selected: <span className="text-emerald-400 font-bold">{selectedPosition}</span>
+                </p>
+              </div>
+
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`relative border-4 border-dashed rounded-2xl p-12 transition-all ${
+                  isDragging
+                    ? 'border-emerald-400 bg-emerald-500/20'
+                    : 'border-gray-600 bg-gray-800/50 hover:border-emerald-500 hover:bg-gray-800/70'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="text-6xl mb-4">📁</div>
+                  <h3 className="text-2xl font-bold text-emerald-400 mb-2">
+                    Drop Image Here
+                  </h3>
+                  <p className="text-gray-400 mb-6">
+                    Drag and drop a poker table screenshot to analyze
+                  </p>
+                  <div className="flex items-center justify-center gap-4">
+                    <span className="text-gray-500">or</span>
+                  </div>
+                  <label className="mt-4 inline-block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInput}
+                      className="hidden"
+                    />
+                    <span className="cursor-pointer px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 inline-block">
+                      📂 Browse Files
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Position Selector - Only show when camera is active and not analyzing */}
           {isCameraActive && !isAnalyzing && !capturedImage && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
@@ -338,18 +507,20 @@ export default function Home() {
           <div className="flex justify-center gap-4 mt-8">
             {capturedImage ? (
               <button
-                onClick={captureAgain}
+                onClick={analyzeAgain}
                 className="px-10 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
               >
-                🔄 Capture Again
+                🔄 Analyze Another
               </button>
             ) : !isCameraActive ? (
-              <button
-                onClick={startCamera}
-                className="px-10 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                📷 Start Camera
-              </button>
+              <>
+                <button
+                  onClick={startCamera}
+                  className="px-10 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  📷 Start Camera
+                </button>
+              </>
             ) : (
               <>
                 <button
