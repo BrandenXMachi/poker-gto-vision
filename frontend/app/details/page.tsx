@@ -44,6 +44,7 @@ export default function DetailsPage() {
   const [action, setAction] = useState<string>('')
   const [potSize, setPotSize] = useState<string>('')
   const [capturedImage, setCapturedImage] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     // Load detailed info from localStorage
@@ -64,7 +65,20 @@ export default function DetailsPage() {
     if (storedImage) {
       setCapturedImage(storedImage)
     }
+    
+    setIsLoading(false)
   }, [])
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-green-900 to-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-xl">Loading analysis...</p>
+        </div>
+      </main>
+    )
+  }
 
   if (!detailedInfo) {
     return (
