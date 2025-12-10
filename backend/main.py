@@ -15,6 +15,8 @@ load_dotenv()
 
 from gemini_analyzer import GeminiDataExtractor
 from gpt_poker_logic import GPTPokerLogic
+from gemini_only_analyzer import GeminiOnlyAnalyzer
+from gpt_vision_analyzer import GPTVisionAnalyzer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -43,9 +45,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize hybrid AI system
+# Initialize all AI analyzers
 gemini_extractor = GeminiDataExtractor()
 gpt_logic = GPTPokerLogic()
+gemini_only = GeminiOnlyAnalyzer()
+gpt_vision = GPTVisionAnalyzer()
 
 
 @app.get("/")
@@ -63,34 +67,90 @@ async def root():
 async def analyze_image(
     image: UploadFile = File(...),
     position: str = Form("BTN"),
-    blinds: str = Form("0.02/0.05")
+    blinds: str = Form("0.02/0.05"),
+    ai_mode: str = Form("hybrid")
 ):
     """
-    Analyze poker table image using Hybrid AI:
-    1. Gemini extracts visual data from image
-    2. GPT-4o-mini makes poker decision based on data
+    Analyze poker table image using selected AI mode:
+    - "gemini": Fast single-call analysis (best for quick preflop)
+    - "gpt": GPT-4o vision analysis (best visual reasoning)
+    - "hybrid": Gemini extraction + GPT logic (most accurate, slower)
     
     Returns: 5 decision metrics + action recommendation
     """
     try:
-        logger.info(f"📸 Received image: {image.filename}, position: {position}, blinds: {blinds}")
+        logger.info(f"📸 Received image: {image.filename}, position: {position}, blinds: {blinds}, AI mode: {ai_mode}")
         
         # Read image data
         image_data = await image.read()
         
-        # STEP 1: Gemini extracts visual data
-        logger.info(f"👁️  Step 1: Gemini extracting visual data...")
-        extraction_result = gemini_extractor.extract_data(image_data, hero_position=position)
-        
-        if not extraction_result.get("success"):
-            return {
-                "success": False,
-                "error": extraction_result.get("error", "Data extraction failed"),
-                "message": "Failed to extract poker table data. Please try again."
-            }
-        
-        extracted_data = extraction_result["extracted_data"]
-        logger.info(f"✅ Gemini extracted: {len(extracted_data.get('villain_positions', {}))} villains, {extracted_data.get('street', 'unknown')} street")
+        # Route to appropriate analyzer based on AI mode
+        if ai_mode == "gemini":
+            # GEMINI ONLY MODE - Single fast call
+            logger.info(f"⚡ Using Gemini-only mode (fast)")
+            result = gemini_only.analyze(image_data, hero_position=position, blinds=blinds)
+            
+            if not result.get("success"):
+                return {
+                    "success": False,
+                    "error": result.get("error", "Analysis failed"),
+                    "message": result.get("error", "Failed to analyze. Please try again.")
+                }
+            
+            extracted_data = result.get("extracted_data", {})
+            recommendation = result.get("recommendation", {})
+            
+        elif ai_mode == "gpt":
+            # GPT VISION MODE - Single GPT-4o call with vision
+            logger.info(f"🧠 Using GPT-4o vision mode")
+            result = gpt_vision.analyze(image_data, hero_position=position, blinds=blinds)
+            
+            if not result.get("success"):
+                return {
+                    "success": False,
+                    "error": result.get("error", "Analysis failed"),
+                    "message": result.get("error", "Failed to analyze. Please try again.")
+                }
+            
+            extracted_data = result.get("extracted_data", {})
+            recommendation = result.get("recommendation", {})
+            
+        else:  # "hybrid" mode (default)
+            # HYBRID MODE - Gemini extracts, GPT decides
+            logger.info(f"🤖 Using Hybrid mode (Gemini + GPT)")
+            
+            # STEP 1: Gemini extracts visual data
+            logger.info(f"👁️  Step 1: Gemini extracting visual data...")
+            extraction_result = gemini_extractor.extract_data(image_data, hero_position=position)
+            
+            if not extraction_result.get("success"):
+                return {
+                    "success": False,
+                    "error": extraction_result.get("error", "Data extraction failed"),
+                    "message": "Failed to extract poker table data. Please try again."
+                }
+            
+            extracted_data = extraction_result["extracted_data"]
+            logger.info(f"✅ Gemini extracted: {len(extracted_data.get('villain_positions', {}))} villains, {extracted_data.get('street', 'unknown')} street")
+            
+            # Add blinds to extracted data for GPT context
+            extracted_data["blinds"] = blinds
+            
+            # STEP 2: GPT makes poker decision
+            logger.info(f"🧠 Step 2: GPT-4o-mini making decision (blinds: {blinds})...")
+            decision_result = gpt_logic.make_decision(extracted_data)
+            
+            if not decision_result.get("success"):
+                return {
+                    "success": False,
+                    "error": decision_result.get("error", "Decision failed"),
+                    "message": "Failed to make poker decision. Please try again."
+                }
+            
+            decision = decision_result["decision"]
+            recommendation = decision["recommendation"]
+            
+            logger.info(f"✅ GPT decision: {recommendation['action']}")
         
         # Check if hero's cards were extracted
         hero_cards = extracted_data.get("hero_cards", [])
@@ -108,25 +168,6 @@ async def analyze_image(
                 "hero_turn": False,
                 "message": "Not hero's turn detected. Capture when action is on you."
             }
-        
-        # Add blinds to extracted data for GPT context
-        extracted_data["blinds"] = blinds
-        
-        # STEP 2: GPT makes poker decision
-        logger.info(f"🧠 Step 2: GPT-4o-mini making decision (blinds: {blinds})...")
-        decision_result = gpt_logic.make_decision(extracted_data)
-        
-        if not decision_result.get("success"):
-            return {
-                "success": False,
-                "error": decision_result.get("error", "Decision failed"),
-                "message": "Failed to make poker decision. Please try again."
-            }
-        
-        decision = decision_result["decision"]
-        recommendation = decision["recommendation"]
-        
-        logger.info(f"✅ GPT decision: {recommendation['action']}")
         
         # Format for frontend (5 metrics + action)
         action = recommendation.get("action", "Unknown")
@@ -148,15 +189,16 @@ async def analyze_image(
         return {
             "success": True,
             "hero_turn": True,
+            "ai_mode": ai_mode,
             
             # Main display - 5 decision metrics
             "recommendation": {
                 "action": action_display,
-                "pot_odds": recommendation.get("pot_odds", "N/A"),
-                "hand_equity": recommendation.get("hand_equity", "N/A"),
-                "implied_odds": recommendation.get("implied_odds", "N/A"),
-                "fold_equity": recommendation.get("fold_equity", "N/A"),
-                "expected_value": recommendation.get("expected_value", "N/A"),
+                "pot_odds": recommendation.get("pot_odds", {}).get("value", recommendation.get("pot_odds", "N/A")) if isinstance(recommendation.get("pot_odds"), dict) else recommendation.get("pot_odds", "N/A"),
+                "hand_equity": recommendation.get("hand_equity", {}).get("value", recommendation.get("hand_equity", "N/A")) if isinstance(recommendation.get("hand_equity"), dict) else recommendation.get("hand_equity", "N/A"),
+                "implied_odds": recommendation.get("implied_odds", {}).get("value", recommendation.get("implied_odds", "N/A")) if isinstance(recommendation.get("implied_odds"), dict) else recommendation.get("implied_odds", "N/A"),
+                "fold_equity": recommendation.get("fold_equity", {}).get("value", recommendation.get("fold_equity", "N/A")) if isinstance(recommendation.get("fold_equity"), dict) else recommendation.get("fold_equity", "N/A"),
+                "expected_value": recommendation.get("expected_value", {}).get("value", recommendation.get("expected_value", "N/A")) if isinstance(recommendation.get("expected_value"), dict) else recommendation.get("expected_value", "N/A"),
                 "pot_size": f"{pot_bb:.1f} BB",
                 "position": extracted_data.get("hero_position", position)
             },
@@ -188,7 +230,7 @@ async def analyze_image(
             # Raw data for debugging (optional)
             "debug": {
                 "extracted_data": extracted_data,
-                "gpt_decision": decision
+                "ai_mode": ai_mode
             }
         }
             

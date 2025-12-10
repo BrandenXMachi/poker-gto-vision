@@ -29,6 +29,7 @@ export default function Home() {
   const [capturedImage, setCapturedImage] = useState<string>('')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
   const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
+  const [aiMode, setAiMode] = useState<'gemini' | 'gpt' | 'hybrid'>('hybrid')
   
   // Main display info
   const [action, setAction] = useState<string>('')
@@ -102,6 +103,15 @@ export default function Home() {
     }
   }
 
+  // Handle position click - auto capture and analyze
+  const handlePositionClick = async (position: string) => {
+    if (isAnalyzing) return // Prevent multiple clicks during analysis
+    
+    setSelectedPosition(position)
+    // Immediately trigger capture and analyze
+    await captureAndAnalyze()
+  }
+
   // Capture photo and analyze
   const captureAndAnalyze = async () => {
     if (!videoRef.current || !canvasRef.current) return
@@ -147,8 +157,9 @@ export default function Home() {
       formData.append('image', blob, 'poker_table.jpg')
       formData.append('position', selectedPosition)
       formData.append('blinds', selectedBlinds)
+      formData.append('ai_mode', aiMode)
 
-      console.log(`📸 Sending image to ${backendUrl}/analyze with position: ${selectedPosition}, blinds: ${selectedBlinds}`)
+      console.log(`📸 Sending image to ${backendUrl}/analyze with position: ${selectedPosition}, blinds: ${selectedBlinds}, AI mode: ${aiMode}`)
       
       const response = await fetch(`${backendUrl}/analyze`, {
         method: 'POST',
@@ -217,6 +228,59 @@ export default function Home() {
             <p className="text-gray-400 text-lg">Hybrid AI: Gemini Vision + GPT-4o-mini Logic 🤖</p>
           </div>
           
+          {/* AI Mode Selector - Show when camera is active */}
+          {isCameraActive && !capturedImage && (
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-purple-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
+                🤖 AI Mode Selection
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => setAiMode('gemini')}
+                  className={`py-4 px-4 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
+                    aiMode === 'gemini'
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">⚡</div>
+                  <div>Gemini</div>
+                  <div className="text-xs opacity-75 mt-1">Fast</div>
+                </button>
+                <button
+                  onClick={() => setAiMode('gpt')}
+                  className={`py-4 px-4 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
+                    aiMode === 'gpt'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg scale-105'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">🧠</div>
+                  <div>GPT</div>
+                  <div className="text-xs opacity-75 mt-1">Vision</div>
+                </button>
+                <button
+                  onClick={() => setAiMode('hybrid')}
+                  className={`py-4 px-4 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
+                    aiMode === 'hybrid'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">🤖</div>
+                  <div>Hybrid</div>
+                  <div className="text-xs opacity-75 mt-1">Accurate</div>
+                </button>
+              </div>
+              <p className="text-center text-sm text-gray-400 mt-3">
+                Selected: <span className="text-purple-400 font-bold capitalize">{aiMode}</span>
+                {aiMode === 'gemini' && ' - ⚡ Fastest for preflop decisions'}
+                {aiMode === 'gpt' && ' - 🧠 Best visual reasoning'}
+                {aiMode === 'hybrid' && ' - 🎯 Most accurate analysis'}
+              </p>
+            </div>
+          )}
+          
           {/* Error display */}
           {error && (
             <div className="bg-red-500/90 backdrop-blur text-white p-5 rounded-xl mb-6 border-2 border-red-400 shadow-lg">
@@ -276,57 +340,31 @@ export default function Home() {
             </div>
           )}
 
-          {/* Position & Blinds Selector - Only show when camera is active and not analyzing */}
+          {/* Blinds Selector - Only show when camera is active and not analyzing */}
           {isCameraActive && !isAnalyzing && !capturedImage && (
-            <>
-              <div className="mb-4 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
-                <h3 className="text-center text-lg font-bold text-emerald-400 mb-4">
-                  👤 Select Your Position
-                </h3>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                  {['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO'].map((pos) => (
-                    <button
-                      key={pos}
-                      onClick={() => setSelectedPosition(pos)}
-                      className={`py-3 px-4 rounded-xl font-bold text-lg transition-all transform hover:scale-105 ${
-                        selectedPosition === pos
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      {pos}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-center text-sm text-gray-400 mt-3">
-                  Selected: <span className="text-emerald-400 font-bold">{selectedPosition}</span>
-                </p>
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-emerald-400 mb-4">
+                💵 Select Blinds
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {['0.02/0.05', '0.05/0.10', '0.10/0.25'].map((blinds) => (
+                  <button
+                    key={blinds}
+                    onClick={() => setSelectedBlinds(blinds)}
+                    className={`py-3 px-2 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
+                      selectedBlinds === blinds
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    ${blinds}
+                  </button>
+                ))}
               </div>
-
-              <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
-                <h3 className="text-center text-lg font-bold text-emerald-400 mb-4">
-                  💵 Select Blinds
-                </h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {['0.02/0.05', '0.05/0.10', '0.10/0.25'].map((blinds) => (
-                    <button
-                      key={blinds}
-                      onClick={() => setSelectedBlinds(blinds)}
-                      className={`py-3 px-2 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
-                        selectedBlinds === blinds
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      ${blinds}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-center text-sm text-gray-400 mt-3">
-                  Selected: <span className="text-emerald-400 font-bold">${selectedBlinds}</span>
-                </p>
-              </div>
-            </>
+              <p className="text-center text-sm text-gray-400 mt-3">
+                Selected: <span className="text-emerald-400 font-bold">${selectedBlinds}</span>
+              </p>
+            </div>
           )}
 
           {/* Video/Image display */}
@@ -349,11 +387,39 @@ export default function Home() {
             
             {/* Analyzing overlay */}
             {isAnalyzing && (
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/95 to-teal-900/95 backdrop-blur-sm flex items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/95 to-teal-900/95 backdrop-blur-sm flex items-center justify-center z-20">
                 <div className="text-center">
                   <div className="w-20 h-20 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-                  <div className="text-2xl font-bold text-white drop-shadow-lg">🤖 Gemini AI Analyzing...</div>
+                  <div className="text-2xl font-bold text-white drop-shadow-lg">
+                    {aiMode === 'gemini' && '⚡ Gemini Fast Analysis...'}
+                    {aiMode === 'gpt' && '🧠 GPT Vision Analysis...'}
+                    {aiMode === 'hybrid' && '🤖 Hybrid AI Analyzing...'}
+                  </div>
                   <div className="text-emerald-300 mt-2">Processing poker table...</div>
+                </div>
+              </div>
+            )}
+            
+            {/* Position buttons overlay - Show at bottom of camera when active */}
+            {isCameraActive && !capturedImage && !isAnalyzing && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 z-10">
+                <p className="text-center text-xs text-gray-300 mb-2">
+                  👤 Click Your Position to Capture & Analyze
+                </p>
+                <div className="grid grid-cols-6 gap-2">
+                  {['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO'].map((pos) => (
+                    <button
+                      key={pos}
+                      onClick={() => handlePositionClick(pos)}
+                      className={`py-3 px-2 rounded-lg font-bold text-sm transition-all transform hover:scale-110 shadow-lg ${
+                        selectedPosition === pos
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white scale-105 ring-2 ring-white'
+                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
+                      }`}
+                    >
+                      {pos}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
