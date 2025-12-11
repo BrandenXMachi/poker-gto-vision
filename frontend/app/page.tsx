@@ -225,7 +225,6 @@ export default function Home() {
             <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-400 via-cyan-400 to-sky-400 bg-clip-text text-transparent mb-2">
               🎰 Poker Vision
             </h1>
-            <p className="text-gray-400 text-lg">AI-Powered Poker Analysis 🤖</p>
           </div>
           
           {/* AI Mode Selector - Show when camera is active */}
