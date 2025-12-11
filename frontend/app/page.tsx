@@ -428,7 +428,7 @@ export default function Home() {
           {/* Hidden canvas */}
           <canvas ref={canvasRef} className="hidden" />
 
-          {/* Control buttons */}
+          {/* Control buttons - Simplified */}
           <div className="flex justify-center gap-4 mt-8">
             {capturedImage ? (
               <button
@@ -444,27 +444,7 @@ export default function Home() {
               >
                 📷 Start Camera
               </button>
-            ) : (
-              <>
-                <button
-                  onClick={captureAndAnalyze}
-                  disabled={isAnalyzing}
-                  className={`px-10 py-4 rounded-xl font-bold text-lg transition-all shadow-lg transform ${
-                    isAnalyzing 
-                      ? 'bg-gray-600 cursor-not-allowed opacity-70' 
-                      : 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 hover:shadow-xl hover:scale-105'
-                  }`}
-                >
-                  {isAnalyzing ? '⏳ Analyzing...' : '📸 Capture & Analyze'}
-                </button>
-                <button
-                  onClick={stopCamera}
-                  className="px-10 py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  ❌ Stop
-                </button>
-              </>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
