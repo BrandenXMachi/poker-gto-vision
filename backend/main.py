@@ -131,7 +131,15 @@ async def analyze_image(
                 }
             
             extracted_data = extraction_result["extracted_data"]
-            logger.info(f"✅ Gemini extracted: {len(extracted_data.get('villain_positions', {}))} villains, {extracted_data.get('street', 'unknown')} street")
+            
+            # Count active vs folded players
+            all_villains = extracted_data.get('villain_positions', {})
+            active_villains = {pos: data for pos, data in all_villains.items() if not data.get('has_folded', False)}
+            folded_count = len(all_villains) - len(active_villains)
+            
+            logger.info(f"✅ Gemini extracted: {len(all_villains)} total villains ({len(active_villains)} active, {folded_count} folded), {extracted_data.get('street', 'unknown')} street")
+            if active_villains:
+                logger.info(f"   Active players at positions: {list(active_villains.keys())}")
             
             # Add blinds to extracted data for GPT context
             extracted_data["blinds"] = blinds
@@ -214,9 +222,12 @@ async def analyze_image(
                 "players": {
                     pos: {
                         "name": data.get("player_name", "Unknown"),
-                        "position": pos
+                        "position": pos,
+                        "stack": data.get("stack", "N/A"),
+                        "vpip": data.get("vpip", "N/A")
                     }
                     for pos, data in extracted_data.get("villain_positions", {}).items()
+                    if not data.get("has_folded", False)  # FILTER OUT FOLDED PLAYERS
                 },
                 "pot_odds": recommendation.get("pot_odds", {}),
                 "hand_equity": recommendation.get("hand_equity", {}),

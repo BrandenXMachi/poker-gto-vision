@@ -54,13 +54,32 @@ Extract all visible information from the poker table:
 3. **Pot Size**: Look for "Total Pot : $X.XX" text
 4. **Street**: Determine from community cards (0=preflop, 3=flop, 4=turn, 5=river)
 5. **Hero's Turn**: Check if action buttons (Fold/Call/Raise) are visible at bottom
-6. **Villain Data**: For each visible player, extract:
+
+**🃏 FOLD DETECTION - CRITICAL (PRIMARY METHOD)**:
+
+The MOST RELIABLE indicator of an active (non-folded) player:
+→ VISIBLE CARD BACKS at their position
+
+For EACH opponent position, check:
+- ✅ Can you see 2 card backs (face-down cards)? → ACTIVE (has_folded: false)
+- ❌ No card backs visible? → FOLDED (has_folded: true)
+
+**Detection Rules**:
+1. ONLY players with visible card backs are active
+2. Ignore seat appearance, colors, brightness - focus on CARDS ONLY
+3. Hero might be heads-up even with 5 occupied seats
+4. This is ESSENTIAL for accurate GTO analysis
+
+DO NOT include folded players (no card backs) in villain_positions.
+Only report active players with visible cards.
+
+6. **Villain Data**: For each ACTIVE (card backs visible) player, extract:
    - Player name
    - Position (based on screen location)
    - Stack size (in BB if visible)
    - VPIP percentage (if shown above name)
    - Current bet amount
-   - Folded status
+   - Folded status (should be false for all reported players)
 7. **Action to Hero**: Describe the betting action (e.g., "$2.00 to call" or "Can check")
 8. **Betting History**: List visible actions in sequence
 
