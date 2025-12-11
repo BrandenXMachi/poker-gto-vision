@@ -165,7 +165,16 @@ class GPTVisionAnalyzer:
             )
             
             # Parse response
-            result_text = response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            
+            if content is None:
+                logger.error("❌ GPT-4o returned empty response")
+                return {
+                    "success": False,
+                    "error": "GPT returned empty response - try again"
+                }
+            
+            result_text = content.strip()
             result = json.loads(result_text)
             
             logger.info(f"✅ GPT-4o analysis complete")
