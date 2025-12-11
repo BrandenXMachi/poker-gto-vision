@@ -1,6 +1,6 @@
 """
 GPT-4o Vision-powered poker analyzer
-Single API call for both visual extraction AND poker decision
+Uses Gemini's detailed extraction approach + poker decision making
 """
 
 import os
@@ -24,56 +24,111 @@ else:
     client = None
 
 
-SYSTEM_PROMPT = """You are an expert poker player and analyst. Analyze poker table screenshots and provide clear, optimal decisions."""
+SYSTEM_PROMPT = """You are an expert poker player and visual analyst. First extract table data precisely, then make optimal poker decisions."""
 
 
-USER_PROMPT_TEMPLATE = """Analyze this GGPoker poker table screenshot and determine the optimal play.
+# Using Gemini's detailed extraction approach + poker decision
+USER_PROMPT_TEMPLATE = """Analyze this GGPoker screenshot. Extract visual data first, then provide optimal poker strategy.
 
-**CRITICAL CONTEXT - READ CAREFULLY:**
-🎯 HERO'S ACTUAL POSITION: {hero_position}
-💵 BLINDS: {blinds}
-📍 Hero is physically at BOTTOM-CENTER of screen
+**HERO CONTEXT:**
+🎯 Hero Position: {hero_position}
+💵 Blinds: {blinds}
+📍 Hero is at BOTTOM-CENTER of screen
 
-**IMPORTANT - Position Mapping (Hero's actual seat context):**
+**POSITION MAPPING:**
 {position_mapping}
 
-**What to analyze - BE DETAILED:**
-1. **Hero's cards** (visible at bottom of screen)
-2. **Community cards** on the board (if any)
-3. **Pot size** - current total pot
-4. **Action History** - CRITICAL:
-   - Who opened/raised? How much?
-   - Who called?
-   - Who folded? (look for grayed out players or missing cards)
-   - Is this a 3-bet? 4-bet? Squeeze?
-   - What action is Hero facing RIGHT NOW?
-5. **Active players** - Which players still have cards?
-6. **Stack sizes** visible on screen
+---
 
-**IF YOU CANNOT SEE CLEAR ACTION HISTORY:**
-- State: "Action history unclear from image"
-- Make best guess based on pot size and visible information
-- Note any assumptions you're making
+## PART 1: VISUAL DATA EXTRACTION
 
-**Your task:**
-1. Describe the betting action that has occurred
-2. Identify current bet Hero must call (if any)
-3. Determine optimal play considering the ACTUAL action
-4. Explain reasoning based on what you observed
+Extract poker table information precisely using these guidelines:
 
-**REMEMBER TO CONSIDER:**
-- Hero is in {hero_position} position (NOT Button unless specified as BTN)
-- ACTUAL betting action (not assumed initial action)
-- Whether this is a 3-bet, cold call, squeeze, etc.
-- Hand strength relative to position AND action
-- Position advantage in {hero_position}
-- Pot odds based on ACTUAL bet to call
-- Implied odds at {blinds} stakes
-- Opponent tendencies (if VPIP visible)
-- Board texture
-- Stack sizes
+**1. HERO IDENTIFICATION**:
+- Hero is ALWAYS at BOTTOM-CENTER of table
+- Hero's cards are visible at bottom
+- Extract hero's cards with rank AND suit (e.g., "A♠", "Q♠")
 
-**Output Format (JSON only):**
+**2. POSITION IDENTIFICATION**:
+- Hero is at {hero_position} position
+- Calculate other players' positions clockwise from hero
+- Positions order: BTN → SB → BB → UTG → MP → CO (clockwise)
+
+**3. BOARD CARDS**:
+- Extract ALL visible community cards
+- Include rank AND suit for each (e.g., ["8♦", "6♦", "9♥"])
+- Empty array [] if no community cards (preflop)
+
+**4. POT SIZE**:
+- Look for "Total Pot : $X.XX" text
+- Extract exact dollar amount
+
+**5. STACKS**:
+- For hero: Look at hero's stack, convert to BB
+- For villains: Extract each active player's stack in BB
+
+**🃏 FOLD DETECTION - CRITICAL (PRIMARY METHOD)**:
+
+The MOST RELIABLE indicator of an active (non-folded) player:
+→ VISIBLE CARD BACKS at their position
+
+For EACH opponent position, check:
+- ✅ Can you see 2 card backs (face-down cards)? → ACTIVE (has_folded: false)
+- ❌ No card backs visible? → FOLDED (has_folded: true)
+
+**Detection Rules**:
+1. ONLY players with visible card backs are active
+2. Ignore seat appearance, colors, brightness - focus on CARDS
+3. Hero might be heads-up even with 5 occupied seats
+4. This is ESSENTIAL for accurate GTO analysis
+
+**6. BETTING ACTION - CRITICAL**:
+- Look at chips in front of each player
+- Check bet amounts displayed
+- Try to reconstruct action sequence:
+  * Who opened? How much?
+  * Who called?
+  * Who 3-bet? To how much?
+  * Who folded? (no card backs = folded)
+- Describe what bet/raise hero is facing RIGHT NOW
+- If unclear, state: "Action history unclear from image"
+
+**7. VPIP STATS**:
+- Look for VPIP percentage above each player's name
+- Extract if visible, otherwise "N/A"
+
+**8. STREET IDENTIFICATION**:
+- 0 community cards = "preflop"
+- 3 community cards = "flop"
+- 4 community cards = "turn"
+- 5 community cards = "river"
+
+**9. HERO'S TURN**:
+- Check if action buttons (Fold/Call/Raise) are visible
+- Check for timer or highlight on hero
+- true if it's hero's turn, false otherwise
+
+**10. ACTIVE PLAYERS**:
+- Count ONLY players with visible card backs
+- Note which positions have folded (no cards visible)
+
+---
+
+## PART 2: POKER DECISION
+
+Based on the extracted data, determine optimal play considering:
+- Hand strength vs range
+- Position advantage
+- Pot odds & implied odds
+- Number of active players
+- Betting action (initial raise vs 3-bet vs 4-bet)
+- Stack depths
+- Opponent tendencies (VPIP if available)
+
+---
+
+## OUTPUT FORMAT (JSON ONLY):
+
 {{
   "success": true,
   "extracted_data": {{
@@ -84,30 +139,45 @@ USER_PROMPT_TEMPLATE = """Analyze this GGPoker poker table screenshot and determ
     "street": "preflop|flop|turn|river",
     "is_hero_turn": true,
     "blinds": "{blinds}",
-    "action_observed": "UTG raised to $0.25, Hero called from BTN, BB 3-bet to $1.45, UTG folded. Hero facing $1.20 more to call." OR "Action history unclear - assuming facing initial raise of $0.25"
+    "hero_stack": "150 BB",
+    "active_players": [
+      {{
+        "position": "BB",
+        "name": "PlayerName",
+        "stack": "100 BB",
+        "vpip": "28%" or "N/A",
+        "current_bet": "$1.45",
+        "has_folded": false
+      }}
+    ],
+    "folded_players": ["UTG", "MP"],
+    "action_observed": "UTG raised $0.25, Hero called from BTN, BB 3-bet to $1.45, UTG folded. Hero facing $1.20 to call." OR "Action unclear - pot is $ X, appears to be facing $Y bet",
+    "action_to_hero": "$1.20 to call" or "No action - can check" or "Facing bet of $X"
   }},
   "recommendation": {{
-    "action": "Fold" or "Call $1.20" or "Check" or "Raise to $4.50" or "Bet $3.00",
-    "reasoning": "Based on the action observed: [describe action]. This hand should [Fold/Call/Raise] because [2-3 sentence explanation including pot odds, position, and action context]."
+    "action": "Fold" or "Call $1.20" or "Check" or "Raise to $4.50",
+    "reasoning": "Based on observed action [describe what you saw], with [hand] in {hero_position} position facing [describe bet/action], the optimal play is [action] because [2-3 sentences explaining pot odds, hand strength vs range, position, and action context]."
   }}
 }}
 
-**Rules:**
+**RULES**:
 - Return ONLY valid JSON
 - Be precise with card notation (rank + suit)
 - If hero's cards not visible → success: false
 - If not hero's turn → success: false
-- Keep reasoning clear and concise"""
+- Extract ONLY what you can SEE
+- If betting action is unclear, state it explicitly
+- Base decision on ACTUAL observed action, not assumptions"""
 
 
 class GPTVisionAnalyzer:
-    """Complete poker analysis using GPT-4o with vision"""
+    """Complete poker analysis using GPT-4o with Gemini's extraction approach"""
     
     def __init__(self):
         """Initialize GPT-4o vision model"""
         if not client:
             raise ValueError("OpenAI API key not configured")
-        logger.info("✅ GPT-4o Vision analyzer initialized")
+        logger.info("✅ GPT-4o Vision analyzer initialized (Gemini-style prompting)")
     
     def _get_position_mapping(self, hero_position: str) -> str:
         """Generate position mapping string"""
@@ -152,7 +222,7 @@ class GPTVisionAnalyzer:
             base64_image = self._encode_image(image_data)
             position_map = self._get_position_mapping(hero_position)
             
-            # Format user prompt
+            # Format user prompt (using Gemini's detailed extraction approach)
             user_prompt = USER_PROMPT_TEMPLATE.format(
                 hero_position=hero_position,
                 blinds=blinds,
@@ -177,7 +247,7 @@ class GPTVisionAnalyzer:
                         ]
                     }
                 ],
-                max_tokens=1000,
+                max_tokens=1500,
                 temperature=0.5,
                 response_format={"type": "json_object"}
             )
