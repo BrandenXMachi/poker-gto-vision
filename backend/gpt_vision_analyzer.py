@@ -141,9 +141,9 @@ class GPTVisionAnalyzer:
                 position_mapping=position_map
             )
             
-            # Call GPT-4o with vision
+            # Call GPT-4o with vision (latest stable version)
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-2024-08-06",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {
@@ -159,8 +159,8 @@ class GPTVisionAnalyzer:
                         ]
                     }
                 ],
-                max_tokens=2000,
-                temperature=0.7,
+                max_tokens=1000,
+                temperature=0.5,
                 response_format={"type": "json_object"}
             )
             
