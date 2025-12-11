@@ -37,21 +37,38 @@ USER_PROMPT_TEMPLATE = """Analyze this GGPoker poker table screenshot and determ
 **IMPORTANT - Position Mapping (Hero's actual seat context):**
 {position_mapping}
 
-**What to analyze:**
-- Hero's cards (visible at bottom of screen)
-- Community cards on the board
-- Pot size and current bet
-- Active opponents (look for card backs at their positions)
-- Betting action facing hero
+**What to analyze - BE DETAILED:**
+1. **Hero's cards** (visible at bottom of screen)
+2. **Community cards** on the board (if any)
+3. **Pot size** - current total pot
+4. **Action History** - CRITICAL:
+   - Who opened/raised? How much?
+   - Who called?
+   - Who folded? (look for grayed out players or missing cards)
+   - Is this a 3-bet? 4-bet? Squeeze?
+   - What action is Hero facing RIGHT NOW?
+5. **Active players** - Which players still have cards?
+6. **Stack sizes** visible on screen
+
+**IF YOU CANNOT SEE CLEAR ACTION HISTORY:**
+- State: "Action history unclear from image"
+- Make best guess based on pot size and visible information
+- Note any assumptions you're making
 
 **Your task:**
-Determine the most optimal play (Fold, Call, Check, Raise, or Bet) and explain WHY this is the best decision.
+1. Describe the betting action that has occurred
+2. Identify current bet Hero must call (if any)
+3. Determine optimal play considering the ACTUAL action
+4. Explain reasoning based on what you observed
 
 **REMEMBER TO CONSIDER:**
 - Hero is in {hero_position} position (NOT Button unless specified as BTN)
-- Hand strength relative to position
+- ACTUAL betting action (not assumed initial action)
+- Whether this is a 3-bet, cold call, squeeze, etc.
+- Hand strength relative to position AND action
 - Position advantage in {hero_position}
-- Pot odds and implied odds at {blinds} stakes
+- Pot odds based on ACTUAL bet to call
+- Implied odds at {blinds} stakes
 - Opponent tendencies (if VPIP visible)
 - Board texture
 - Stack sizes
@@ -66,11 +83,12 @@ Determine the most optimal play (Fold, Call, Check, Raise, or Bet) and explain W
     "pot_size_dollars": "$10.50",
     "street": "preflop|flop|turn|river",
     "is_hero_turn": true,
-    "blinds": "{blinds}"
+    "blinds": "{blinds}",
+    "action_observed": "UTG raised to $0.25, Hero called from BTN, BB 3-bet to $1.45, UTG folded. Hero facing $1.20 more to call." OR "Action history unclear - assuming facing initial raise of $0.25"
   }},
   "recommendation": {{
-    "action": "Fold" or "Call" or "Check" or "Raise $4.50" or "Bet $3.00",
-    "reasoning": "Detailed 2-3 sentence explanation of why this is the mathematically optimal play based on hand strength, position, pot odds, and opponent tendencies."
+    "action": "Fold" or "Call $1.20" or "Check" or "Raise to $4.50" or "Bet $3.00",
+    "reasoning": "Based on the action observed: [describe action]. This hand should [Fold/Call/Raise] because [2-3 sentence explanation including pot odds, position, and action context]."
   }}
 }}
 
