@@ -29,26 +29,29 @@ SYSTEM_PROMPT = """You are an expert poker player and analyst. Analyze poker tab
 
 USER_PROMPT_TEMPLATE = """Analyze this GGPoker poker table screenshot and determine the optimal play.
 
-**Context:**
-- Hero Position: {hero_position}
-- Blinds: {blinds}
-- Hero is at the BOTTOM-CENTER of the table
+**CRITICAL CONTEXT - READ CAREFULLY:**
+🎯 HERO'S ACTUAL POSITION: {hero_position}
+💵 BLINDS: {blinds}
+📍 Hero is physically at BOTTOM-CENTER of screen
 
-**Position Mapping:**
+**IMPORTANT - Position Mapping (Hero's actual seat context):**
 {position_mapping}
 
 **What to analyze:**
-- Hero's cards (visible at bottom)
+- Hero's cards (visible at bottom of screen)
 - Community cards on the board
 - Pot size and current bet
 - Active opponents (look for card backs at their positions)
 - Betting action facing hero
 
 **Your task:**
-Determine the most optimal play (Fold, Call, Check, Raise, or Bet) and explain WHY this is the best decision considering:
-- Hand strength
-- Position advantage
-- Pot odds and implied odds
+Determine the most optimal play (Fold, Call, Check, Raise, or Bet) and explain WHY this is the best decision.
+
+**REMEMBER TO CONSIDER:**
+- Hero is in {hero_position} position (NOT Button unless specified as BTN)
+- Hand strength relative to position
+- Position advantage in {hero_position}
+- Pot odds and implied odds at {blinds} stakes
 - Opponent tendencies (if VPIP visible)
 - Board texture
 - Stack sizes
