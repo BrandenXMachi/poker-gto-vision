@@ -217,15 +217,15 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-green-900 to-gray-900 text-white flex">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 text-white flex">
       {/* Main content area */}
       <div className="flex-1 px-4 py-6">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-8">
-            <h1 className="text-5xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-500 to-teal-400 bg-clip-text text-transparent mb-2">
+            <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-400 via-cyan-400 to-sky-400 bg-clip-text text-transparent mb-2">
               🎰 Poker Vision
             </h1>
-            <p className="text-gray-400 text-lg">Hybrid AI: Gemini Vision + GPT-4o-mini Logic 🤖</p>
+            <p className="text-gray-400 text-lg">AI-Powered Poker Analysis 🤖</p>
           </div>
           
           {/* AI Mode Selector - Show when camera is active */}
@@ -291,8 +291,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Main recommendation display - Enhanced */}
-          {action && (
+          {/* Main recommendation display - Conditional based on AI mode */}
+          {action && aiMode === 'gemini' && (
             <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 border-emerald-400/30 backdrop-blur">
               <div className="text-5xl font-extrabold text-center mb-8 drop-shadow-lg">
                 {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
@@ -329,10 +329,11 @@ export default function Home() {
                     localStorage.setItem('poker_action', action)
                     localStorage.setItem('poker_pot_size', potSize)
                     localStorage.setItem('poker_captured_image', capturedImage)
+                    localStorage.setItem('poker_ai_mode', aiMode)
                     // Navigate to details page
                     router.push('/details')
                   }}
-                  className="mt-6 w-full bg-white text-emerald-700 font-bold py-3 rounded-xl hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                 className="mt-6 w-full bg-white text-emerald-700 font-bold py-3 rounded-xl hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 >
                   View Detailed Analysis →
                 </button>
@@ -340,10 +341,40 @@ export default function Home() {
             </div>
           )}
 
+          {/* GPT/Hybrid mode - Simplified display */}
+          {action && (aiMode === 'gpt' || aiMode === 'hybrid') && (
+            <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 border-blue-400/30 backdrop-blur">
+              <div className="text-center mb-6">
+                <p className="text-sm font-semibold text-blue-200 mb-2">⚡ OPTIMAL PLAY</p>
+                <div className="text-6xl font-extrabold drop-shadow-lg">
+                  {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
+                </div>
+              </div>
+              
+              {detailedInfo && (
+                <button
+                  onClick={() => {
+                    // Store data in localStorage
+                    localStorage.setItem('poker_detailed_info', JSON.stringify(detailedInfo))
+                    localStorage.setItem('poker_action', action)
+                    localStorage.setItem('poker_pot_size', potSize)
+                    localStorage.setItem('poker_captured_image', capturedImage)
+                    localStorage.setItem('poker_ai_mode', aiMode)
+                    // Navigate to details page
+                    router.push('/details')
+                  }}
+                  className="w-full bg-white text-blue-700 font-bold py-3 rounded-xl hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                >
+                  View GPT Reasoning →
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Blinds Selector - Only show when camera is active and not analyzing */}
           {isCameraActive && !isAnalyzing && !capturedImage && (
-            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-emerald-500/30 shadow-xl">
-              <h3 className="text-center text-lg font-bold text-emerald-400 mb-4">
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-blue-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-blue-400 mb-4">
                 💵 Select Blinds
               </h3>
               <div className="grid grid-cols-3 gap-2">
@@ -353,7 +384,7 @@ export default function Home() {
                     onClick={() => setSelectedBlinds(blinds)}
                     className={`py-3 px-2 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
                       selectedBlinds === blinds
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105'
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg scale-105'
                         : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                     }`}
                   >
@@ -362,7 +393,7 @@ export default function Home() {
                 ))}
               </div>
               <p className="text-center text-sm text-gray-400 mt-3">
-                Selected: <span className="text-emerald-400 font-bold">${selectedBlinds}</span>
+                Selected: <span className="text-blue-400 font-bold">${selectedBlinds}</span>
               </p>
             </div>
           )}
@@ -413,7 +444,7 @@ export default function Home() {
                       onClick={() => handlePositionClick(pos)}
                       className={`py-3 px-2 rounded-lg font-bold text-sm transition-all transform hover:scale-110 shadow-lg ${
                         selectedPosition === pos
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white scale-105 ring-2 ring-white'
+                          ? 'bg-gradient-to-r from-blue-500 to-sky-500 text-white scale-105 ring-2 ring-white'
                           : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
                       }`}
                     >

@@ -21,106 +21,46 @@ else:
     client = None
 
 
-POKER_LOGIC_PROMPT = """You are an expert poker mathematician and GTO strategist. You will receive extracted data from a poker table and must make the optimal decision.
+POKER_LOGIC_PROMPT = """You are an expert poker player and strategist. You will receive extracted data from a poker table and must make the optimal decision.
 
-**Your job is to calculate the 5 key metrics and recommend the best action based PURELY on mathematics.**
+**Your job is to analyze the situation and recommend the best action with clear reasoning.**
 
-INPUT DATA FORMAT:
-{
-  "hero_position": "BTN|SB|BB|UTG|MP|CO",
-  "hero_cards": ["A♠", "Q♠"],
-  "board_cards": ["8♦", "6♦", "9♥"] or [],
-  "pot_size_dollars": "10.50",
-  "street": "preflop|flop|turn|river",
-  "hero_stack": "150 BB",
-  "villain_positions": {
-    "BB": {"stack": "100 BB", "vpip": "28%", "current_bet": "$2.00"},
-    "UTG": {"stack": "80 BB", "vpip": "18%", "current_bet": "$0"}
-  },
-  "action_to_hero": "$2.00 to call" or "No action - hero can check",
-  "betting_history": ["UTG folds", "MP folds", "CO raises $2", "BTN (hero) ?"]
-}
+**Game State Data:**
+- Hero Position: {position}
+- Hero Cards: {cards}
+- Board Cards: {board}
+- Pot Size: {pot}
+- Street: {street}
+- Blinds: {blinds}
+- Action to Hero: {action_to_hero}
+- Active Opponents: {opponents}
+- Betting History: {history}
 
-OUTPUT FORMAT (must be valid JSON):
-{
-  "recommendation": {
-    "action": "Fold|Call|Check|Raise|Bet",
-    "raise_amount_dollars": "$4.50" or "N/A",
-    "pot_odds": {
-      "value": "3:1" or "25%",
-      "calculation": "Detailed math showing how pot odds were calculated"
-    },
-    "hand_equity": {
-      "value": "45%",
-      "calculation": "Detailed explanation of hand equity calculation against villain range"
-    },
-    "implied_odds": {
-      "value": "5:1" or "High/Medium/Low",
-      "calculation": "Explanation of implied odds based on stack depth and board texture"
-    },
-    "fold_equity": {
-      "value": "35%",
-      "calculation": "Explanation of fold equity estimation based on villain tendencies"
-    },
-    "expected_value": {
-      "value": "+$2.10" or "-$0.75",
-      "calculation": "Complete EV formula calculation with all components"
-    },
-    "optimal_play": "Based on all the above information and prior action history, this is the most profitable long-term decision: [detailed explanation of the optimal play and why]"
-  }
-}
+**Your Task:**
+What is the most optimal play and why?
 
-CALCULATION GUIDELINES:
+Consider:
+- Hand strength vs likely opponent ranges
+- Position advantage
+- Pot odds and implied odds
+- Opponent tendencies (VPIP if available)
+- Board texture and draw possibilities
+- Stack sizes and commitment
+- Betting patterns
 
-**1. POT ODDS**:
-- Formula: (Amount to call) / (Pot after you call)
-- Express as ratio or percentage
-- Critical baseline for calling decisions
+**Output Format (JSON only):**
+{{
+  "recommendation": {{
+    "action": "Fold" or "Call" or "Check" or "Raise $4.50" or "Bet $3.00",
+    "reasoning": "Clear 2-4 sentence explanation of why this is the optimal play based on hand strength, position, pot odds, opponent tendencies, and strategic considerations."
+  }}
+}}
 
-**2. HAND EQUITY**:
-- Calculate hero's winning percentage vs villain's estimated range
-- Consider position, action, board texture when constructing villain ranges
-- Use combinatorics to remove impossible hands
-- Tight players (low VPIP) = tighter ranges
-- Loose players (high VPIP) = wider ranges
-
-**3. IMPLIED ODDS**:
-- Estimate additional chips you can win on future streets
-- Factors:
-  * Stack depth (deeper = higher implied odds)
-  * Board texture (wet boards = lower implied odds) 
-  * Drawing hands have high implied odds if hidden
-  * Made hands have lower implied odds
-- Express as ratio or High/Medium/Low
-
-**4. FOLD EQUITY**:
-- Estimate % villain folds to a bet/raise
-- Factors:
-  * Villain's VPIP (tight = folds more)
-  * Pot size (small pots = easier folds)
-  * Board texture (scary boards = more folds)
-  * Bet sizing (bigger = more folds)
-- Critical for bluffs and semi-bluffs
-
-**5. EXPECTED VALUE**:
-- For Call: EV = (Hand Equity × Pot) - Call Amount + Implied Odds adjustment
-- For Bet/Raise: EV = (Fold Equity × Current Pot) + ((1 - Fold Equity) × ((Hand Equity × Final Pot) - Bet Amount))
-- Choose action with highest EV
-- Express in dollars
-
-**DECISION LOGIC**:
-- If EV(all actions) < 0 → Fold
-- If Pot Odds < (Hand Equity + Implied Odds) → Profitable call
-- If EV(Bet/Raise) > EV(Call) → Bet/Raise
-- Blend GTO with exploitative adjustments based on VPIP
-
-**IMPORTANT**:
-- Base decisions on pure mathematics and the 5 metrics
-- No guessing or assumptions beyond what's provided
-- Show your mathematical work in reasoning
-- Be precise with percentages and dollar amounts
-
-Return ONLY valid JSON, no markdown, no extra text."""
+**Rules:**
+- Return ONLY valid JSON
+- Keep reasoning concise but complete
+- Include specific amounts for Raise/Bet actions
+- Base decision on solid poker fundamentals"""
 
 
 class GPTPokerLogic:
@@ -140,18 +80,35 @@ class GPTPokerLogic:
             extracted_data: Dictionary with poker table data extracted by Gemini
             
         Returns:
-            Dictionary with decision and 5 metrics
+            Dictionary with decision and reasoning
         """
         try:
             logger.info("🧠 Sending extracted data to GPT-4o-mini for decision...")
             
+            # Format opponent info
+            opponents_info = []
+            for pos, data in extracted_data.get('villain_positions', {}).items():
+                vpip = data.get('vpip', 'N/A')
+                stack = data.get('stack', 'N/A')
+                bet = data.get('current_bet', '$0')
+                opponents_info.append(f"{pos} (VPIP: {vpip}, Stack: {stack}, Bet: {bet})")
+            
+            opponents_str = ", ".join(opponents_info) if opponents_info else "None (heads-up or folded)"
+            
             # Format the prompt with extracted data
-            prompt = f"""{POKER_LOGIC_PROMPT}
-
-INPUT DATA:
-{json.dumps(extracted_data, indent=2)}
-
-Make your decision now. Return ONLY the JSON output, no markdown."""
+            prompt = POKER_LOGIC_PROMPT.format(
+                position=extracted_data.get('hero_position', 'Unknown'),
+                cards=", ".join(extracted_data.get('hero_cards', [])),
+                board=", ".join(extracted_data.get('board_cards', [])) if extracted_data.get('board_cards') else "Empty (preflop)",
+                pot=extracted_data.get('pot_size_dollars', 'Unknown'),
+                street=extracted_data.get('street', 'Unknown'),
+                blinds=extracted_data.get('blinds', 'Unknown'),
+                action_to_hero=extracted_data.get('action_to_hero', 'Unknown'),
+                opponents=opponents_str,
+                history=", ".join(extracted_data.get('betting_history', [])) if extracted_data.get('betting_history') else "No history available"
+            )
+            
+            prompt += "\n\nMake your decision now. Return ONLY the JSON output, no markdown."
             
             # Call GPT-4o-mini
             response = client.chat.completions.create(

@@ -24,178 +24,59 @@ else:
     client = None
 
 
-SYSTEM_PROMPT = """You are an expert poker analyst with computer vision capabilities. You will analyze a poker table screenshot and provide:
-1. Visual data extraction (what you see)
-2. Mathematical analysis (5 metrics)
-3. Optimal decision recommendation
-
-You must output valid JSON only."""
+SYSTEM_PROMPT = """You are an expert poker player and analyst. Analyze poker table screenshots and provide clear, optimal decisions."""
 
 
-USER_PROMPT_TEMPLATE = """Analyze this GGPoker screenshot and provide a complete poker analysis.
+USER_PROMPT_TEMPLATE = """Analyze this GGPoker poker table screenshot and determine the optimal play.
 
-**HERO INFORMATION:**
-- Hero position: {hero_position}
+**Context:**
+- Hero Position: {hero_position}
 - Blinds: {blinds}
-- Hero is at BOTTOM-CENTER of the table
+- Hero is at the BOTTOM-CENTER of the table
 
-**POSITION MAPPING:**
+**Position Mapping:**
 {position_mapping}
 
----
+**What to analyze:**
+- Hero's cards (visible at bottom)
+- Community cards on the board
+- Pot size and current bet
+- Active opponents (look for card backs at their positions)
+- Betting action facing hero
 
-## PART 1: VISUAL DATA EXTRACTION
+**Your task:**
+Determine the most optimal play (Fold, Call, Check, Raise, or Bet) and explain WHY this is the best decision considering:
+- Hand strength
+- Position advantage
+- Pot odds and implied odds
+- Opponent tendencies (if VPIP visible)
+- Board texture
+- Stack sizes
 
-Extract all visible information from the poker table:
-
-**Required Data:**
-1. **Hero's Cards**: Extract rank and suit (e.g., ["A♠", "Q♠"])
-2. **Board Cards**: All community cards visible (e.g., ["8♦", "6♦", "9♥"]) or [] if preflop
-3. **Pot Size**: Look for "Total Pot : $X.XX" text
-4. **Street**: Determine from community cards (0=preflop, 3=flop, 4=turn, 5=river)
-5. **Hero's Turn**: Check if action buttons (Fold/Call/Raise) are visible at bottom
-
-**🃏 FOLD DETECTION - CRITICAL (PRIMARY METHOD)**:
-
-The MOST RELIABLE indicator of an active (non-folded) player:
-→ VISIBLE CARD BACKS at their position
-
-For EACH opponent position, check:
-- ✅ Can you see 2 card backs (face-down cards)? → ACTIVE (has_folded: false)
-- ❌ No card backs visible? → FOLDED (has_folded: true)
-
-**Detection Rules**:
-1. ONLY players with visible card backs are active
-2. Ignore seat appearance, colors, brightness - focus on CARDS ONLY
-3. Hero might be heads-up even with 5 occupied seats
-4. This is ESSENTIAL for accurate GTO analysis
-
-DO NOT include folded players (no card backs) in villain_positions.
-Only report active players with visible cards.
-
-6. **Villain Data**: For each ACTIVE (card backs visible) player, extract:
-   - Player name
-   - Position (based on screen location)
-   - Stack size (in BB if visible)
-   - VPIP percentage (if shown above name)
-   - Current bet amount
-   - Folded status (should be false for all reported players)
-7. **Action to Hero**: Describe the betting action (e.g., "$2.00 to call" or "Can check")
-8. **Betting History**: List visible actions in sequence
-
----
-
-## PART 2: POKER DECISION ANALYSIS
-
-Based on the extracted data, calculate the 5 key metrics:
-
-### 1. POT ODDS
-- Formula: (Amount to call) / (Pot after you call)
-- Express as ratio (e.g., "3:1") or percentage (e.g., "25%")
-- Show calculation steps
-
-### 2. HAND EQUITY
-- Estimate hero's winning % vs villain's range
-- Consider:
-  * Villain's VPIP (tight = narrow range, loose = wide range)
-  * Position and action sequence
-  * Board texture
-- Show range estimation and equity calculation
-
-### 3. IMPLIED ODDS
-- Estimate additional money you can win on future streets
-- Factors:
-  * Stack depth (deeper = higher implied odds)
-  * Board texture (wet = lower implied odds)
-  * Drawing hands = higher implied odds
-- Express as ratio or High/Medium/Low
-
-### 4. FOLD EQUITY
-- Estimate % villain folds to a bet/raise
-- Factors:
-  * Villain's VPIP (tight players fold more)
-  * Pot size (small pots = easier folds)
-  * Board texture (scary boards = more folds)
-  * Bet sizing
-- Express as percentage
-
-### 5. EXPECTED VALUE (EV)
-- For Call: EV = (Hand Equity × Pot) - Call Amount + Implied Odds
-- For Bet/Raise: EV = (Fold Equity × Pot) + ((1 - Fold Equity) × ((Hand Equity × Final Pot) - Bet))
-- Show complete calculation
-- Express in dollars (e.g., "+$2.10" or "-$0.75")
-
-### DECISION LOGIC:
-- If EV(all actions) < 0 → Fold
-- If Pot Odds < Hand Equity + Implied Odds → Call is profitable
-- If EV(Bet/Raise) > EV(Call) → Bet/Raise
-- Choose action with highest EV
-
----
-
-## OUTPUT FORMAT (JSON ONLY):
-
+**Output Format (JSON only):**
 {{
   "success": true,
   "extracted_data": {{
     "hero_position": "{hero_position}",
-    "hero_cards": ["card1", "card2"],
-    "board_cards": [] or ["card1", "card2", "card3"],
+    "hero_cards": ["A♠", "Q♠"],
+    "board_cards": ["8♦", "6♦", "9♥"] or [],
     "pot_size_dollars": "$10.50",
     "street": "preflop|flop|turn|river",
-    "hero_stack": "150 BB",
-    "is_hero_turn": true|false,
-    "villain_positions": {{
-      "BB": {{
-        "player_name": "PlayerName",
-        "screen_position": "Top-Center",
-        "stack": "100 BB",
-        "vpip": "28%" or "N/A",
-        "current_bet": "$2.00",
-        "has_folded": false
-      }}
-    }},
-    "action_to_hero": "$2.00 to call",
-    "betting_history": ["UTG folds", "MP raises $2", "..."],
+    "is_hero_turn": true,
     "blinds": "{blinds}"
   }},
   "recommendation": {{
-    "action": "Fold|Call|Check|Raise|Bet",
-    "raise_amount_dollars": "$4.50" or "N/A",
-    "pot_odds": {{
-      "value": "3:1",
-      "calculation": "Detailed pot odds calculation showing your work"
-    }},
-    "hand_equity": {{
-      "value": "45%",
-      "calculation": "Detailed equity calculation vs villain range"
-    }},
-    "implied_odds": {{
-      "value": "High",
-      "calculation": "Explanation of implied odds factors"
-    }},
-    "fold_equity": {{
-      "value": "35%",
-      "calculation": "Explanation of fold equity estimation"
-    }},
-    "expected_value": {{
-      "value": "+$2.10",
-      "calculation": "Complete EV formula with all components"
-    }},
-    "optimal_play": "Multi-sentence explanation of why this is the best long-term decision based on the mathematics above"
+    "action": "Fold" or "Call" or "Check" or "Raise $4.50" or "Bet $3.00",
+    "reasoning": "Detailed 2-3 sentence explanation of why this is the mathematically optimal play based on hand strength, position, pot odds, and opponent tendencies."
   }}
 }}
 
-**CRITICAL RULES:**
-1. Return ONLY valid JSON, no markdown, no extra text
-2. Extract ONLY what you can see - no assumptions
-3. Be precise with card suits and ranks
-4. Show all mathematical work in "calculation" fields
-5. Base decisions purely on mathematics and GTO principles
-6. If hero's cards aren't visible, set success: false
-7. If it's not hero's turn, note this in the response
-
-Analyze the image now and provide the JSON output."""
+**Rules:**
+- Return ONLY valid JSON
+- Be precise with card notation (rank + suit)
+- If hero's cards not visible → success: false
+- If not hero's turn → success: false
+- Keep reasoning clear and concise"""
 
 
 class GPTVisionAnalyzer:
