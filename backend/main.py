@@ -1,6 +1,6 @@
 """
-Main FastAPI server for Poker GTO Vision
-Hybrid AI System: Gemini (vision) → GPT-4o-mini (poker logic)
+Main FastAPI server for Poker Vision
+Two modes: Flash (gemini-2.0-flash-exp) and Deep (gemini-2.0-pro-exp)
 """
 
 from fastapi import FastAPI, File, UploadFile, Form
@@ -13,16 +13,14 @@ import os
 # Load environment variables
 load_dotenv()
 
-from gemini_analyzer import GeminiDataExtractor
-from gpt_poker_logic import GPTPokerLogic
 from gemini_only_analyzer import GeminiOnlyAnalyzer
-from gpt_vision_analyzer import GPTVisionAnalyzer
+from deep_gto_analyzer import DeepGTOAnalyzer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Poker GTO Vision Backend - Hybrid AI")
+app = FastAPI(title="Poker Vision Backend")
 
 # CORS middleware for frontend communication
 allowed_origins = [
@@ -45,21 +43,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize all AI analyzers
-gemini_extractor = GeminiDataExtractor()
-gpt_logic = GPTPokerLogic()
-gemini_only = GeminiOnlyAnalyzer()
-gpt_vision = GPTVisionAnalyzer()
+# Initialize AI analyzers
+flash_analyzer = GeminiOnlyAnalyzer()
+deep_analyzer = DeepGTOAnalyzer()
 
 
 @app.get("/")
 async def root():
     """Health check endpoint"""
     return {
-        "status": "Poker GTO Vision Backend - Hybrid AI",
-        "version": "3.0.0",
-        "vision": "Gemini 2.0 Flash Experimental",
-        "logic": "GPT-4o-mini"
+        "status": "Poker Vision Backend",
+        "version": "4.0.0",
+        "modes": {
+            "flash": "Gemini 2.0 Flash Experimental - Fast analysis",
+            "deep": "Gemini 2.0 Pro Experimental - Advanced GTO strategy"
+        }
     }
 
 
@@ -68,97 +66,49 @@ async def analyze_image(
     image: UploadFile = File(...),
     position: str = Form("BTN"),
     blinds: str = Form("0.02/0.05"),
-    ai_mode: str = Form("hybrid")
+    ai_mode: str = Form("flash")
 ):
     """
-    Analyze poker table image using selected AI mode:
-    - "gemini": Fast single-call analysis (best for quick preflop)
-    - "gpt": GPT-4o vision analysis (best visual reasoning)
-    - "hybrid": Gemini extraction + GPT logic (most accurate, slower)
+    Analyze poker table image using selected mode:
+    - "flash": Fast analysis (Gemini 2.0 Flash) - Quick decisions
+    - "deep": Deep GTO analysis (Gemini 2.0 Pro) - Advanced strategy with position, stacks, VPIP
     
-    Returns: 5 decision metrics + action recommendation
+    Returns: Complete poker analysis with recommendation
     """
     try:
-        logger.info(f"📸 Received image: {image.filename}, position: {position}, blinds: {blinds}, AI mode: {ai_mode}")
+        logger.info(f"📸 Received image: {image.filename}, position: {position}, blinds: {blinds}, mode: {ai_mode}")
         
         # Read image data
         image_data = await image.read()
         
-        # Route to appropriate analyzer based on AI mode
-        if ai_mode == "gemini":
-            # GEMINI ONLY MODE - Single fast call
-            logger.info(f"⚡ Using Gemini-only mode (fast)")
-            result = gemini_only.analyze(image_data, hero_position=position, blinds=blinds)
+        # Route to appropriate analyzer based on mode
+        if ai_mode == "flash":
+            # FLASH MODE - Fast Gemini analysis
+            logger.info(f"⚡ Using Flash mode (fast)")
+            result = flash_analyzer.analyze(image_data, hero_position=position, blinds=blinds)
             
-            if not result.get("success"):
-                return {
-                    "success": False,
-                    "error": result.get("error", "Analysis failed"),
-                    "message": result.get("error", "Failed to analyze. Please try again.")
-                }
+        elif ai_mode == "deep":
+            # DEEP MODE - Advanced GTO with Gemini Pro
+            logger.info(f"🧠 Using Deep mode (GTO)")
+            result = deep_analyzer.analyze(image_data, hero_position=position, blinds=blinds)
             
-            extracted_data = result.get("extracted_data", {})
-            recommendation = result.get("recommendation", {})
-            
-        elif ai_mode == "gpt":
-            # GPT VISION MODE - Single GPT-4o call with vision
-            logger.info(f"🧠 Using GPT-4o vision mode")
-            result = gpt_vision.analyze(image_data, hero_position=position, blinds=blinds)
-            
-            if not result.get("success"):
-                return {
-                    "success": False,
-                    "error": result.get("error", "Analysis failed"),
-                    "message": result.get("error", "Failed to analyze. Please try again.")
-                }
-            
-            extracted_data = result.get("extracted_data", {})
-            recommendation = result.get("recommendation", {})
-            
-        else:  # "hybrid" mode (default)
-            # HYBRID MODE - Gemini extracts, GPT decides
-            logger.info(f"🤖 Using Hybrid mode (Gemini + GPT)")
-            
-            # STEP 1: Gemini extracts visual data
-            logger.info(f"👁️  Step 1: Gemini extracting visual data...")
-            extraction_result = gemini_extractor.extract_data(image_data, hero_position=position)
-            
-            if not extraction_result.get("success"):
-                return {
-                    "success": False,
-                    "error": extraction_result.get("error", "Data extraction failed"),
-                    "message": "Failed to extract poker table data. Please try again."
-                }
-            
-            extracted_data = extraction_result["extracted_data"]
-            
-            # Count active vs folded players
-            all_villains = extracted_data.get('villain_positions', {})
-            active_villains = {pos: data for pos, data in all_villains.items() if not data.get('has_folded', False)}
-            folded_count = len(all_villains) - len(active_villains)
-            
-            logger.info(f"✅ Gemini extracted: {len(all_villains)} total villains ({len(active_villains)} active, {folded_count} folded), {extracted_data.get('street', 'unknown')} street")
-            if active_villains:
-                logger.info(f"   Active players at positions: {list(active_villains.keys())}")
-            
-            # Add blinds to extracted data for GPT context
-            extracted_data["blinds"] = blinds
-            
-            # STEP 2: GPT makes poker decision
-            logger.info(f"🧠 Step 2: GPT-4o-mini making decision (blinds: {blinds})...")
-            decision_result = gpt_logic.make_decision(extracted_data)
-            
-            if not decision_result.get("success"):
-                return {
-                    "success": False,
-                    "error": decision_result.get("error", "Decision failed"),
-                    "message": "Failed to make poker decision. Please try again."
-                }
-            
-            decision = decision_result["decision"]
-            recommendation = decision["recommendation"]
-            
-            logger.info(f"✅ GPT decision: {recommendation['action']}")
+        else:
+            return {
+                "success": False,
+                "error": f"Invalid mode: {ai_mode}. Use 'flash' or 'deep'",
+                "message": "Invalid analysis mode selected."
+            }
+        
+        # Check if analysis was successful
+        if not result.get("success"):
+            return {
+                "success": False,
+                "error": result.get("error", "Analysis failed"),
+                "message": result.get("error", "Failed to analyze. Please try again.")
+            }
+        
+        extracted_data = result.get("extracted_data", {})
+        recommendation = result.get("recommendation", {})
         
         # Check if hero's cards were extracted
         hero_cards = extracted_data.get("hero_cards", [])
@@ -184,98 +134,61 @@ async def analyze_image(
         # Calculate pot size in BB (for display)
         try:
             pot_dollars = float(extracted_data.get("pot_size_dollars", "$0").replace("$", ""))
-            # Assume 0.50 BB for now, or extract from context
-            pot_bb = pot_dollars / 0.50
+            # Parse blinds to get BB value
+            bb_value = float(blinds.split('/')[1])
+            pot_bb = pot_dollars / bb_value
         except:
             pot_bb = 0
         
-        # Different response format based on AI mode
-        if ai_mode == "gemini":
-            # Gemini mode: Return 5 metrics (original format)
-            return {
-                "success": True,
-                "hero_turn": True,
-                "ai_mode": ai_mode,
-                
-                # Main display - 5 decision metrics
-                "recommendation": {
-                    "action": action,
-                    "pot_odds": recommendation.get("pot_odds", {}).get("value", recommendation.get("pot_odds", "N/A")) if isinstance(recommendation.get("pot_odds"), dict) else recommendation.get("pot_odds", "N/A"),
-                    "hand_equity": recommendation.get("hand_equity", {}).get("value", recommendation.get("hand_equity", "N/A")) if isinstance(recommendation.get("hand_equity"), dict) else recommendation.get("hand_equity", "N/A"),
-                    "implied_odds": recommendation.get("implied_odds", {}).get("value", recommendation.get("implied_odds", "N/A")) if isinstance(recommendation.get("implied_odds"), dict) else recommendation.get("implied_odds", "N/A"),
-                    "fold_equity": recommendation.get("fold_equity", {}).get("value", recommendation.get("fold_equity", "N/A")) if isinstance(recommendation.get("fold_equity"), dict) else recommendation.get("fold_equity", "N/A"),
-                    "expected_value": recommendation.get("expected_value", {}).get("value", recommendation.get("expected_value", "N/A")) if isinstance(recommendation.get("expected_value"), dict) else recommendation.get("expected_value", "N/A"),
-                    "pot_size": f"{pot_bb:.1f} BB",
-                    "position": extracted_data.get("hero_position", position)
+        # Unified response format for both modes
+        return {
+            "success": True,
+            "hero_turn": True,
+            "ai_mode": ai_mode,
+            
+            # Main display - 5 decision metrics
+            "recommendation": {
+                "action": action,
+                "pot_odds": recommendation.get("pot_odds", {}).get("value", recommendation.get("pot_odds", "N/A")) if isinstance(recommendation.get("pot_odds"), dict) else recommendation.get("pot_odds", "N/A"),
+                "hand_equity": recommendation.get("hand_equity", {}).get("value", recommendation.get("hand_equity", "N/A")) if isinstance(recommendation.get("hand_equity"), dict) else recommendation.get("hand_equity", "N/A"),
+                "implied_odds": recommendation.get("implied_odds", {}).get("value", recommendation.get("implied_odds", "N/A")) if isinstance(recommendation.get("implied_odds"), dict) else recommendation.get("implied_odds", "N/A"),
+                "fold_equity": recommendation.get("fold_equity", {}).get("value", recommendation.get("fold_equity", "N/A")) if isinstance(recommendation.get("fold_equity"), dict) else recommendation.get("fold_equity", "N/A"),
+                "expected_value": recommendation.get("expected_value", {}).get("value", recommendation.get("expected_value", "N/A")) if isinstance(recommendation.get("expected_value"), dict) else recommendation.get("expected_value", "N/A"),
+                "pot_size": f"{pot_bb:.1f} BB",
+                "position": extracted_data.get("hero_position", position),
+                "reasoning": reasoning
+            },
+            
+            # Detailed info for side panel
+            "detailed_info": {
+                "game_state": {
+                    "street": extracted_data.get("street", "unknown"),
+                    "pot_dollars": extracted_data.get("pot_size_dollars", "N/A"),
+                    "pot_bb": extracted_data.get("pot_size_bb", f"{pot_bb:.1f} BB"),
+                    "hero_cards": extracted_data.get("hero_cards", []),
+                    "board_cards": extracted_data.get("board_cards", [])
                 },
-                
-                # Detailed info for side panel
-                "detailed_info": {
-                    "game_state": {
-                        "street": extracted_data.get("street", "unknown"),
-                        "pot_dollars": extracted_data.get("pot_size_dollars", "N/A"),
-                        "hero_cards": extracted_data.get("hero_cards", []),
-                        "board_cards": extracted_data.get("board_cards", [])
-                    },
-                    "players": {
-                        pos: {
-                            "name": data.get("player_name", "Unknown"),
-                            "position": pos,
-                            "stack": data.get("stack", "N/A"),
-                            "vpip": data.get("vpip", "N/A")
-                        }
-                        for pos, data in extracted_data.get("villain_positions", {}).items()
-                        if not data.get("has_folded", False)
-                    },
-                    "pot_odds": recommendation.get("pot_odds", {}),
-                    "hand_equity": recommendation.get("hand_equity", {}),
-                    "implied_odds": recommendation.get("implied_odds", {}),
-                    "fold_equity": recommendation.get("fold_equity", {}),
-                    "expected_value": recommendation.get("expected_value", {}),
-                    "optimal_play": recommendation.get("optimal_play", ""),
-                    "action_history": extracted_data.get("betting_history", [])
+                "players": {
+                    pos: {
+                        "name": data.get("player_name", "Unknown"),
+                        "position": pos,
+                        "stack": data.get("stack", data.get("stack_bb", "N/A")),
+                        "vpip": data.get("vpip", "N/A"),
+                        "vpip_category": data.get("vpip_category", "unknown")
+                    }
+                    for pos, data in extracted_data.get("villain_positions", {}).items()
+                    if not data.get("has_folded", False)
                 },
-                
-                # Raw data for debugging (optional)
-                "debug": {
-                    "extracted_data": extracted_data,
-                    "ai_mode": ai_mode
-                }
-            }
-        else:
-            # GPT/Hybrid mode: Return only action + reasoning (simplified)
-            return {
-                "success": True,
-                "hero_turn": True,
-                "ai_mode": ai_mode,
-                
-                # Main display - Just action
-                "recommendation": {
-                    "action": action,
-                    "reasoning": reasoning
-                },
-                
-                # Detailed info for GPT reasoning page
-                "detailed_info": {
-                    "game_state": {
-                        "street": extracted_data.get("street", "unknown"),
-                        "pot_dollars": extracted_data.get("pot_size_dollars", "N/A"),
-                        "hero_cards": extracted_data.get("hero_cards", []),
-                        "board_cards": extracted_data.get("board_cards", [])
-                    },
-                    "players": {
-                        pos: {
-                            "name": data.get("player_name", "Unknown"),
-                            "position": pos,
-                            "stack": data.get("stack", "N/A"),
-                            "vpip": data.get("vpip", "N/A")
-                        }
-                        for pos, data in extracted_data.get("villain_positions", {}).items()
-                        if not data.get("has_folded", False)
-                    },
-                    "reasoning": reasoning,
-                    "action_history": extracted_data.get("betting_history", [])
-                },
+                "pot_odds": recommendation.get("pot_odds", {}),
+                "hand_equity": recommendation.get("hand_equity", {}),
+                "implied_odds": recommendation.get("implied_odds", {}),
+                "fold_equity": recommendation.get("fold_equity", {}),
+                "expected_value": recommendation.get("expected_value", {}),
+                "optimal_play": recommendation.get("optimal_play", reasoning),
+                "gto_frequency": recommendation.get("gto_frequency", ""),
+                "range_advantage": recommendation.get("range_advantage", ""),
+                "action_history": extracted_data.get("betting_history", [])
+            },
             
             # Raw data for debugging (optional)
             "debug": {

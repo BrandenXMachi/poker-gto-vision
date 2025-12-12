@@ -29,7 +29,7 @@ export default function Home() {
   const [capturedImage, setCapturedImage] = useState<string>('')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
   const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
-  const [aiMode, setAiMode] = useState<'gemini' | 'gpt' | 'hybrid'>('hybrid')
+  const [aiMode, setAiMode] = useState<'flash' | 'deep'>('flash')
   
   // Main display info
   const [action, setAction] = useState<string>('')
@@ -223,59 +223,46 @@ export default function Home() {
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-8">
             <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-400 via-cyan-400 to-sky-400 bg-clip-text text-transparent mb-2">
-              🎰 Poker Vision
+              🎰 Poker Strategy
             </h1>
           </div>
           
-          {/* AI Mode Selector - Show when camera is active */}
+          {/* Mode Selector - Show when camera is active */}
           {isCameraActive && !capturedImage && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-purple-500/30 shadow-xl">
               <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
-                🤖 AI Mode Selection
+                🎯 Analysis Mode
               </h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <button
-                  onClick={() => setAiMode('gemini')}
-                  className={`py-4 px-4 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
-                    aiMode === 'gemini'
+                  onClick={() => setAiMode('flash')}
+                  className={`py-5 px-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 ${
+                    aiMode === 'flash'
                       ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
-                  <div className="text-2xl mb-1">⚡</div>
-                  <div>Gemini</div>
-                  <div className="text-xs opacity-75 mt-1">Fast</div>
+                  <div className="text-3xl mb-2">⚡</div>
+                  <div>Flash</div>
+                  <div className="text-xs opacity-75 mt-1">Fast Analysis</div>
                 </button>
                 <button
-                  onClick={() => setAiMode('gpt')}
-                  className={`py-4 px-4 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
-                    aiMode === 'gpt'
-                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg scale-105'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  <div className="text-2xl mb-1">🧠</div>
-                  <div>GPT</div>
-                  <div className="text-xs opacity-75 mt-1">Vision</div>
-                </button>
-                <button
-                  onClick={() => setAiMode('hybrid')}
-                  className={`py-4 px-4 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
-                    aiMode === 'hybrid'
+                  onClick={() => setAiMode('deep')}
+                  className={`py-5 px-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 ${
+                    aiMode === 'deep'
                       ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
-                  <div className="text-2xl mb-1">🤖</div>
-                  <div>Hybrid</div>
-                  <div className="text-xs opacity-75 mt-1">Accurate</div>
+                  <div className="text-3xl mb-2">🧠</div>
+                  <div>Deep</div>
+                  <div className="text-xs opacity-75 mt-1">Advanced GTO</div>
                 </button>
               </div>
               <p className="text-center text-sm text-gray-400 mt-3">
                 Selected: <span className="text-purple-400 font-bold capitalize">{aiMode}</span>
-                {aiMode === 'gemini' && ' - ⚡ Fastest for preflop decisions'}
-                {aiMode === 'gpt' && ' - 🧠 Best visual reasoning'}
-                {aiMode === 'hybrid' && ' - 🎯 Most accurate analysis'}
+                {aiMode === 'flash' && ' - ⚡ Quick decisions with metrics'}
+                {aiMode === 'deep' && ' - 🧠 Comprehensive GTO strategy'}
               </p>
             </div>
           )}
@@ -290,32 +277,41 @@ export default function Home() {
             </div>
           )}
 
-          {/* Main recommendation display - Conditional based on AI mode */}
-          {action && aiMode === 'gemini' && (
-            <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 border-emerald-400/30 backdrop-blur">
+          {/* Main recommendation display */}
+          {action && (
+            <div className={`text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 backdrop-blur ${
+              aiMode === 'flash' 
+                ? 'bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 border-emerald-400/30'
+                : 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 border-purple-400/30'
+            }`}>
+              <div className="text-center mb-2">
+                <p className="text-sm font-semibold text-white/80 mb-2">
+                  {aiMode === 'flash' ? '⚡ FLASH ANALYSIS' : '🧠 DEEP GTO STRATEGY'}
+                </p>
+              </div>
               <div className="text-5xl font-extrabold text-center mb-8 drop-shadow-lg">
                 {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Pot Odds</div>
+                  <div className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Pot Odds</div>
                   <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{potOdds}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Hand Equity</div>
+                  <div className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Hand Equity</div>
                   <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{handEquity}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Implied Odds</div>
+                  <div className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Implied Odds</div>
                   <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{impliedOdds}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">Fold Equity</div>
+                  <div className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Fold Equity</div>
                   <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{foldEquity}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">EV</div>
+                  <div className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">EV</div>
                   <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{expectedValue}</div>
                 </div>
               </div>
@@ -332,39 +328,13 @@ export default function Home() {
                     // Navigate to details page
                     router.push('/details')
                   }}
-                 className="mt-6 w-full bg-white text-emerald-700 font-bold py-3 rounded-xl hover:bg-emerald-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                  className={`mt-6 w-full bg-white font-bold py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] ${
+                    aiMode === 'flash' 
+                      ? 'text-emerald-700 hover:bg-emerald-50' 
+                      : 'text-purple-700 hover:bg-purple-50'
+                  }`}
                 >
                   View Detailed Analysis →
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* GPT/Hybrid mode - Simplified display */}
-          {action && (aiMode === 'gpt' || aiMode === 'hybrid') && (
-            <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 border-blue-400/30 backdrop-blur">
-              <div className="text-center mb-6">
-                <p className="text-sm font-semibold text-blue-200 mb-2">⚡ OPTIMAL PLAY</p>
-                <div className="text-6xl font-extrabold drop-shadow-lg">
-                  {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
-                </div>
-              </div>
-              
-              {detailedInfo && (
-                <button
-                  onClick={() => {
-                    // Store data in localStorage
-                    localStorage.setItem('poker_detailed_info', JSON.stringify(detailedInfo))
-                    localStorage.setItem('poker_action', action)
-                    localStorage.setItem('poker_pot_size', potSize)
-                    localStorage.setItem('poker_captured_image', capturedImage)
-                    localStorage.setItem('poker_ai_mode', aiMode)
-                    // Navigate to details page
-                    router.push('/details')
-                  }}
-                  className="w-full bg-white text-blue-700 font-bold py-3 rounded-xl hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
-                >
-                  View GPT Reasoning →
                 </button>
               )}
             </div>
@@ -417,15 +387,21 @@ export default function Home() {
             
             {/* Analyzing overlay */}
             {isAnalyzing && (
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/95 to-teal-900/95 backdrop-blur-sm flex items-center justify-center z-20">
+              <div className={`absolute inset-0 backdrop-blur-sm flex items-center justify-center z-20 ${
+                aiMode === 'flash' 
+                  ? 'bg-gradient-to-br from-emerald-900/95 to-teal-900/95'
+                  : 'bg-gradient-to-br from-purple-900/95 to-indigo-900/95'
+              }`}>
                 <div className="text-center">
-                  <div className="w-20 h-20 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+                  <div className={`w-20 h-20 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-6 ${
+                    aiMode === 'flash' ? 'border-emerald-400' : 'border-purple-400'
+                  }`}></div>
                   <div className="text-2xl font-bold text-white drop-shadow-lg">
-                    {aiMode === 'gemini' && '⚡ Gemini Fast Analysis...'}
-                    {aiMode === 'gpt' && '🧠 GPT Vision Analysis...'}
-                    {aiMode === 'hybrid' && '🤖 Hybrid AI Analyzing...'}
+                    {aiMode === 'flash' ? '⚡ Flash Analysis...' : '🧠 Deep GTO Analyzing...'}
                   </div>
-                  <div className="text-emerald-300 mt-2">Processing poker table...</div>
+                  <div className={`mt-2 ${aiMode === 'flash' ? 'text-emerald-300' : 'text-purple-300'}`}>
+                    {aiMode === 'flash' ? 'Processing poker table...' : 'Calculating optimal GTO strategy...'}
+                  </div>
                 </div>
               </div>
             )}
