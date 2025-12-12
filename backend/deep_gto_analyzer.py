@@ -1,5 +1,5 @@
 """
-Deep GTO Analyzer using Gemini 2.0 Pro Experimental
+Deep GTO Analyzer using GPT-4o
 Advanced GTO strategy with comprehensive game state analysis
 Focuses on: Position, Blinds, Pot Size, Active Players, Actions, Stacks, VPIP
 """
@@ -7,20 +7,20 @@ Focuses on: Position, Blinds, Pot Size, Active Players, Actions, Stacks, VPIP
 import os
 import json
 import logging
+import base64
 from typing import Dict, Any
-import google.generativeai as genai
-from PIL import Image
+from openai import OpenAI
 from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
-# Configure Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    logger.info("✅ Gemini API key configured")
+# Configure OpenAI
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if OPENAI_API_KEY:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    logger.info("✅ OpenAI API key configured")
 else:
-    logger.warning("⚠️ GEMINI_API_KEY not set")
+    logger.warning("⚠️ OPENAI_API_KEY not set")
 
 
 DEEP_GTO_PROMPT = """You are an elite poker GTO (Game Theory Optimal) strategist with access to comprehensive GTO databases and solver knowledge.
@@ -254,14 +254,14 @@ Analyze the table now and provide your GTO recommendation in JSON format."""
 
 class DeepGTOAnalyzer:
     """
-    Deep GTO analysis using Gemini 2.0 Pro Experimental
+    Deep GTO analysis using GPT-4o
     Comprehensive strategy with position, stacks, VPIP, and GTO solver knowledge
     """
     
     def __init__(self):
-        """Initialize Gemini 2.0 Flash Experimental with thinking mode"""
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        logger.info("✅ Deep GTO analyzer initialized (gemini-2.0-flash-exp)")
+        """Initialize GPT-4o for deep analysis"""
+        self.client = client
+        logger.info("✅ Deep GTO analyzer initialized (GPT-4o)")
     
     def _get_position_mapping(self, hero_position: str) -> str:
         """Generate position mapping for the model"""
@@ -285,7 +285,7 @@ class DeepGTOAnalyzer:
     
     def analyze(self, image_data: bytes, hero_position: str = "BTN", blinds: str = "0.02/0.05") -> Dict[str, Any]:
         """
-        Deep GTO analysis of poker table
+        Deep GTO analysis of poker table using GPT-4o
         
         Args:
             image_data: Raw image bytes
@@ -295,17 +295,19 @@ class DeepGTOAnalyzer:
         Returns:
             Dictionary with comprehensive extracted data and GTO recommendation
         """
-        if not GEMINI_API_KEY:
-            logger.error("❌ GEMINI_API_KEY not configured!")
+        if not OPENAI_API_KEY:
+            logger.error("❌ OPENAI_API_KEY not configured!")
             return {
                 "success": False,
-                "error": "GEMINI_API_KEY not configured."
+                "error": "OPENAI_API_KEY not configured."
             }
         
         try:
-            logger.info(f"🧠 Deep GTO analyzing... Hero: {hero_position}, Blinds: {blinds}")
+            logger.info(f"🧠 Deep GTO analyzing with GPT-4o... Hero: {hero_position}, Blinds: {blinds}")
             
-            image = Image.open(BytesIO(image_data))
+            # Encode image to base64
+            base64_image = base64.b64encode(image_data).decode('utf-8')
+            
             position_map = self._get_position_mapping(hero_position)
             
             prompt = DEEP_GTO_PROMPT.format(
@@ -314,8 +316,31 @@ class DeepGTOAnalyzer:
                 position_mapping=position_map
             )
             
-            response = self.model.generate_content([prompt, image])
-            result_text = response.text.strip()
+            # Call GPT-4o with vision
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": prompt
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=4096,
+                temperature=0.1
+            )
+            
+            result_text = response.choices[0].message.content.strip()
             
             # Remove markdown if present
             if result_text.startswith("```json"):
@@ -328,17 +353,17 @@ class DeepGTOAnalyzer:
             result_text = result_text.strip()
             result = json.loads(result_text)
             
-            logger.info(f"✅ Deep GTO analysis complete")
+            logger.info(f"✅ Deep GTO analysis complete (GPT-4o)")
             
             return result
             
         except json.JSONDecodeError as e:
-            logger.error(f"❌ Failed to parse Deep GTO response: {e}")
-            logger.error(f"Raw response: {response.text[:500]}")
+            logger.error(f"❌ Failed to parse GPT-4o response: {e}")
+            logger.error(f"Raw response: {result_text[:500] if 'result_text' in locals() else 'No response'}")
             return {
                 "success": False,
-                "error": "Failed to parse Deep GTO response",
-                "raw_response": response.text[:500]
+                "error": "Failed to parse GPT-4o response",
+                "raw_response": result_text[:500] if 'result_text' in locals() else 'No response'
             }
             
         except Exception as e:
