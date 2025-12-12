@@ -259,9 +259,9 @@ class DeepGTOAnalyzer:
     """
     
     def __init__(self):
-        """Initialize Gemini 2.0 Pro model"""
-        self.model = genai.GenerativeModel('gemini-2.0-flash-thinking-exp-01-21')
-        logger.info("✅ Deep GTO analyzer initialized (gemini-2.0-pro-exp)")
+        """Initialize Gemini 2.0 Flash Experimental with thinking mode"""
+        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        logger.info("✅ Deep GTO analyzer initialized (gemini-2.0-flash-exp)")
     
     def _get_position_mapping(self, hero_position: str) -> str:
         """Generate position mapping for the model"""
