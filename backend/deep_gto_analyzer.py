@@ -342,15 +342,34 @@ class DeepGTOAnalyzer:
             
             result_text = response.choices[0].message.content.strip()
             
-            # Remove markdown if present
-            if result_text.startswith("```json"):
-                result_text = result_text[7:]
-            if result_text.startswith("```"):
-                result_text = result_text[3:]
-            if result_text.endswith("```"):
-                result_text = result_text[:-3]
+            # More aggressive markdown removal
+            if "```json" in result_text:
+                # Extract content between ```json and ```
+                start = result_text.find("```json") + 7
+                end = result_text.find("```", start)
+                if end != -1:
+                    result_text = result_text[start:end].strip()
+            elif "```" in result_text:
+                # Extract content between ``` and ```
+                start = result_text.find("```") + 3
+                end = result_text.find("```", start)
+                if end != -1:
+                    result_text = result_text[start:end].strip()
             
+            # Remove any leading/trailing whitespace and newlines
             result_text = result_text.strip()
+            
+            # Try to find JSON object if there's extra text
+            if not result_text.startswith("{"):
+                json_start = result_text.find("{")
+                if json_start != -1:
+                    result_text = result_text[json_start:]
+            
+            if not result_text.endswith("}"):
+                json_end = result_text.rfind("}")
+                if json_end != -1:
+                    result_text = result_text[:json_end + 1]
+            
             result = json.loads(result_text)
             
             logger.info(f"✅ Deep GTO analysis complete (GPT-4o)")
@@ -359,12 +378,19 @@ class DeepGTOAnalyzer:
             
         except json.JSONDecodeError as e:
             logger.error(f"❌ Failed to parse GPT-4o response: {e}")
-            logger.error(f"Raw response: {result_text[:500] if 'result_text' in locals() else 'No response'}")
-            return {
-                "success": False,
-                "error": "Failed to parse GPT-4o response",
-                "raw_response": result_text[:500] if 'result_text' in locals() else 'No response'
-            }
+            if 'result_text' in locals():
+                logger.error(f"Raw response (first 1000 chars): {result_text[:1000]}")
+                # Try to provide helpful error
+                return {
+                    "success": False,
+                    "error": f"Failed to parse GPT-4o response as JSON: {str(e)}",
+                    "raw_response": result_text[:1000]
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "GPT-4o returned no response"
+                }
             
         except Exception as e:
             logger.error(f"❌ Deep GTO analysis error: {e}")
