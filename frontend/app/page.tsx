@@ -103,12 +103,17 @@ export default function Home() {
     }
   }
 
-  // Handle position click - auto capture and analyze
+  // Handle position click - auto capture and analyze (Flash Mode only)
   const handlePositionClick = async (position: string) => {
-    if (isAnalyzing) return // Prevent multiple clicks during analysis
+    if (isAnalyzing) return
     
     setSelectedPosition(position)
-    // Immediately trigger capture and analyze
+    await captureAndAnalyze()
+  }
+
+  // Handle Deep Mode capture button
+  const handleDeepCapture = async () => {
+    if (isAnalyzing) return
     await captureAndAnalyze()
   }
 
@@ -159,7 +164,7 @@ export default function Home() {
       formData.append('blinds', selectedBlinds)
       formData.append('ai_mode', aiMode)
 
-      console.log(`📸 Sending image to ${backendUrl}/analyze with position: ${selectedPosition}, blinds: ${selectedBlinds}, AI mode: ${aiMode}`)
+      console.log(`📸 Sending image to ${backendUrl}/analyze with AI mode: ${aiMode}`)
       
       const response = await fetch(`${backendUrl}/analyze`, {
         method: 'POST',
@@ -184,8 +189,18 @@ export default function Home() {
         setPotSize(rec.pot_size || 'N/A')
         setDetailedInfo(data.detailed_info || null)
         
-        // Speak the action
-        speak(rec.action)
+        // For Deep Mode, auto-redirect to details page
+        if (aiMode === 'deep' && data.detailed_info) {
+          localStorage.setItem('poker_detailed_info', JSON.stringify(data.detailed_info))
+          localStorage.setItem('poker_action', rec.action)
+          localStorage.setItem('poker_pot_size', potSize)
+          localStorage.setItem('poker_captured_image', capturedImage)
+          localStorage.setItem('poker_ai_mode', aiMode)
+          router.push('/details')
+        } else {
+          // Flash mode: speak the action
+          speak(rec.action)
+        }
       } else if (data.hero_turn === false) {
         setError('Not hero\'s turn detected. Try capturing when action is on you.')
       } else {
@@ -218,7 +233,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 text-white flex">
-      {/* Main content area */}
       <div className="flex-1 px-4 py-6">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-8">
@@ -262,7 +276,7 @@ export default function Home() {
               <p className="text-center text-sm text-gray-400 mt-3">
                 Selected: <span className="text-purple-400 font-bold capitalize">{aiMode}</span>
                 {aiMode === 'flash' && ' - ⚡ Quick decisions with metrics'}
-                {aiMode === 'deep' && ' - 🧠 Comprehensive GTO strategy'}
+                {aiMode === 'deep' && ' - 🧠 Claude 3.5 Sonnet GTO analysis'}
               </p>
             </div>
           )}
@@ -277,17 +291,11 @@ export default function Home() {
             </div>
           )}
 
-          {/* Main recommendation display */}
-          {action && (
-            <div className={`text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 backdrop-blur ${
-              aiMode === 'flash' 
-                ? 'bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 border-emerald-400/30'
-                : 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 border-purple-400/30'
-            }`}>
+          {/* Main recommendation display - Only for Flash Mode */}
+          {action && aiMode === 'flash' && (
+            <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 border-emerald-400/30 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 backdrop-blur">
               <div className="text-center mb-2">
-                <p className="text-sm font-semibold text-white/80 mb-2">
-                  {aiMode === 'flash' ? '⚡ FLASH ANALYSIS' : '🧠 DEEP GTO STRATEGY'}
-                </p>
+                <p className="text-sm font-semibold text-white/80 mb-2">⚡ FLASH ANALYSIS</p>
               </div>
               <div className="text-5xl font-extrabold text-center mb-8 drop-shadow-lg">
                 {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
@@ -319,20 +327,14 @@ export default function Home() {
               {detailedInfo && (
                 <button
                   onClick={() => {
-                    // Store data in localStorage
                     localStorage.setItem('poker_detailed_info', JSON.stringify(detailedInfo))
                     localStorage.setItem('poker_action', action)
                     localStorage.setItem('poker_pot_size', potSize)
                     localStorage.setItem('poker_captured_image', capturedImage)
                     localStorage.setItem('poker_ai_mode', aiMode)
-                    // Navigate to details page
                     router.push('/details')
                   }}
-                  className={`mt-6 w-full bg-white font-bold py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] ${
-                    aiMode === 'flash' 
-                      ? 'text-emerald-700 hover:bg-emerald-50' 
-                      : 'text-purple-700 hover:bg-purple-50'
-                  }`}
+                  className="mt-6 w-full bg-white text-emerald-700 hover:bg-emerald-50 font-bold py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 >
                   View Detailed Analysis →
                 </button>
@@ -340,8 +342,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Blinds Selector - Only show when camera is active and not analyzing */}
-          {isCameraActive && !isAnalyzing && !capturedImage && (
+          {/* Blinds Selector - Only show for Flash Mode */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flash' && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-blue-500/30 shadow-xl">
               <h3 className="text-center text-lg font-bold text-blue-400 mb-4">
                 💵 Select Blinds
@@ -397,17 +399,17 @@ export default function Home() {
                     aiMode === 'flash' ? 'border-emerald-400' : 'border-purple-400'
                   }`}></div>
                   <div className="text-2xl font-bold text-white drop-shadow-lg">
-                    {aiMode === 'flash' ? '⚡ Flash Analysis...' : '🧠 Deep GTO Analyzing...'}
+                    {aiMode === 'flash' ? '⚡ Flash Analysis...' : '🧠 Claude Analyzing...'}
                   </div>
                   <div className={`mt-2 ${aiMode === 'flash' ? 'text-emerald-300' : 'text-purple-300'}`}>
-                    {aiMode === 'flash' ? 'Processing poker table...' : 'Calculating optimal GTO strategy...'}
+                    {aiMode === 'flash' ? 'Processing poker table...' : 'Inferring optimal GTO play...'}
                   </div>
                 </div>
               </div>
             )}
             
-            {/* Position buttons overlay - Show at bottom of camera when active */}
-            {isCameraActive && !capturedImage && !isAnalyzing && (
+            {/* Position buttons overlay - Only for Flash Mode */}
+            {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'flash' && (
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 z-10">
                 <p className="text-center text-xs text-gray-300 mb-2">
                   👤 Click Your Position to Capture & Analyze
@@ -429,12 +431,24 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            {/* Deep Mode Capture Button */}
+            {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'deep' && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-6 z-10">
+                <button
+                  onClick={handleDeepCapture}
+                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  📸 Capture & Analyze
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Hidden canvas */}
           <canvas ref={canvasRef} className="hidden" />
 
-          {/* Control buttons - Simplified */}
+          {/* Control buttons */}
           <div className="flex justify-center gap-4 mt-8">
             {capturedImage ? (
               <button
