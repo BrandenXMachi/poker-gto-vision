@@ -29,13 +29,24 @@ For EACH visible player at the table, identify:
 1. **Player NAME** (text label near their seat)
 2. **Betting ACTION** with EXACT dollar amounts
 
-## Critical - Finding Bet Amounts:
-Look for these indicators of bet amounts:
-- **Chip stacks** in front of players (between player and center)
-- **Text overlays** showing dollar amounts (e.g., "$35", "$100", "$2.50")
-- **Numerical displays** near chip graphics
-- Numbers could be very small - examine carefully
-- Some poker sites show bet amounts as floating text above chips
+## Critical - Finding Bet Amounts (NOT Stack Sizes):
+
+**IMPORTANT - What to Look For:**
+- Numbers **directly on the table** in front of each player
+- These are chips/bets that have been PUSHED FORWARD onto the table
+- Usually between the player's seat and the center pot
+- Look for dollar amounts near chip graphics ON THE TABLE
+
+**IGNORE These Numbers:**
+- Player's STACK size (their remaining chips behind)
+- The center POT total
+- Any large numbers that represent total chips remaining
+
+**How to Identify Correct Bet:**
+- Find the number CLOSEST to each player's seat/bubble
+- This number should be ON THE TABLE, not behind/under the player
+- Bet amounts are typically smaller than stack sizes
+- If multiple numbers near a player, use the one closest to their seat
 
 ## Action Types (with amounts):
 - "Raised $XX" or "Bet $XX" - chips in front of player
