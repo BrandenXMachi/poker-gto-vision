@@ -135,7 +135,7 @@ class DeepGTOAnalyzer:
             
             # Call Claude with vision
             response = self.client.messages.create(
-                model="claude-3-5-sonnet-latest",
+                model="claude-3-opus-20240229",
                 max_tokens=4096,
                 temperature=0,
                 messages=[
