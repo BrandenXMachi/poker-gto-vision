@@ -22,29 +22,47 @@ else:
     logger.warning("⚠️ GEMINI_API_KEY not set")
 
 
-PLAYER_TRACKING_PROMPT = """Look at this poker table and identify each player's NAME and current ACTION.
+PLAYER_TRACKING_PROMPT = """Analyze this poker table image and identify each player's NAME and BETTING ACTION.
 
-For each player visible, extract:
-1. Player NAME
-2. Their current action/state
+## Your Task:
+For EACH visible player, identify:
+1. **Player NAME** (text label near player)
+2. **Betting ACTION** with exact dollar amounts
 
-Player actions:
-- "Raised $XX"
-- "Folded"
-- "Called $XX"
-- "Checked"
-- "All-in $XX"
-- "Hero's turn" (bottom-center player when it's their turn)
-- "No action yet"
-- "Waiting"
+## How to Find Bet Amounts:
+- Look for CHIPS or CHIP STACKS in front of each player
+- Look for TEXT showing dollar amounts near the chips (e.g., "$35", "$100")
+- Check the area between the player and the center pot
+- Bet amounts may appear as overlays or text labels near chip graphics
+- If chips are visible but no text, estimate based on chip appearance
 
-Output ONLY JSON:
+## Action Types:
+- "Raised $XX" - if there are chips in front of them with an amount
+- "3bet to $XX" - if they re-raised
+- "Called $XX" - if they matched a bet
+- "Folded" - if no cards visible or marked as folded
+- "Checked" - if no bet but still in hand
+- "All-in $XX" - if all their chips are in
+- "Hero's turn" - bottom-center player when buttons are visible
+- "Bet $XX" - first to bet on this street
+- "No action yet" - waiting to act
+
+## Critical:
+- ALWAYS include dollar amounts when you see chips
+- Look carefully at the betting area in front of each player
+- Chip stacks = money on the table = bet amount
+- Even if text is small, try to read the amounts
+
+Output ONLY valid JSON:
 {
   "success": true,
   "players": [
-    {"name": "PlayerName", "action": "Their action"}
+    {"name": "PlayerName", "action": "Raised $35"},
+    {"name": "AnotherPlayer", "action": "Folded"}
   ]
-}"""
+}
+
+Remember: The bet amounts are CRITICAL - look hard for those dollar values!"""
 
 
 class DeepGTOAnalyzer:
