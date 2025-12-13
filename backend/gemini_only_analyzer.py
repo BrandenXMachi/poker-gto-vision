@@ -37,12 +37,35 @@ Your task: Analyze this GGPoker screenshot and provide a complete analysis in ON
 
 ---
 
+## CRITICAL - Card Identification Instructions:
+
+### How to Identify Cards ACCURATELY:
+1. **Ranks**: A (Ace), K (King), Q (Queen), J (Jack), 10, 9, 8, 7, 6, 5, 4, 3, 2
+2. **Suits**: Look at the symbol carefully:
+   - ♠ = Spades (black, upside-down heart shape)
+   - ♥ = Hearts (red, heart shape)
+   - ♦ = Diamonds (red, diamond shape)
+   - ♣ = Clubs (black, clover/trefoil shape)
+3. **Pay attention to COLOR**:
+   - RED suits = Hearts, Diamonds
+   - BLACK suits = Spades, Clubs
+4. **Double-check each card** - don't guess!
+
+### Card Format Examples:
+- "Ace of Spades" (black Ace with ♠)
+- "King of Hearts" (red King with ♥)
+- "Queen of Diamonds" (red Queen with ♦)
+- "Jack of Clubs" (black Jack with ♣)
+- "10 of Hearts", "9 of Spades", "2 of Clubs"
+
+---
+
 ## PART 1: VISUAL DATA EXTRACTION
 
 Extract all visible poker information:
 
-1. **Hero's Cards**: Rank and suit (e.g., ["A♠", "Q♠"])
-2. **Board Cards**: Community cards (e.g., ["8♦", "6♦", "9♥"]) or [] if preflop
+1. **Hero's Cards**: Rank and suit - BE PRECISE! (e.g., ["Ace of Spades", "Queen of Spades"])
+2. **Board Cards**: Community cards - VERIFY EACH ONE! (e.g., ["8 of Diamonds", "6 of Diamonds", "9 of Hearts"]) or [] if preflop
 3. **Pot Size**: Dollar amount from "Total Pot : $X.XX"
 4. **Street**: preflop (0 cards) | flop (3 cards) | turn (4 cards) | river (5 cards)
 5. **Hero's Turn**: Are action buttons (Fold/Call/Raise) visible at bottom?
