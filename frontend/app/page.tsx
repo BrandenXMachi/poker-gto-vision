@@ -306,7 +306,7 @@ export default function Home() {
               <p className="text-center text-sm text-gray-400 mt-3">
                 Selected: <span className="text-purple-400 font-bold capitalize">{aiMode}</span>
                 {aiMode === 'flash' && ' - ⚡ Gemini Flash analysis'}
-                {aiMode === 'deep' && ' - 🧠 Claude Opus tracking'}
+                {aiMode === 'deep' && ' - 🔄 Gemini + Claude Hybrid GTO'}
               </p>
             </div>
           )}
@@ -429,10 +429,10 @@ export default function Home() {
                     aiMode === 'flash' ? 'border-emerald-400' : 'border-purple-400'
                   }`}></div>
                   <div className="text-2xl font-bold text-white drop-shadow-lg">
-                    {aiMode === 'flash' ? '⚡ Flash Analysis...' : '🧠 Claude Analyzing...'}
+                    {aiMode === 'flash' ? '⚡ Flash Analysis...' : '🔄 Hybrid Analysis...'}
                   </div>
                   <div className={`mt-2 ${aiMode === 'flash' ? 'text-emerald-300' : 'text-purple-300'}`}>
-                    {aiMode === 'flash' ? 'Processing poker table...' : 'Inferring optimal GTO play...'}
+                    {aiMode === 'flash' ? 'Processing poker table...' : 'Gemini extracting → Claude analyzing GTO...'}
                   </div>
                 </div>
               </div>

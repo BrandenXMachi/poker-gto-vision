@@ -1,6 +1,6 @@
 """
-Deep Mode: Heads-Up GTO Analyzer using Claude 3 Opus
-Assumes heads-up play with manual position inputs for precise GTO analysis
+Deep Mode: Hybrid Heads-Up GTO Analyzer
+Uses Gemini for visual extraction + Claude for GTO analysis
 """
 
 import os
@@ -9,40 +9,51 @@ import logging
 import base64
 from typing import Dict, Any
 from anthropic import Anthropic
+import google.generativeai as genai
+from PIL import Image
+from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
-# Configure Anthropic
+# Configure APIs
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
 if ANTHROPIC_API_KEY:
     anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
-    logger.info("✅ Anthropic API key configured for Deep Mode")
+    logger.info("✅ Anthropic API configured for Deep Mode")
 else:
     anthropic_client = None
     logger.warning("⚠️ ANTHROPIC_API_KEY not set")
 
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    logger.info("✅ Gemini API configured for Deep Mode")
+else:
+    logger.warning("⚠️ GEMINI_API_KEY not set")
 
-def build_extraction_prompt(hero_position: str, villain_position: str, villain_action: str, blinds: str):
-    """Build prompt to extract game state from image"""
-    return f"""You are analyzing a HEADS-UP poker hand (only 2 players). Extract the following information from this poker table image:
 
-## Game Setup:
+def build_gemini_extraction_prompt(hero_position: str, villain_position: str, villain_action: str, blinds: str):
+    """Build Gemini prompt to extract game state from image"""
+    return f"""You are analyzing a HEADS-UP poker hand (only 2 players). Extract ALL visible information from this poker table image.
+
+## Game Setup (USER PROVIDED):
 - Hero is at **{hero_position}** position (closest to BOTTOM of image)
 - Villain is at **{villain_position}** position  
 - Blinds: **${blinds}**
 - Villain has **{villain_action}**
 
-## Extract These Values:
+## Extract These Values From The Image:
 
-1. **POT SIZE**: Look for text like "Total Pot: $X" or "Pot: $X" on the table
+1. **POT SIZE**: Look for "Total Pot: $X" or "Pot: $X" text on the table
 2. **HERO'S HOLE CARDS**: The 2 cards at the BOTTOM (hero's position)
-3. **BOARD CARDS**: Community cards in center (if any)
-4. **STREET**: Determine from board cards (Preflop=0 cards, Flop=3, Turn=4, River=5)
-5. **HERO'S STACK**: Stack size at hero's position (bottom)
-6. **VILLAIN'S STACK**: Stack size at villain's position ({villain_position})
-7. **CALL AMOUNT**: Look at hero's action buttons - find the "Call $X" button amount
+3. **BOARD CARDS**: Community cards in center (list all visible)
+4. **STREET**: Determine from board cards (preflop=0, flop=3, turn=4, river=5)
+5. **HERO'S STACK**: Total stack at hero's position (bottom)
+6. **VILLAIN'S STACK**: Total stack at villain's position ({villain_position})
+7. **CALL AMOUNT**: Look at hero's buttons - "Call $X" button shows the amount
 
-## Output ONLY this JSON:
+## Output Format (JSON ONLY):
 {{
   "success": true,
   "pot_size": "$X.XX",
@@ -55,145 +66,120 @@ def build_extraction_prompt(hero_position: str, villain_position: str, villain_a
 }}
 
 **Critical**: 
-- Pot size is the center pot total
-- Call amount is from hero's buttons (the amount villain has bet)
-- All amounts in dollars
-- Card format: "Rank of Suit" (e.g., "Ace of Spades", "10 of Hearts")
-"""
+- Use card format: "Rank of Suit" (e.g., "Ace of Spades", "King of Hearts", "10 of Diamonds")
+- Pot size = center pot total
+- Call amount = what you need to pay to continue (from buttons)
+- All dollar amounts must be extracted precisely"""
 
 
-def build_gto_prompt(extracted_data: Dict, hero_position: str, villain_position: str, villain_action: str, blinds: str):
-    """Build GTO analysis prompt with extracted game state"""
+def build_claude_gto_prompt(extracted_data: Dict, hero_position: str, villain_position: str, villain_action: str, blinds: str):
+    """Build Claude prompt for GTO analysis with extracted data"""
     
     hero_cards_str = " and ".join(extracted_data.get("hero_cards", []))
     board_str = ", ".join(extracted_data.get("board_cards", []))
     
-    prompt = f"""You are a GTO poker expert. Analyze this HEADS-UP situation and provide optimal strategy.
+    return f"""You are a GTO poker expert analyzing a HEADS-UP situation.
 
-## Game State:
-- **Hero Position**: {hero_position} 
-- **Hero Stack**: {extracted_data.get('hero_stack', 'Unknown')}
-- **Hero Cards**: {hero_cards_str}
+## Complete Game State:
 
-- **Villain Position**: {villain_position}
-- **Villain Stack**: {extracted_data.get('villain_stack', 'Unknown')}  
-- **Villain Action**: {villain_action}
+**Hero ({hero_position}):**
+- Cards: {hero_cards_str}
+- Stack: {extracted_data.get('hero_stack', 'Unknown')}
 
-- **Pot Size**: {extracted_data.get('pot_size', 'Unknown')}
-- **Street**: {extracted_data.get('street', 'Unknown').capitalize()}
-- **Board**: {board_str if board_str else 'No community cards yet'}
-- **Amount to Call**: {extracted_data.get('call_amount', 'Unknown')}
+**Villain ({villain_position}):**  
+- Action: {villain_action}
+- Stack: {extracted_data.get('villain_stack', 'Unknown')}
 
-- **Blinds**: ${blinds}
+**Table:**
+- Pot: {extracted_data.get('pot_size', 'Unknown')}
+- Street: {extracted_data.get('street', 'unknown').capitalize()}
+- Board: {board_str if board_str else 'Preflop (no board yet)'}
+- To Call: {extracted_data.get('call_amount', 'Unknown')}
+- Blinds: ${blinds}
 
-## Your Task:
-Provide a GTO-based recommendation. Consider:
-1. Pot odds and equity
-2. Position advantage (who is IP/OOP)
-3. Villain's {villain_action} range from {villain_position}
-4. Hero's hand strength and equity against that range
-5. Stack-to-pot ratio (SPR)
-6. Implied odds and fold equity
+## Your GTO Analysis Task:
 
-## Output JSON Format:
+Analyze this heads-up situation using GTO principles:
+
+1. **Pot Odds**: Calculate the price hero is getting
+2. **Hand Equity**: Estimate hero's equity vs villain's range  
+3. **Position**: Consider IP/OOP dynamics
+4. **Villain's Range**: What does villain's {villain_action} represent from {villain_position}?
+5. **SPR**: Stack-to-pot ratio implications
+6. **Exploitative Considerations**: Any relevant reads
+
+## Output JSON:
 {{
-  "recommendation": "Fold / Call / Raise to $X",
-  "reasoning": "Brief GTO explanation (2-3 sentences)",
-  "pot_odds": "X:1 or X%",
-  "hand_equity": "X% vs villain range",
+  "recommendation": "Fold / Call / Raise to $X.XX",
+  "reasoning": "Clear 2-3 sentence GTO explanation of why this is optimal",
+  "pot_odds": "X% or X:1",
+  "hand_equity": "X% vs villain's {villain_action} range",
   "gto_frequency": "Fold X%, Call Y%, Raise Z%",
-  "key_factors": ["Factor 1", "Factor 2", "Factor 3"]
+  "key_factors": ["Most important factor", "Second factor", "Third factor"]
 }}
 
-Provide clear, actionable GTO advice."""
-
-    return prompt
+Provide clear, optimal GTO strategy."""
 
 
 class DeepGTOAnalyzer:
     """
-    Deep Mode using Claude 3 Opus for heads-up GTO analysis
-    Requires manual position inputs for controlled analysis
+    Hybrid Deep Mode: Gemini extracts visual data, Claude provides GTO analysis
     """
     
     def __init__(self):
-        """Initialize Claude 3 Opus"""
-        self.client = anthropic_client
-        logger.info("✅ Deep Mode initialized (Claude 3 Opus - Heads-Up GTO)")
+        """Initialize Gemini and Claude"""
+        self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.claude_client = anthropic_client
+        logger.info("✅ Deep Mode initialized (Gemini + Claude Hybrid)")
     
     def analyze(self, image_data: bytes, hero_position: str, villain_position: str, 
                 blinds: str, villain_action: str) -> Dict[str, Any]:
         """
-        Analyze heads-up poker situation with manual inputs
+        Hybrid analysis: Gemini extracts data, Claude analyzes GTO
         
         Args:
             image_data: Raw image bytes
-            hero_position: Hero's position (BTN, SB, BB, etc.)
+            hero_position: Hero's position
             villain_position: Villain's position
-            blinds: Blind structure (e.g., "0.02/0.05")
-            villain_action: What villain did (checked, raised, check-raised, re-raised)
+            blinds: Blind structure
+            villain_action: Villain's action
             
         Returns:
-            Dictionary with GTO recommendation
+            GTO recommendation with extracted data
         """
-        if not ANTHROPIC_API_KEY:
-            logger.error("❌ ANTHROPIC_API_KEY not configured!")
+        if not GEMINI_API_KEY or not ANTHROPIC_API_KEY:
             return {
                 "success": False,
-                "error": "ANTHROPIC_API_KEY not configured."
+                "error": "API keys not configured"
             }
         
         try:
-            logger.info(f"🧠 Deep Mode: Analyzing {hero_position} vs {villain_position} (villain {villain_action})")
+            logger.info(f"🔄 Hybrid Mode: {hero_position} vs {villain_position} (villain {villain_action})")
             
-            # Encode image to base64
-            base64_image = base64.b64encode(image_data).decode('utf-8')
+            # STEP 1: Gemini extracts visual data
+            logger.info("👁️ Step 1: Gemini extracting visual data...")
             
-            # STEP 1: Extract game state from image
-            extraction_prompt = build_extraction_prompt(hero_position, villain_position, villain_action, blinds)
+            image = Image.open(BytesIO(image_data))
+            extraction_prompt = build_gemini_extraction_prompt(hero_position, villain_position, villain_action, blinds)
             
-            logger.info("📸 Step 1: Extracting game state...")
-            extraction_response = self.client.messages.create(
-                model="claude-3-opus-20240229",
-                max_tokens=2048,
-                temperature=0,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/jpeg",
-                                    "data": base64_image
-                                }
-                            },
-                            {
-                                "type": "text",
-                                "text": extraction_prompt
-                            }
-                        ]
-                    }
-                ]
-            )
-            
-            extracted_text = extraction_response.content[0].text.strip()
+            gemini_response = self.gemini_model.generate_content([extraction_prompt, image])
+            extracted_text = gemini_response.text.strip()
             extracted_data = self._parse_json(extracted_text)
             
             if not extracted_data.get("success"):
                 return {
                     "success": False,
-                    "error": "Failed to extract game state from image"
+                    "error": "Gemini failed to extract game state"
                 }
             
-            logger.info(f"✅ Extracted: Pot={extracted_data.get('pot_size')}, Cards={extracted_data.get('hero_cards')}")
+            logger.info(f"✅ Gemini extracted: Pot={extracted_data.get('pot_size')}, Cards={extracted_data.get('hero_cards')}")
             
-            # STEP 2: Get GTO recommendation
-            gto_prompt = build_gto_prompt(extracted_data, hero_position, villain_position, villain_action, blinds)
+            # STEP 2: Claude analyzes with GTO
+            logger.info("🧠 Step 2: Claude analyzing GTO strategy...")
             
-            logger.info("🎯 Step 2: Getting GTO recommendation...")
-            gto_response = self.client.messages.create(
+            gto_prompt = build_claude_gto_prompt(extracted_data, hero_position, villain_position, villain_action, blinds)
+            
+            claude_response = self.claude_client.messages.create(
                 model="claude-3-opus-20240229",
                 max_tokens=2048,
                 temperature=0,
@@ -205,8 +191,10 @@ class DeepGTOAnalyzer:
                 ]
             )
             
-            gto_text = gto_response.content[0].text.strip()
+            gto_text = claude_response.content[0].text.strip()
             gto_data = self._parse_json(gto_text)
+            
+            logger.info(f"✅ Claude recommends: {gto_data.get('recommendation')}")
             
             # Format response
             return {
@@ -238,14 +226,14 @@ class DeepGTOAnalyzer:
             }
             
         except Exception as e:
-            logger.error(f"❌ Deep Mode error: {e}", exc_info=True)
+            logger.error(f"❌ Hybrid Mode error: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e)
             }
     
     def _parse_json(self, text: str) -> Dict:
-        """Parse JSON from Claude response"""
+        """Parse JSON from AI response"""
         try:
             # Clean up markdown code blocks
             if "```json" in text:
