@@ -1,84 +1,83 @@
 """
-Deep Mode Player Tracker using Gemini Flash
-Only identifies player names and their current actions - no GTO analysis
+Deep Mode Player Tracker using Claude 3 Opus
+Identifies player names and betting actions with precise bet amount detection
 """
 
 import os
 import json
 import logging
+import base64
 from typing import Dict, Any
-import google.generativeai as genai
-from PIL import Image
-from io import BytesIO
+from anthropic import Anthropic
 
 logger = logging.getLogger(__name__)
 
-# Configure Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    logger.info("✅ Gemini API key configured for Deep Mode")
+# Configure Anthropic
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+if ANTHROPIC_API_KEY:
+    anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    logger.info("✅ Anthropic API key configured for Deep Mode")
 else:
-    logger.warning("⚠️ GEMINI_API_KEY not set")
+    anthropic_client = None
+    logger.warning("⚠️ ANTHROPIC_API_KEY not set")
 
 
-PLAYER_TRACKING_PROMPT = """Analyze this poker table image and identify each player's NAME and BETTING ACTION.
+PLAYER_TRACKING_PROMPT = """Analyze this poker table image and identify each player's NAME and BETTING ACTION with exact dollar amounts.
 
 ## Your Task:
-For EACH visible player, identify:
-1. **Player NAME** (text label near player)
-2. **Betting ACTION** with exact dollar amounts
+For EACH visible player at the table, identify:
+1. **Player NAME** (text label near their seat)
+2. **Betting ACTION** with EXACT dollar amounts
 
-## How to Find Bet Amounts:
-- Look for CHIPS or CHIP STACKS in front of each player
-- Look for TEXT showing dollar amounts near the chips (e.g., "$35", "$100")
-- Check the area between the player and the center pot
-- Bet amounts may appear as overlays or text labels near chip graphics
-- If chips are visible but no text, estimate based on chip appearance
+## Critical - Finding Bet Amounts:
+Look for these indicators of bet amounts:
+- **Chip stacks** in front of players (between player and center)
+- **Text overlays** showing dollar amounts (e.g., "$35", "$100", "$2.50")
+- **Numerical displays** near chip graphics
+- Numbers could be very small - examine carefully
+- Some poker sites show bet amounts as floating text above chips
 
-## Action Types:
-- "Raised $XX" - if there are chips in front of them with an amount
+## Action Types (with amounts):
+- "Raised $XX" or "Bet $XX" - chips in front of player
 - "3bet to $XX" - if they re-raised
-- "Called $XX" - if they matched a bet
-- "Folded" - if no cards visible or marked as folded
-- "Checked" - if no bet but still in hand
-- "All-in $XX" - if all their chips are in
-- "Hero's turn" - bottom-center player when buttons are visible
-- "Bet $XX" - first to bet on this street
+- "Called $XX" - if they matched current bet
+- "All-in $XX" - all chips pushed in
+- "Folded" - no cards/chips, marked as folded
+- "Checked" - no bet but cards visible
+- "Hero's turn" - if bottom-center player with active buttons
 - "No action yet" - waiting to act
 
-## Critical:
-- ALWAYS include dollar amounts when you see chips
-- Look carefully at the betting area in front of each player
-- Chip stacks = money on the table = bet amount
-- Even if text is small, try to read the amounts
-
-Output ONLY valid JSON:
+## Output Format (JSON ONLY):
 {
   "success": true,
   "players": [
     {"name": "PlayerName", "action": "Raised $35"},
-    {"name": "AnotherPlayer", "action": "Folded"}
+    {"name": "AnotherPlayer", "action": "Folded"},
+    {"name": "ThirdPlayer", "action": "3bet to $100"}
   ]
 }
 
-Remember: The bet amounts are CRITICAL - look hard for those dollar values!"""
+## Important:
+- ALWAYS try to include dollar amounts when chips are visible
+- Look VERY carefully at betting areas - text may be small
+- If you can't see exact amount but see chips, say "Raised (amount unclear)"
+- List ALL players you can see at the table"""
 
 
 class DeepGTOAnalyzer:
     """
-    Deep Mode using Gemini Flash for player tracking
-    Only extracts player names and actions - no strategy analysis
+    Deep Mode using Claude 3 Opus for player tracking
+    Superior OCR and vision for precise bet amount detection
     """
     
     def __init__(self):
-        """Initialize Gemini Flash for player tracking"""
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        logger.info("✅ Deep Mode initialized (Gemini Flash - Player Tracking)")
+        """Initialize Claude 3 Opus"""
+        self.client = anthropic_client
+        logger.info("✅ Deep Mode initialized (Claude 3 Opus - Player Tracking)")
     
     def analyze(self, image_data: bytes, hero_position: str = None, blinds: str = None) -> Dict[str, Any]:
         """
-        Track players and their actions using Gemini Flash
+        Track players and their betting actions using Claude 3 Opus
         
         Args:
             image_data: Raw image bytes
@@ -88,22 +87,46 @@ class DeepGTOAnalyzer:
         Returns:
             Dictionary with player names and actions
         """
-        if not GEMINI_API_KEY:
-            logger.error("❌ GEMINI_API_KEY not configured!")
+        if not ANTHROPIC_API_KEY:
+            logger.error("❌ ANTHROPIC_API_KEY not configured!")
             return {
                 "success": False,
-                "error": "GEMINI_API_KEY not configured."
+                "error": "ANTHROPIC_API_KEY not configured."
             }
         
         try:
-            logger.info("🔍 Deep Mode tracking players with Gemini Flash...")
+            logger.info("🔍 Deep Mode tracking players with Claude 3 Opus...")
             
-            # Load image
-            image = Image.open(BytesIO(image_data))
+            # Encode image to base64
+            base64_image = base64.b64encode(image_data).decode('utf-8')
             
-            # Call Gemini
-            response = self.model.generate_content([PLAYER_TRACKING_PROMPT, image])
-            result_text = response.text.strip()
+            # Call Claude with vision
+            response = self.client.messages.create(
+                model="claude-3-opus-20240229",
+                max_tokens=4096,
+                temperature=0,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "image/jpeg",
+                                    "data": base64_image
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": PLAYER_TRACKING_PROMPT
+                            }
+                        ]
+                    }
+                ]
+            )
+            
+            result_text = response.content[0].text.strip()
             
             # Clean up JSON
             if "```json" in result_text:
@@ -127,6 +150,10 @@ class DeepGTOAnalyzer:
                 json_end = result_text.rfind("}")
                 if json_end != -1:
                     result_text = result_text[:json_end + 1]
+            
+            # Remove control characters
+            import re
+            result_text = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', result_text)
             
             result = json.loads(result_text)
             
@@ -160,11 +187,11 @@ class DeepGTOAnalyzer:
                 }
             }
             
-            logger.info("✅ Deep Mode player tracking complete")
+            logger.info("✅ Deep Mode player tracking complete (Claude Opus)")
             return transformed
             
         except json.JSONDecodeError as e:
-            logger.error(f"❌ Failed to parse response: {e}")
+            logger.error(f"❌ Failed to parse Claude response: {e}")
             if 'result_text' in locals():
                 logger.error(f"Raw response: {result_text[:1000]}")
                 return {

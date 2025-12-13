@@ -289,8 +289,8 @@ export default function Home() {
               </div>
               <p className="text-center text-sm text-gray-400 mt-3">
                 Selected: <span className="text-purple-400 font-bold capitalize">{aiMode}</span>
-                {aiMode === 'flash' && ' - ⚡ Quick decisions with metrics'}
-                {aiMode === 'deep' && ' - 🔍 Player tracking mode'}
+                {aiMode === 'flash' && ' - ⚡ Gemini Flash analysis'}
+                {aiMode === 'deep' && ' - 🧠 Claude Opus tracking'}
               </p>
             </div>
           )}
