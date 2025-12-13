@@ -23,41 +23,45 @@ else:
     logger.warning("⚠️ ANTHROPIC_API_KEY not set")
 
 
-CLAUDE_SIMPLE_PROMPT = """You are an elite poker GTO expert. Analyze this poker table screenshot and provide strategy advice.
+CLAUDE_SIMPLE_PROMPT = """Analyze this poker table screenshot and identify each player's NAME and current ACTION.
 
-## CRITICAL RULES:
-1. ALWAYS provide a recommendation - NEVER say you cannot identify cards
-2. If cards are unclear, make your best inference or provide general GTO strategy
-3. Your job is to HELP the player, not to refuse analysis
-4. Output ONLY valid JSON
+## Your Task:
+Look at the poker table and for EACH PLAYER visible, extract:
+1. Player NAME (text near their seat)
+2. Their current ACTION/STATE
 
-## What to Analyze:
+## Player Actions to Identify:
+- "Raised $XX" - if they made a raise
+- "Folded" - if they folded
+- "Called $XX" - if they called
+- "Checked" - if they checked
+- "All-in $XX" - if they're all-in
+- "Hero's turn" - if it's the bottom-center player's turn to act
+- "No action yet" - if they haven't acted
+- "Waiting" - if seat is waiting/empty
 
-**Table State:**
-- Pot size and street (preflop/flop/turn/river)
-- Community cards (if visible)
-- Number of active players (those with card backs)
-- Hero position (player at bottom center)
-- Stack sizes and bet amounts
-
-**Your Recommendation:**
-Provide the optimal GTO play with reasoning based on:
-- Position dynamics
-- Pot odds
-- Stack-to-pot ratios
-- Player count
-- Any visible stats or betting patterns
+## Hero Identification:
+The HERO is always the player at the BOTTOM-CENTER of the screen.
 
 ## Required JSON Output:
 
 {
   "success": true,
-  "visual_description": "Brief description of the table state you observe",
-  "optimal_action": "Fold|Call|Raise $X.XX|Bet $X.XX|Check",
-  "analysis": "Explain why this is the GTO optimal play considering the visible game state, position, pot odds, and stack dynamics."
+  "players": [
+    {"name": "Brain", "action": "Raised $35"},
+    {"name": "Chad", "action": "Folded"},
+    {"name": "Tim", "action": "Folded"},
+    {"name": "Mike", "action": "3bet to $100"},
+    {"name": "Branden", "action": "Hero's turn"},
+    {"name": "Samantha", "action": "No action yet"}
+  ]
 }
 
-**Remember:** Always provide your best strategic advice. Never refuse to analyze."""
+**Important:**
+- Output ONLY valid JSON
+- List ALL visible players
+- Extract exact player names from the image
+- Be specific about bet amounts when visible"""
 
 
 class DeepGTOAnalyzer:
@@ -154,6 +158,10 @@ class DeepGTOAnalyzer:
             
             result = json.loads(result_text)
             
+            # Build player summary from Claude's response
+            players = result.get("players", [])
+            player_summary = "\n".join([f"{p['name']}: {p['action']}" for p in players])
+            
             # Transform to expected format
             transformed = {
                 "success": result.get("success", True),
@@ -165,17 +173,18 @@ class DeepGTOAnalyzer:
                     "street": "unknown",
                     "is_hero_turn": True,
                     "villain_positions": {},
-                    "visual_description": result.get("visual_description", "")
+                    "visual_description": player_summary,
+                    "players": players
                 },
                 "recommendation": {
-                    "action": result.get("optimal_action", "Unknown"),
-                    "reasoning": result.get("analysis", ""),
-                    "pot_odds": {"value": "N/A", "calculation": "Inferred from image"},
-                    "hand_equity": {"value": "N/A", "calculation": "Inferred from image"},
-                    "implied_odds": {"value": "N/A", "calculation": "Inferred from image"},
-                    "fold_equity": {"value": "N/A", "calculation": "Inferred from image"},
-                    "expected_value": {"value": "N/A", "calculation": "Inferred from image"},
-                    "optimal_play": result.get("analysis", "")
+                    "action": "See player actions below",
+                    "reasoning": player_summary,
+                    "pot_odds": {"value": "N/A", "calculation": "Player tracking mode"},
+                    "hand_equity": {"value": "N/A", "calculation": "Player tracking mode"},
+                    "implied_odds": {"value": "N/A", "calculation": "Player tracking mode"},
+                    "fold_equity": {"value": "N/A", "calculation": "Player tracking mode"},
+                    "expected_value": {"value": "N/A", "calculation": "Player tracking mode"},
+                    "optimal_play": player_summary
                 }
             }
             
