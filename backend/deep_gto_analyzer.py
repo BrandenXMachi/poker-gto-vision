@@ -92,9 +92,11 @@ Based on what you see, provide:
 - Output ONLY valid JSON (no markdown code blocks, no extra text)
 - Be thorough in your visual description
 - Base recommendations entirely on GTO principles
-- If you can't see hero's cards clearly, describe what you CAN see and explain you need clearer visibility
+- ALWAYS provide your best analysis even if some details are unclear
+- If hero's cards aren't fully visible, provide general optimal strategy for the situation
+- NEVER return an error - always give your best recommendation
 
-Analyze the poker table image now."""
+Analyze the poker table image now and provide your GTO recommendation."""
 
 
 class DeepGTOAnalyzer:
