@@ -119,16 +119,30 @@ export default function Home() {
 
   // Capture photo and analyze
   const captureAndAnalyze = async () => {
-    if (!videoRef.current || !canvasRef.current) return
+    if (!videoRef.current || !canvasRef.current) {
+      setError('Camera not ready')
+      return
+    }
+    
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    
+    // Check if video is ready
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      setError('Video not ready. Please wait a moment and try again.')
+      return
+    }
+    
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      setError('Video dimensions invalid. Please restart camera.')
+      return
+    }
     
     setIsAnalyzing(true)
     setError('')
     setAction('')
 
     try {
-      const canvas = canvasRef.current
-      const video = videoRef.current
-      
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
       
