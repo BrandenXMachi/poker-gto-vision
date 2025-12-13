@@ -110,22 +110,23 @@ async def analyze_image(
         extracted_data = result.get("extracted_data", {})
         recommendation = result.get("recommendation", {})
         
-        # Check if hero's cards were extracted
-        hero_cards = extracted_data.get("hero_cards", [])
-        if not hero_cards or len(hero_cards) == 0:
-            return {
-                "success": False,
-                "error": "Hero's cards not detected",
-                "message": "❌ Failed to identify your hole cards. Please capture again with cards clearly visible."
-            }
-        
-        # Check if it's hero's turn
-        if not extracted_data.get("is_hero_turn", False):
-            return {
-                "success": False,
-                "hero_turn": False,
-                "message": "Not hero's turn detected. Capture when action is on you."
-            }
+        # For Flash Mode only - check if hero's cards were extracted
+        if ai_mode == "flash":
+            hero_cards = extracted_data.get("hero_cards", [])
+            if not hero_cards or len(hero_cards) == 0:
+                return {
+                    "success": False,
+                    "error": "Hero's cards not detected",
+                    "message": "❌ Failed to identify your hole cards. Please capture again with cards clearly visible."
+                }
+            
+            # Check if it's hero's turn
+            if not extracted_data.get("is_hero_turn", False):
+                return {
+                    "success": False,
+                    "hero_turn": False,
+                    "message": "Not hero's turn detected. Capture when action is on you."
+                }
         
         # Format for frontend
         action = recommendation.get("action", "Unknown")
