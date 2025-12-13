@@ -64,9 +64,13 @@ async def root():
 @app.post("/analyze")
 async def analyze_image(
     image: UploadFile = File(...),
-    position: str = Form("BTN"),
+    position: str = Form(None),
     blinds: str = Form("0.02/0.05"),
-    ai_mode: str = Form("flash")
+    ai_mode: str = Form("flash"),
+    # Deep Mode specific parameters
+    hero_position: str = Form(None),
+    villain_position: str = Form(None),
+    villain_action: str = Form(None)
 ):
     """
     Analyze poker table image using selected mode:
@@ -88,9 +92,15 @@ async def analyze_image(
             result = flash_analyzer.analyze(image_data, hero_position=position, blinds=blinds)
             
         elif ai_mode == "deep":
-            # DEEP MODE - Advanced GTO with Gemini Pro
-            logger.info(f"🧠 Using Deep mode (GTO)")
-            result = deep_analyzer.analyze(image_data, hero_position=position, blinds=blinds)
+            # DEEP MODE - Heads-up GTO analysis with manual inputs
+            logger.info(f"🧠 Using Deep mode (Heads-Up GTO) Hero: {hero_position}, Villain: {villain_position}, Action: {villain_action}")
+            result = deep_analyzer.analyze(
+                image_data, 
+                hero_position=hero_position,
+                villain_position=villain_position,
+                blinds=blinds,
+                villain_action=villain_action
+            )
             
         else:
             return {

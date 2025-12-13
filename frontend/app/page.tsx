@@ -31,6 +31,11 @@ export default function Home() {
   const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
   const [aiMode, setAiMode] = useState<'flash' | 'deep'>('flash')
   
+  // Deep Mode specific states
+  const [heroPosition, setHeroPosition] = useState<string>('BTN')
+  const [villainPosition, setVillainPosition] = useState<string>('BB')
+  const [villainAction, setVillainAction] = useState<string>('raised')
+  
   // Main display info
   const [action, setAction] = useState<string>('')
   const [potOdds, setPotOdds] = useState<string>('')
@@ -174,8 +179,19 @@ export default function Home() {
       
       const formData = new FormData()
       formData.append('image', blob, 'poker_table.jpg')
-      formData.append('position', selectedPosition)
-      formData.append('blinds', selectedBlinds)
+      
+      // For Deep Mode, pass manual inputs
+      if (aiMode === 'deep') {
+        formData.append('hero_position', heroPosition)
+        formData.append('villain_position', villainPosition)
+        formData.append('blinds', selectedBlinds)
+        formData.append('villain_action', villainAction)
+      } else {
+        // Flash Mode
+        formData.append('position', selectedPosition)
+        formData.append('blinds', selectedBlinds)
+      }
+      
       formData.append('ai_mode', aiMode)
 
       console.log(`📸 Sending image to ${backendUrl}/analyze with AI mode: ${aiMode}`)
@@ -446,14 +462,81 @@ export default function Home() {
               </div>
             )}
 
-            {/* Deep Mode Capture Button */}
+            {/* Deep Mode Manual Inputs */}
             {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'deep' && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-6 z-10">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 z-10">
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  {/* Hero Position */}
+                  <div className="bg-gray-800/90 p-3 rounded-lg">
+                    <label className="text-xs text-gray-400 mb-1 block">Hero Position</label>
+                    <select
+                      value={heroPosition}
+                      onChange={(e) => setHeroPosition(e.target.value)}
+                      className="w-full bg-gray-700 text-white py-2 px-3 rounded font-bold text-sm"
+                    >
+                      <option value="BTN">BTN</option>
+                      <option value="SB">SB</option>
+                      <option value="BB">BB</option>
+                      <option value="UTG">UTG</option>
+                      <option value="MP">MP</option>
+                      <option value="CO">CO</option>
+                    </select>
+                  </div>
+
+                  {/* Villain Position */}
+                  <div className="bg-gray-800/90 p-3 rounded-lg">
+                    <label className="text-xs text-gray-400 mb-1 block">Villain Position</label>
+                    <select
+                      value={villainPosition}
+                      onChange={(e) => setVillainPosition(e.target.value)}
+                      className="w-full bg-gray-700 text-white py-2 px-3 rounded font-bold text-sm"
+                    >
+                      <option value="BTN">BTN</option>
+                      <option value="SB">SB</option>
+                      <option value="BB">BB</option>
+                      <option value="UTG">UTG</option>
+                      <option value="MP">MP</option>
+                      <option value="CO">CO</option>
+                    </select>
+                  </div>
+
+                  {/* Blinds */}
+                  <div className="bg-gray-800/90 p-3 rounded-lg">
+                    <label className="text-xs text-gray-400 mb-1 block">Blinds</label>
+                    <select
+                      value={selectedBlinds}
+                      onChange={(e) => setSelectedBlinds(e.target.value)}
+                      className="w-full bg-gray-700 text-white py-2 px-3 rounded font-bold text-sm"
+                    >
+                      <option value="0.02/0.05">$0.02/$0.05</option>
+                      <option value="0.05/0.10">$0.05/$0.10</option>
+                      <option value="0.10/0.25">$0.10/$0.25</option>
+                      <option value="0.25/0.50">$0.25/$0.50</option>
+                      <option value="0.50/1.00">$0.50/$1.00</option>
+                    </select>
+                  </div>
+
+                  {/* Villain Action */}
+                  <div className="bg-gray-800/90 p-3 rounded-lg">
+                    <label className="text-xs text-gray-400 mb-1 block">Villain Action</label>
+                    <select
+                      value={villainAction}
+                      onChange={(e) => setVillainAction(e.target.value)}
+                      className="w-full bg-gray-700 text-white py-2 px-3 rounded font-bold text-sm"
+                    >
+                      <option value="checked">Checked</option>
+                      <option value="raised">Raised</option>
+                      <option value="check-raised">Check-Raised</option>
+                      <option value="re-raised">Re-Raised</option>
+                    </select>
+                  </div>
+                </div>
+
                 <button
                   onClick={handleDeepCapture}
-                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                  className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-base transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
-                  📸 Capture & Analyze
+                  📸 Capture & Analyze (Heads-Up)
                 </button>
               </div>
             )}
