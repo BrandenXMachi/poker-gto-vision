@@ -16,9 +16,10 @@ logger = logging.getLogger(__name__)
 # Configure Anthropic
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 if ANTHROPIC_API_KEY:
-    client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
     logger.info("✅ Anthropic API key configured")
 else:
+    anthropic_client = None
     logger.warning("⚠️ ANTHROPIC_API_KEY not set")
 
 
@@ -104,7 +105,7 @@ class DeepGTOAnalyzer:
     
     def __init__(self):
         """Initialize Claude 3.5 Sonnet"""
-        self.client = client
+        self.client = anthropic_client
         logger.info("✅ Deep GTO analyzer initialized (Claude 3.5 Sonnet v2)")
     
     def analyze(self, image_data: bytes, hero_position: str = None, blinds: str = None) -> Dict[str, Any]:
