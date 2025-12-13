@@ -185,6 +185,10 @@ class DeepGTOAnalyzer:
                 if json_end != -1:
                     result_text = result_text[:json_end + 1]
             
+            # Remove control characters that break JSON parsing
+            import re
+            result_text = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', result_text)
+            
             result = json.loads(result_text)
             
             # Transform to expected format
