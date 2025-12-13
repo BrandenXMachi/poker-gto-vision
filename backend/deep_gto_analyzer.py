@@ -23,80 +23,41 @@ else:
     logger.warning("⚠️ ANTHROPIC_API_KEY not set")
 
 
-CLAUDE_SIMPLE_PROMPT = """You are an elite poker GTO (Game Theory Optimal) expert analyzing a live poker table screenshot.
+CLAUDE_SIMPLE_PROMPT = """You are an elite poker GTO expert. Analyze this poker table screenshot and provide strategy advice.
 
-## YOUR TASK:
+## CRITICAL RULES:
+1. ALWAYS provide a recommendation - NEVER say you cannot identify cards
+2. If cards are unclear, make your best inference or provide general GTO strategy
+3. Your job is to HELP the player, not to refuse analysis
+4. Output ONLY valid JSON
 
-1. **Describe what you see** - Analyze the poker table image completely
-2. **Infer the optimal play** - Recommend the best GTO action for the hero (player at bottom center)
+## What to Analyze:
 
-## STEP 1: VISUAL ANALYSIS
+**Table State:**
+- Pot size and street (preflop/flop/turn/river)
+- Community cards (if visible)
+- Number of active players (those with card backs)
+- Hero position (player at bottom center)
+- Stack sizes and bet amounts
 
-Carefully examine the image and describe:
-
-**Game State:**
-- What street is this? (preflop/flop/turn/river)
-- Hero's hole cards (at bottom center)
-- Community cards (if any)
-- Pot size
-- Hero's stack size
-- Hero's position at table
-
-**Active Players:**
-- How many opponents are still in the hand? (look for visible card backs)
-- Their positions relative to hero
-- Their stack sizes (if visible)
-- Their actions/bet amounts (if visible)
-- Any VPIP stats shown (%, top-left of player names)
-
-**Action to Hero:**
-- What does hero need to do? (fold/call/raise amount)
-- Are action buttons visible at bottom?
-
-## STEP 2: GTO RECOMM
-
-ENDATION
-
-Based on what you see, provide:
-
-**Optimal Play:**
-- Clear action recommendation (Fold / Call / Raise to $X.XX / Bet $X.XX)
-- Brief explanation why this is GTO optimal
-
-**Analysis:**
-- Hero's equity vs likely opponent ranges
-- Pot odds and required equity
+**Your Recommendation:**
+Provide the optimal GTO play with reasoning based on:
+- Position dynamics
+- Pot odds
 - Stack-to-pot ratios
-- Position considerations
-- Any exploitative adjustments based on opponent stats
+- Player count
+- Any visible stats or betting patterns
 
----
+## Required JSON Output:
 
-## OUTPUT FORMAT (JSON):
-
-```json
 {
   "success": true,
-  "visual_description": "Detailed description of what you observe on the table",
-  "optimal_action": "Fold|Call|Raise $X.XX|Bet $X.XX",
-  "analysis": "Multi-paragraph explanation of:
-- Why this action is optimal
-- Game state analysis
-- Equity calculations
-- GTO reasoning
-- Stack and position considerations"
+  "visual_description": "Brief description of the table state you observe",
+  "optimal_action": "Fold|Call|Raise $X.XX|Bet $X.XX|Check",
+  "analysis": "Explain why this is the GTO optimal play considering the visible game state, position, pot odds, and stack dynamics."
 }
-```
 
-**IMPORTANT:**
-- Output ONLY valid JSON (no markdown code blocks, no extra text)
-- Be thorough in your visual description
-- Base recommendations entirely on GTO principles
-- ALWAYS provide your best analysis even if some details are unclear
-- If hero's cards aren't fully visible, provide general optimal strategy for the situation
-- NEVER return an error - always give your best recommendation
-
-Analyze the poker table image now and provide your GTO recommendation."""
+**Remember:** Always provide your best strategic advice. Never refuse to analyze."""
 
 
 class DeepGTOAnalyzer:
