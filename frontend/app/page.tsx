@@ -290,7 +290,7 @@ export default function Home() {
               <p className="text-center text-sm text-gray-400 mt-3">
                 Selected: <span className="text-purple-400 font-bold capitalize">{aiMode}</span>
                 {aiMode === 'flash' && ' - ⚡ Quick decisions with metrics'}
-                {aiMode === 'deep' && ' - 🧠 Claude 3.5 Sonnet GTO analysis'}
+                {aiMode === 'deep' && ' - 🔍 Player tracking mode'}
               </p>
             </div>
           )}
