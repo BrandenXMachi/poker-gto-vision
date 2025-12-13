@@ -34,7 +34,7 @@ export default function Home() {
   // Deep Mode specific states
   const [heroPosition, setHeroPosition] = useState<string>('BTN')
   const [villainPosition, setVillainPosition] = useState<string>('BB')
-  const [villainAction, setVillainAction] = useState<string>('raised')
+  const [villainAction, setVillainAction] = useState<string>('last-to-act')
   
   // Main display info
   const [action, setAction] = useState<string>('')
@@ -524,6 +524,7 @@ export default function Home() {
                       onChange={(e) => setVillainAction(e.target.value)}
                       className="w-full bg-gray-700 text-white py-2 px-3 rounded font-bold text-sm"
                     >
+                      <option value="last-to-act">Last to Act (Hero First)</option>
                       <option value="checked">Checked</option>
                       <option value="raised">Raised</option>
                       <option value="check-raised">Check-Raised</option>
