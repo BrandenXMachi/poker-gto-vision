@@ -39,13 +39,18 @@ Look for these indicators of bet amounts:
 
 ## Action Types (with amounts):
 - "Raised $XX" or "Bet $XX" - chips in front of player
-- "3bet to $XX" - if they re-raised
+- "Reraised to $XX" - if they re-raised (never use "3bet")
 - "Called $XX" - if they matched current bet
 - "All-in $XX" - all chips pushed in
 - "Folded" - no cards/chips, marked as folded
 - "Checked" - no bet but cards visible
-- "Hero's turn" - if bottom-center player with active buttons
+- "Hero (raised $XX)" - if bottom-center player already acted and it's their turn again
+- "Hero's turn" - if bottom-center player needs to act for first time
 - "No action yet" - waiting to act
+
+## Special Rule for Hero:
+- If the hero (bottom-center player) has chips in front of them AND action buttons are visible, format as: "Hero (raised $XX)" or "Hero (called $XX)"
+- This shows they already acted but face a reraise
 
 ## Output Format (JSON ONLY):
 {
@@ -53,7 +58,8 @@ Look for these indicators of bet amounts:
   "players": [
     {"name": "PlayerName", "action": "Raised $35"},
     {"name": "AnotherPlayer", "action": "Folded"},
-    {"name": "ThirdPlayer", "action": "3bet to $100"}
+    {"name": "ThirdPlayer", "action": "Reraised to $100"},
+    {"name": "Branden", "action": "Hero (raised $25)"}
   ]
 }
 
