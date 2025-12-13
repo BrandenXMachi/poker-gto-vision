@@ -43,11 +43,32 @@ def build_gemini_extraction_prompt(hero_position: str, villain_position: str, vi
 - Blinds: **${blinds}**
 - Villain has **{villain_action}**
 
-## Extract These Values From The Image:
+## CRITICAL - Card Identification Instructions:
+
+### How to Identify Cards ACCURATELY:
+1. **Ranks**: A (Ace), K (King), Q (Queen), J (Jack), 10, 9, 8, 7, 6, 5, 4, 3, 2
+2. **Suits**: Look at the symbol carefully:
+   - ♠ = Spades (black, upside-down heart shape)
+   - ♥ = Hearts (red, heart shape)
+   - ♦ = Diamonds (red, diamond shape)
+   - ♣ = Clubs (black, clover/trefoil shape)
+3. **Pay attention to COLOR**:
+   - RED suits = Hearts, Diamonds
+   - BLACK suits = Spades, Clubs
+4. **Double-check each card** - don't guess!
+
+### Card Format Examples:
+- "Ace of Spades" (black Ace with ♠)
+- "King of Hearts" (red King with ♥)
+- "Queen of Diamonds" (red Queen with ♦)
+- "Jack of Clubs" (black Jack with ♣)
+- "10 of Hearts", "9 of Spades", "2 of Clubs"
+
+## Extract These Values:
 
 1. **POT SIZE**: Look for "Total Pot: $X" or "Pot: $X" text on the table
-2. **HERO'S HOLE CARDS**: The 2 cards at the BOTTOM (hero's position)
-3. **BOARD CARDS**: Community cards in center (list all visible)
+2. **HERO'S HOLE CARDS**: The 2 cards at the BOTTOM (hero's position) - BE PRECISE!
+3. **BOARD CARDS**: Community cards in center (list all visible) - VERIFY EACH ONE!
 4. **STREET**: Determine from board cards (preflop=0, flop=3, turn=4, river=5)
 5. **HERO'S STACK**: Total stack at hero's position (bottom)
 6. **VILLAIN'S STACK**: Total stack at villain's position ({villain_position})
@@ -65,11 +86,12 @@ def build_gemini_extraction_prompt(hero_position: str, villain_position: str, vi
   "call_amount": "$X.XX"
 }}
 
-**Critical**: 
-- Use card format: "Rank of Suit" (e.g., "Ace of Spades", "King of Hearts", "10 of Diamonds")
-- Pot size = center pot total
-- Call amount = what you need to pay to continue (from buttons)
-- All dollar amounts must be extracted precisely"""
+**CRITICAL**: 
+- CAREFULLY identify BOTH rank AND suit for EACH card
+- RED cards = Hearts or Diamonds ONLY
+- BLACK cards = Spades or Clubs ONLY
+- If unsure about a card, look at it again more carefully
+- Format: "Rank of Suit" (e.g., "Ace of Spades", "King of Hearts")"""
 
 
 def build_claude_gto_prompt(extracted_data: Dict, hero_position: str, villain_position: str, villain_action: str, blinds: str):
