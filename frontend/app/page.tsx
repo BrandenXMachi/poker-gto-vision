@@ -45,6 +45,11 @@ export default function Home() {
   const [expectedValue, setExpectedValue] = useState<string>('')
   const [potSize, setPotSize] = useState<string>('')
   
+  // Card displays
+  const [heroCards, setHeroCards] = useState<string[]>([])
+  const [boardCards, setBoardCards] = useState<string[]>([])
+  const [street, setStreet] = useState<string>('')
+  
   // Detailed info for navigation to details page
   const [detailedInfo, setDetailedInfo] = useState<DetailedInfo | null>(null)
 
@@ -219,6 +224,13 @@ export default function Home() {
         setPotSize(rec.pot_size || 'N/A')
         setDetailedInfo(data.detailed_info || null)
         
+        // Extract card data from response
+        if (data.extracted_data) {
+          setHeroCards(data.extracted_data.hero_cards || [])
+          setBoardCards(data.extracted_data.board_cards || [])
+          setStreet(data.extracted_data.street || '')
+        }
+        
         // For Deep Mode, auto-redirect to details page
         if (aiMode === 'deep' && data.detailed_info) {
           localStorage.setItem('poker_detailed_info', JSON.stringify(data.detailed_info))
@@ -330,6 +342,35 @@ export default function Home() {
               <div className="text-5xl font-extrabold text-center mb-8 drop-shadow-lg">
                 {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
               </div>
+              
+              {/* Card Display */}
+              {(heroCards.length > 0 || boardCards.length > 0) && (
+                <div className="mb-6 bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Hero Cards */}
+                    {heroCards.length > 0 && (
+                      <div>
+                        <div className="text-xs text-white/60 uppercase tracking-wider mb-2">Your Hand:</div>
+                        <div className="text-2xl font-bold text-yellow-300">
+                          🃏 {heroCards.join(' ')}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Board Cards */}
+                    {boardCards.length > 0 && (
+                      <div>
+                        <div className="text-xs text-white/60 uppercase tracking-wider mb-2">
+                          Board ({street}):
+                        </div>
+                        <div className="text-2xl font-bold text-cyan-300">
+                          🎴 {boardCards.join(' ')}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
