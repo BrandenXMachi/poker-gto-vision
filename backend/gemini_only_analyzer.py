@@ -32,8 +32,25 @@ Your task: Analyze this GGPoker screenshot and provide a complete analysis in ON
 - Blinds: {blinds}
 - Hero is at BOTTOM-CENTER of the table
 
-**POSITION MAPPING:**
+**⚠️ CRITICAL - POSITION MAPPING (DO NOT DEDUCE POSITIONS - USE THIS MAPPING!):**
+
 {position_mapping}
+
+**POSITION RULES - READ CAREFULLY:**
+1. The hero position ({hero_position}) is ALWAYS CORRECT - user provided this
+2. ALL other positions are derived from hero's position using the mapping above
+3. DO NOT try to deduce positions from visual cues or table layout
+4. ONLY use the position mapping provided above
+5. Each screen position maps to exactly ONE poker position
+
+Example: If hero is BTN (Bottom-Center):
+- Bottom-Left = SB (immediately left of hero)
+- Top-Left = BB (left of SB)
+- Top-Center = UTG
+- Top-Right = MP
+- Bottom-Right = CO
+
+**When reporting villain positions, use ONLY the poker positions from the mapping, NOT screen positions.**
 
 ---
 
