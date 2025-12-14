@@ -136,6 +136,24 @@ Choose action with highest EV:
 - Call if pot odds justify
 - Raise/Bet if EV(aggressive) > EV(passive)
 
+### ⚠️ CRITICAL VALIDATION BEFORE REASONING:
+**MUST verify your extracted cards match your analysis!**
+
+Hand Type Rules:
+- SUITED = Both cards same suit (e.g., K♥ 8♥)
+- OFFSUIT = Different suits (e.g., K♥ 8♠)
+- CONNECTOR = Adjacent ranks (e.g., 9-8, K-Q)
+- SUITED CONNECTOR = Same suit AND adjacent (e.g., 9♥ 8♥)
+- PAIR = Same rank (e.g., K♥ K♠)
+
+Example Checks:
+- "King of Hearts" + "8 of Spades" = K8o (King-Eight OFFSUIT) - NOT suited!
+- "9 of Hearts" + "8 of Hearts" = 98s (Nine-Eight SUITED connector)
+- "King of Clubs" + "Queen of Clubs" = KQs (King-Queen SUITED connector)
+- "Ace of Spades" + "King of Diamonds" = AKo (Ace-King OFFSUIT)
+
+**Before writing reasoning, double-check: Do my extracted suits match my description?**
+
 ---
 
 ## OUTPUT FORMAT (VALID JSON ONLY):
