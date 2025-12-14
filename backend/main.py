@@ -15,6 +15,7 @@ load_dotenv()
 
 from gemini_only_analyzer import GeminiOnlyAnalyzer
 from deep_gto_analyzer import DeepGTOAnalyzer
+from preflop_gto_analyzer import PreflopGTOAnalyzer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +47,7 @@ app.add_middleware(
 # Initialize AI analyzers
 flash_analyzer = GeminiOnlyAnalyzer()
 deep_analyzer = DeepGTOAnalyzer()
+preflop_analyzer = PreflopGTOAnalyzer()
 
 
 @app.get("/")
@@ -53,10 +55,11 @@ async def root():
     """Health check endpoint"""
     return {
         "status": "Poker Vision Backend",
-        "version": "4.0.0",
+        "version": "5.0.0",
         "modes": {
             "flash": "Gemini 2.0 Flash Experimental - Fast analysis",
-            "deep": "Gemini 2.0 Pro Experimental - Advanced GTO strategy"
+            "deep": "Gemini + Claude Hybrid - Advanced GTO strategy",
+            "preflop": "Gemini + Custom GTO Algorithm - Preflop-only decisions"
         }
     }
 
@@ -102,10 +105,19 @@ async def analyze_image(
                 villain_action=villain_action
             )
             
+        elif ai_mode == "preflop":
+            # PREFLOP MODE - Gemini vision + Custom GTO algorithm
+            logger.info(f"🎯 Using Preflop mode - Position: {position}, Blinds: {blinds}")
+            result = preflop_analyzer.analyze(
+                image_data,
+                position=position,
+                blinds=blinds
+            )
+            
         else:
             return {
                 "success": False,
-                "error": f"Invalid mode: {ai_mode}. Use 'flash' or 'deep'",
+                "error": f"Invalid mode: {ai_mode}. Use 'flash', 'deep', or 'preflop'",
                 "message": "Invalid analysis mode selected."
             }
         

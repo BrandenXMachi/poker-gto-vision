@@ -29,7 +29,7 @@ export default function Home() {
   const [capturedImage, setCapturedImage] = useState<string>('')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
   const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
-  const [aiMode, setAiMode] = useState<'flash' | 'deep'>('flash')
+  const [aiMode, setAiMode] = useState<'flash' | 'deep' | 'preflop'>('flash')
   
   // Deep Mode specific states
   const [heroPosition, setHeroPosition] = useState<string>('BTN')
@@ -289,36 +289,49 @@ export default function Home() {
               <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
                 🎯 Analysis Mode
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   onClick={() => setAiMode('flash')}
-                  className={`py-5 px-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 ${
+                  className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
                     aiMode === 'flash'
                       ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
-                  <div className="text-3xl mb-2">⚡</div>
+                  <div className="text-2xl mb-1">⚡</div>
                   <div>Flash</div>
-                  <div className="text-xs opacity-75 mt-1">Fast Analysis</div>
+                  <div className="text-xs opacity-75 mt-1">All Streets</div>
+                </button>
+                <button
+                  onClick={() => setAiMode('preflop')}
+                  className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
+                    aiMode === 'preflop'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg scale-105'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">🎯</div>
+                  <div>Preflop</div>
+                  <div className="text-xs opacity-75 mt-1">GTO Ranges</div>
                 </button>
                 <button
                   onClick={() => setAiMode('deep')}
-                  className={`py-5 px-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 ${
+                  className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
                     aiMode === 'deep'
                       ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
-                  <div className="text-3xl mb-2">🧠</div>
+                  <div className="text-2xl mb-1">🧠</div>
                   <div>Deep</div>
-                  <div className="text-xs opacity-75 mt-1">Advanced GTO</div>
+                  <div className="text-xs opacity-75 mt-1">Heads-Up</div>
                 </button>
               </div>
               <p className="text-center text-sm text-gray-400 mt-3">
                 Selected: <span className="text-purple-400 font-bold capitalize">{aiMode}</span>
-                {aiMode === 'flash' && ' - ⚡ Gemini Flash analysis'}
-                {aiMode === 'deep' && ' - 🔄 Gemini + Claude Hybrid GTO'}
+                {aiMode === 'flash' && ' - ⚡ Fast AI analysis'}
+                {aiMode === 'preflop' && ' - 🎯 Preflop GTO ranges'}
+                {aiMode === 'deep' && ' - 🧠 Hybrid GTO (Heads-Up)'}
               </p>
             </div>
           )}
@@ -413,8 +426,41 @@ export default function Home() {
             </div>
           )}
 
-          {/* Blinds Selector - Only show for Flash Mode */}
-          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flash' && (
+          {/* Main recommendation display - For Preflop Mode */}
+          {action && aiMode === 'preflop' && (
+            <div className="bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-600 border-orange-400/30 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 backdrop-blur">
+              <div className="text-center mb-2">
+                <p className="text-sm font-semibold text-white/80 mb-2">🎯 PREFLOP GTO</p>
+              </div>
+              <div className="text-5xl font-extrabold text-center mb-8 drop-shadow-lg">
+                {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
+              </div>
+              
+              {/* Card Display */}
+              {heroCards.length > 0 && (
+                <div className="mb-6 bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20">
+                  <div className="text-center">
+                    <div className="text-xs text-white/60 uppercase tracking-wider mb-2">Your Hand:</div>
+                    <div className="text-3xl font-bold text-yellow-200">
+                      🃏 {heroCards.join(' ')}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* GTO Reasoning */}
+              {detailedInfo && (
+                <div className="bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20">
+                  <div className="text-sm text-white/90 leading-relaxed">
+                    {detailedInfo.reasoning || 'GTO range-based decision'}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Blinds Selector - Show for Flash and Preflop Modes */}
+          {isCameraActive && !isAnalyzing && !capturedImage && (aiMode === 'flash' || aiMode === 'preflop') && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-blue-500/30 shadow-xl">
               <h3 className="text-center text-lg font-bold text-blue-400 mb-4">
                 💵 Select Blinds
@@ -463,24 +509,26 @@ export default function Home() {
               <div className={`absolute inset-0 backdrop-blur-sm flex items-center justify-center z-20 ${
                 aiMode === 'flash' 
                   ? 'bg-gradient-to-br from-emerald-900/95 to-teal-900/95'
+                  : aiMode === 'preflop'
+                  ? 'bg-gradient-to-br from-orange-900/95 to-amber-900/95'
                   : 'bg-gradient-to-br from-purple-900/95 to-indigo-900/95'
               }`}>
                 <div className="text-center">
                   <div className={`w-20 h-20 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-6 ${
-                    aiMode === 'flash' ? 'border-emerald-400' : 'border-purple-400'
+                    aiMode === 'flash' ? 'border-emerald-400' : aiMode === 'preflop' ? 'border-orange-400' : 'border-purple-400'
                   }`}></div>
                   <div className="text-2xl font-bold text-white drop-shadow-lg">
-                    {aiMode === 'flash' ? '⚡ Flash Analysis...' : '🔄 Hybrid Analysis...'}
+                    {aiMode === 'flash' ? '⚡ Flash Analysis...' : aiMode === 'preflop' ? '🎯 Preflop GTO...' : '🔄 Hybrid Analysis...'}
                   </div>
-                  <div className={`mt-2 ${aiMode === 'flash' ? 'text-emerald-300' : 'text-purple-300'}`}>
-                    {aiMode === 'flash' ? 'Processing poker table...' : 'Gemini extracting → Claude analyzing GTO...'}
+                  <div className={`mt-2 ${aiMode === 'flash' ? 'text-emerald-300' : aiMode === 'preflop' ? 'text-orange-300' : 'text-purple-300'}`}>
+                    {aiMode === 'flash' ? 'Processing poker table...' : aiMode === 'preflop' ? 'Checking GTO ranges...' : 'Gemini extracting → Claude analyzing GTO...'}
                   </div>
                 </div>
               </div>
             )}
             
-            {/* Position buttons overlay - Only for Flash Mode */}
-            {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'flash' && (
+            {/* Position buttons overlay - For Flash & Preflop Modes */}
+            {isCameraActive && !capturedImage && !isAnalyzing && (aiMode === 'flash' || aiMode === 'preflop') && (
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 z-10">
                 <p className="text-center text-xs text-gray-300 mb-2">
                   👤 Click Your Position to Capture & Analyze
