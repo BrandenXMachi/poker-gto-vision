@@ -534,7 +534,7 @@ export default function Home() {
                   👤 Click Your Position to Capture & Analyze
                 </p>
                 <div className="grid grid-cols-6 gap-2">
-                  {['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO'].map((pos) => (
+                  {['BTN', 'CO', 'MP', 'UTG', 'BB', 'SB'].map((pos) => (
                     <button
                       key={pos}
                       onClick={() => handlePositionClick(pos)}

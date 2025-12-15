@@ -297,6 +297,19 @@ class PreflopGTOAnalyzer:
             
             logger.info(f"✅ GTO Decision: {decision['action']}")
             
+            # Build detailed info with analysis breakdown
+            detailed_reasoning = f"""📊 Analysis Breakdown:
+
+• Position: {position}
+• Hand: {hand_notation} ({decision.get('hand_strength', 'Unknown')})
+• Pot: {pot_size} | Call: {call_amount_str}
+• Action Type: {action_type.upper()} (detected from bet sizing)
+
+🎯 GTO Decision:
+{decision['reasoning']}
+
+📈 Range Classification: {decision.get('range_match', 'N/A')}"""
+            
             return {
                 "success": True,
                 "extracted_data": {
@@ -311,7 +324,7 @@ class PreflopGTOAnalyzer:
                 },
                 "recommendation": {
                     "action": decision["action"],
-                    "reasoning": decision["reasoning"],
+                    "reasoning": detailed_reasoning,
                     "hand_strength": decision.get("hand_strength", "Unknown"),
                     "range_match": decision.get("range_match", "N/A")
                 }
