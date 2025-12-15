@@ -27,10 +27,11 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string>('')
   const [capturedImage, setCapturedImage] = useState<string>('')
-  const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
+  const [isInPosition, setIsInPosition] = useState<boolean>(true)
   const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
   const [villainPositionPreflop, setVillainPositionPreflop] = useState<string>('UTG')
-  const [aiMode, setAiMode] = useState<'flash' | 'deep' | 'preflop'>('flash')
+  const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
+  const [aiMode, setAiMode] = useState<'odds' | 'deep' | 'preflop'>('odds')
   
   // Deep Mode specific states
   const [heroPosition, setHeroPosition] = useState<string>('BTN')
@@ -299,15 +300,15 @@ export default function Home() {
               </h3>
               <div className="grid grid-cols-3 gap-3">
                 <button
-                  onClick={() => setAiMode('flash')}
+                  onClick={() => setAiMode('odds')}
                   className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
-                    aiMode === 'flash'
+                    aiMode === 'odds'
                       ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
-                  <div className="text-2xl mb-1">⚡</div>
-                  <div>Flash</div>
+                  <div className="text-2xl mb-1">📊</div>
+                  <div>Odds</div>
                   <div className="text-xs opacity-75 mt-1">All Streets</div>
                 </button>
                 <button
@@ -337,7 +338,7 @@ export default function Home() {
               </div>
               <p className="text-center text-sm text-gray-400 mt-3">
                 Selected: <span className="text-purple-400 font-bold capitalize">{aiMode}</span>
-                {aiMode === 'flash' && ' - ⚡ Fast AI analysis'}
+                {aiMode === 'odds' && ' - 📊 Pot odds calculator'}
                 {aiMode === 'preflop' && ' - 🎯 Preflop GTO ranges'}
                 {aiMode === 'deep' && ' - 🧠 Hybrid GTO (Heads-Up)'}
               </p>
@@ -354,11 +355,11 @@ export default function Home() {
             </div>
           )}
 
-          {/* Main recommendation display - Only for Flash Mode */}
-          {action && aiMode === 'flash' && (
+          {/* Main recommendation display - Only for Odds Mode */}
+          {action && aiMode === 'odds' && (
             <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 border-emerald-400/30 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 backdrop-blur">
               <div className="text-center mb-2">
-                <p className="text-sm font-semibold text-white/80 mb-2">⚡ FLASH ANALYSIS</p>
+                <p className="text-sm font-semibold text-white/80 mb-2">📊 ODDS ANALYSIS</p>
               </div>
               <div className="text-5xl font-extrabold text-center mb-8 drop-shadow-lg">
                 {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
@@ -492,8 +493,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Blinds Selector - Show for Flash and Preflop Modes */}
-          {isCameraActive && !isAnalyzing && !capturedImage && (aiMode === 'flash' || aiMode === 'preflop') && (
+          {/* Blinds Selector - Show for Odds and Preflop Modes */}
+          {isCameraActive && !isAnalyzing && !capturedImage && (aiMode === 'odds' || aiMode === 'preflop') && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-blue-500/30 shadow-xl">
               <h3 className="text-center text-lg font-bold text-blue-400 mb-4">
                 💵 Select Blinds
@@ -540,7 +541,7 @@ export default function Home() {
             {/* Analyzing overlay */}
             {isAnalyzing && (
               <div className={`absolute inset-0 backdrop-blur-sm flex items-center justify-center z-20 ${
-                aiMode === 'flash' 
+                aiMode === 'odds' 
                   ? 'bg-gradient-to-br from-emerald-900/95 to-teal-900/95'
                   : aiMode === 'preflop'
                   ? 'bg-gradient-to-br from-orange-900/95 to-amber-900/95'
@@ -548,20 +549,57 @@ export default function Home() {
               }`}>
                 <div className="text-center">
                   <div className={`w-20 h-20 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-6 ${
-                    aiMode === 'flash' ? 'border-emerald-400' : aiMode === 'preflop' ? 'border-orange-400' : 'border-purple-400'
+                    aiMode === 'odds' ? 'border-emerald-400' : aiMode === 'preflop' ? 'border-orange-400' : 'border-purple-400'
                   }`}></div>
                   <div className="text-2xl font-bold text-white drop-shadow-lg">
-                    {aiMode === 'flash' ? '⚡ Flash Analysis...' : aiMode === 'preflop' ? '🎯 Preflop GTO...' : '🔄 Hybrid Analysis...'}
+                    {aiMode === 'odds' ? '📊 Odds Analysis...' : aiMode === 'preflop' ? '🎯 Preflop GTO...' : '🔄 Hybrid Analysis...'}
                   </div>
-                  <div className={`mt-2 ${aiMode === 'flash' ? 'text-emerald-300' : aiMode === 'preflop' ? 'text-orange-300' : 'text-purple-300'}`}>
-                    {aiMode === 'flash' ? 'Processing poker table...' : aiMode === 'preflop' ? 'Checking GTO ranges...' : 'Gemini extracting → Claude analyzing GTO...'}
+                  <div className={`mt-2 ${aiMode === 'odds' ? 'text-emerald-300' : aiMode === 'preflop' ? 'text-orange-300' : 'text-purple-300'}`}>
+                    {aiMode === 'odds' ? 'Calculating pot odds...' : aiMode === 'preflop' ? 'Checking GTO ranges...' : 'Gemini extracting → Claude analyzing GTO...'}
                   </div>
                 </div>
               </div>
             )}
             
-            {/* Position buttons overlay - For Flash & Preflop Modes */}
-            {isCameraActive && !capturedImage && !isAnalyzing && (aiMode === 'flash' || aiMode === 'preflop') && (
+            {/* In Position / Out of Position buttons - For Odds Mode */}
+            {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'odds' && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 z-10">
+                <p className="text-center text-xs text-gray-300 mb-3">
+                  📍 Select Position & Capture
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      setIsInPosition(true)
+                      handlePositionClick('IP')
+                    }}
+                    className={`py-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 shadow-lg ${
+                      isInPosition
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white scale-105 ring-2 ring-white'
+                        : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
+                    }`}
+                  >
+                    ✅ In Position
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsInPosition(false)
+                      handlePositionClick('OOP')
+                    }}
+                    className={`py-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 shadow-lg ${
+                      !isInPosition
+                        ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white scale-105 ring-2 ring-white'
+                        : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
+                    }`}
+                  >
+                    ❌ Out of Position
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Position buttons overlay - For Preflop Mode */}
+            {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'preflop' && (
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 z-10">
                 <p className="text-center text-xs text-gray-300 mb-2">
                   👤 Click Your Position to Capture & Analyze

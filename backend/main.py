@@ -1,4 +1,4 @@
-"""
+vis"""
 Main FastAPI server for Poker Vision
 Two modes: Flash (gemini-2.0-flash-exp) and Deep (gemini-2.0-pro-exp)
 """
@@ -89,9 +89,9 @@ async def analyze_image(
         image_data = await image.read()
         
         # Route to appropriate analyzer based on mode
-        if ai_mode == "flash":
-            # FLASH MODE - Fast Gemini analysis
-            logger.info(f"⚡ Using Flash mode (fast)")
+        if ai_mode == "odds" or ai_mode == "flash":
+            # ODDS MODE - Pot odds calculator
+            logger.info(f"📊 Using Odds mode (pot odds)")
             result = flash_analyzer.analyze(image_data, hero_position=position, blinds=blinds)
             
         elif ai_mode == "deep":
@@ -133,8 +133,8 @@ async def analyze_image(
         extracted_data = result.get("extracted_data", {})
         recommendation = result.get("recommendation", {})
         
-        # For Flash Mode only - check if hero's cards were extracted
-        if ai_mode == "flash":
+        # For Odds Mode only - check if hero's cards were extracted
+        if ai_mode == "odds" or ai_mode == "flash":
             hero_cards = extracted_data.get("hero_cards", [])
             if not hero_cards or len(hero_cards) == 0:
                 return {
