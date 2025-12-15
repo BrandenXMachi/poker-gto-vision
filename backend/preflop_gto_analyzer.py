@@ -429,18 +429,18 @@ class PreflopGTOAnalyzer:
                 }
         
         else:
-            # Unopened pot - check if we should open
+            # Unopened pot - check if we should open (NEVER LIMP)
             if position in OPENING_RANGES and check_hand_in_range(hand, OPENING_RANGES[position]):
                 return {
-                    "action": "Raise (Open)",
-                    "reasoning": f"With {hand} from {position} in an unopened pot, this hand is strong enough to open-raise. Raise to 2.5-3x BB to build the pot.",
+                    "action": "Raise to 3x BB (Open)",
+                    "reasoning": f"With {hand} from {position} in an unopened pot, this hand is in the opening range. Raise to 3x BB to build the pot and take the initiative. NEVER limp.",
                     "hand_strength": "Opening range",
                     "range_match": f"Opening range from {position}"
                 }
             else:
                 return {
                     "action": "Fold",
-                    "reasoning": f"With {hand} from {position}, this hand is not strong enough to open-raise. Fold and wait for a better hand.",
+                    "reasoning": f"With {hand} from {position}, this hand is not in the opening range. Fold and wait for a better opportunity. Never complete/limp with weak hands.",
                     "hand_strength": "Below opening range",
                     "range_match": "Not in opening range"
                 }

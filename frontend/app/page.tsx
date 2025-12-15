@@ -44,6 +44,7 @@ export default function Home() {
   const [foldEquity, setFoldEquity] = useState<string>('')
   const [expectedValue, setExpectedValue] = useState<string>('')
   const [potSize, setPotSize] = useState<string>('')
+  const [reasoning, setReasoning] = useState<string>('')
   
   // Card displays
   const [heroCards, setHeroCards] = useState<string[]>([])
@@ -222,6 +223,7 @@ export default function Home() {
         setFoldEquity(rec.fold_equity?.value || rec.fold_equity || 'N/A')
         setExpectedValue(rec.expected_value?.value || rec.expected_value || 'N/A')
         setPotSize(rec.pot_size || 'N/A')
+        setReasoning(rec.reasoning || '')
         setDetailedInfo(data.detailed_info || null)
         
         // Extract card data from response
@@ -448,14 +450,12 @@ export default function Home() {
                 </div>
               )}
               
-              {/* GTO Reasoning */}
-              {detailedInfo && (
-                <div className="bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20">
-                  <div className="text-sm text-white/90 leading-relaxed">
-                    {detailedInfo.reasoning || 'GTO range-based decision'}
-                  </div>
+              {/* GTO Reasoning - Display the detailed analysis */}
+              <div className="bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20">
+                <div className="text-sm text-white/90 leading-relaxed whitespace-pre-line">
+                  {reasoning || 'Analyzing GTO ranges...'}
                 </div>
-              )}
+              </div>
             </div>
           )}
 
