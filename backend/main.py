@@ -1,6 +1,6 @@
-vis"""
+"""
 Main FastAPI server for Poker Vision
-Two modes: Flash (gemini-2.0-flash-exp) and Deep (gemini-2.0-pro-exp)
+Three modes: Odds, Preflop, and Deep
 """
 
 from fastapi import FastAPI, File, UploadFile, Form
