@@ -29,6 +29,7 @@ export default function Home() {
   const [capturedImage, setCapturedImage] = useState<string>('')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
   const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
+  const [villainPositionPreflop, setVillainPositionPreflop] = useState<string>('UTG')
   const [aiMode, setAiMode] = useState<'flash' | 'deep' | 'preflop'>('flash')
   
   // Deep Mode specific states
@@ -192,6 +193,11 @@ export default function Home() {
         formData.append('villain_position', villainPosition)
         formData.append('blinds', selectedBlinds)
         formData.append('villain_action', villainAction)
+      } else if (aiMode === 'preflop') {
+        // Preflop Mode - pass hero position, villain position, and blinds
+        formData.append('position', selectedPosition)
+        formData.append('villain_position', villainPositionPreflop)
+        formData.append('blinds', selectedBlinds)
       } else {
         // Flash Mode
         formData.append('position', selectedPosition)
@@ -456,6 +462,33 @@ export default function Home() {
                   {reasoning || 'Analyzing GTO ranges...'}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Villain Position Selector - Show ONLY for Preflop Mode */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'preflop' && (
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-orange-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-orange-400 mb-4">
+                👥 Select Villain Position
+              </h3>
+              <div className="grid grid-cols-6 gap-2">
+                {['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].map((pos) => (
+                  <button
+                    key={pos}
+                    onClick={() => setVillainPositionPreflop(pos)}
+                    className={`py-3 px-2 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
+                      villainPositionPreflop === pos
+                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg scale-105'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {pos}
+                  </button>
+                ))}
+              </div>
+              <p className="text-center text-sm text-gray-400 mt-3">
+                Villain is at: <span className="text-orange-400 font-bold">{villainPositionPreflop}</span>
+              </p>
             </div>
           )}
 

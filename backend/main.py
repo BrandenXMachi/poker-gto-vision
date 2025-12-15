@@ -107,10 +107,11 @@ async def analyze_image(
             
         elif ai_mode == "preflop":
             # PREFLOP MODE - Gemini vision + Custom GTO algorithm
-            logger.info(f"🎯 Using Preflop mode - Position: {position}, Blinds: {blinds}")
+            logger.info(f"🎯 Using Preflop mode - Hero: {position}, Villain: {villain_position}, Blinds: {blinds}")
             result = preflop_analyzer.analyze(
                 image_data,
                 position=position,
+                villain_position=villain_position,
                 blinds=blinds
             )
             

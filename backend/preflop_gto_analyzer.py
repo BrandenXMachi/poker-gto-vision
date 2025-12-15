@@ -228,13 +228,14 @@ class PreflopGTOAnalyzer:
         self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
         logger.info("✅ Preflop GTO Analyzer initialized")
     
-    def analyze(self, image_data: bytes, position: str, blinds: str) -> Dict[str, Any]:
+    def analyze(self, image_data: bytes, position: str, villain_position: str, blinds: str) -> Dict[str, Any]:
         """
         Analyze preflop situation
         
         Args:
             image_data: Raw image bytes
             position: Hero's position (BTN, SB, BB, UTG, MP, CO)
+            villain_position: Villain's position (BTN, SB, BB, UTG, MP, CO)
             blinds: Blind structure (e.g., "0.02/0.05")
             
         Returns:
@@ -292,15 +293,16 @@ class PreflopGTOAnalyzer:
             action_type = detect_action_type(call_amount, bb_size)
             logger.info(f"📊 Detected action type: {action_type}")
             
-            # STEP 3: Apply GTO ranges
-            decision = self._make_gto_decision(hand_notation, position, action_type)
+            # STEP 3: Apply GTO ranges WITH villain position
+            decision = self._make_gto_decision(hand_notation, position, villain_position, action_type)
             
             logger.info(f"✅ GTO Decision: {decision['action']}")
             
             # Build detailed info with analysis breakdown
             detailed_reasoning = f"""📊 Analysis Breakdown:
 
-• Position: {position}
+• Hero Position: {position}
+• Villain Position: {villain_position}
 • Hand: {hand_notation} ({decision.get('hand_strength', 'Unknown')})
 • Pot: {pot_size} | Call: {call_amount_str}
 • Action Type: {action_type.upper()} (detected from bet sizing)
@@ -337,41 +339,39 @@ class PreflopGTOAnalyzer:
                 "error": str(e)
             }
     
-    def _make_gto_decision(self, hand: str, position: str, action_type: str) -> Dict[str, Any]:
+    def _make_gto_decision(self, hand: str, position: str, villain_position: str, action_type: str) -> Dict[str, Any]:
         """
-        Make GTO decision based on hand, position, and action type
+        Make GTO decision based on hand, position, villain position and action type
         
         Args:
             hand: Hand notation (e.g., "AKs", "77", "KQo")
             position: Hero's position
+            villain_position: Villain's position (who raised)
             action_type: "open", "3bet", or "4bet"
             
         Returns:
             Decision dict with action and reasoning
         """
         if action_type == "open":
-            # Facing an open raise - check if we should call, 3bet, or fold
-            # First check if we can 3bet
-            for opener_pos in ["UTG", "MP", "CO", "BTN", "SB"]:
-                key = f"{position}_vs_{opener_pos}"
-                if key in THREEBET_RANGES and check_hand_in_range(hand, THREEBET_RANGES[key]):
-                    return {
-                        "action": f"Raise (3-bet recommended)",
-                        "reasoning": f"With {hand} from {position} facing an open, this is a premium 3-betting hand. Raise to build the pot with our strong range.",
-                        "hand_strength": "Premium 3-bet",
-                        "range_match": f"3-bet range vs {opener_pos} open"
-                    }
+            # Facing an open raise from VILLAIN - use villain_position for specific range
+            # First check if we can 3bet vs this specific villain
+            key = f"{position}_vs_{villain_position}"
+            if key in THREEBET_RANGES and check_hand_in_range(hand, THREEBET_RANGES[key]):
+                return {
+                    "action": f"Raise (3-bet recommended)",
+                    "reasoning": f"With {hand} from {position} facing {villain_position} open raise, this is in our 3-betting range. Raise to build the pot and apply pressure.",
+                    "hand_strength": "Premium 3-bet",
+                    "range_match": f"3-bet range vs {villain_position} open"
+                }
             
-            # Check if we can call
-            for opener_pos in ["UTG", "MP", "CO", "BTN"]:
-                key = f"{position}_vs_{opener_pos}"
-                if key in CALLING_VS_OPEN and check_hand_in_range(hand, CALLING_VS_OPEN[key]):
-                    return {
-                        "action": "Call",
-                        "reasoning": f"With {hand} from {position} facing an open raise, this hand has good implied odds and playability. Call to see a flop.",
-                        "hand_strength": "Speculative/Medium",
-                        "range_match": f"Calling range vs {opener_pos} open"
-                    }
+            # Check if we can call vs this specific villain
+            if key in CALLING_VS_OPEN and check_hand_in_range(hand, CALLING_VS_OPEN[key]):
+                return {
+                    "action": "Call",
+                    "reasoning": f"With {hand} from {position} facing {villain_position} open raise, this hand has good implied odds and playability. Call to see a flop.",
+                    "hand_strength": "Speculative/Medium",
+                    "range_match": f"Calling range vs {villain_position} open"
+                }
             
             # Otherwise fold
             return {
