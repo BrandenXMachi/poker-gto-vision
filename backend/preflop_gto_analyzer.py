@@ -194,18 +194,21 @@ def parse_hand_notation(card1: str, card2: str) -> str:
 
 def detect_action_type(call_amount: float, bb_size: float) -> str:
     """
-    Detect if facing an open raise, 3bet, or 4bet based on call amount relative to BB
+    Detect if unopened pot, facing open raise, 3bet, or 4bet based on call amount relative to BB
     
     Args:
         call_amount: Amount to call in dollars
         bb_size: Big blind size in dollars
     
     Returns:
-        "open", "3bet", or "4bet"
+        "unopened", "open", "3bet", or "4bet"
     """
     ratio = call_amount / bb_size
     
-    if ratio <= 4.0:
+    # If call amount is close to BB (0.9-1.1x), it's an unopened pot - hero is first to act
+    if 0.9 <= ratio <= 1.1:
+        return "unopened"  # No one has raised yet - hero considering opening
+    elif ratio <= 4.0:
         return "open"  # 2-4x BB is typically an open raise
     elif ratio <= 12.0:
         return "3bet"   # >4x BB but <12x is typically a 3bet
@@ -346,13 +349,31 @@ class PreflopGTOAnalyzer:
         Args:
             hand: Hand notation (e.g., "AKs", "77", "KQo")
             position: Hero's position
-            villain_position: Villain's position (who raised)
-            action_type: "open", "3bet", or "4bet"
+            villain_position: Villain's position (who raised) - ignored for "unopened"
+            action_type: "unopened", "open", "3bet", or "4bet"
             
         Returns:
             Decision dict with action and reasoning
         """
-        if action_type == "open":
+        if action_type == "unopened":
+            # Unopened pot - hero is first to act (villain_position is irrelevant)
+            # Check if we should open based on hero's position ONLY
+            if position in OPENING_RANGES and check_hand_in_range(hand, OPENING_RANGES[position]):
+                return {
+                    "action": "Raise to 3x BB (Open)",
+                    "reasoning": f"With {hand} from {position} in an unopened pot, this hand is in the opening range. Raise to 3x BB to build the pot and take the initiative. NEVER limp.",
+                    "hand_strength": "Opening range",
+                    "range_match": f"Opening range from {position}"
+                }
+            else:
+                return {
+                    "action": "Fold",
+                    "reasoning": f"With {hand} from {position}, this hand is not in the opening range. Fold and wait for a better opportunity. Never complete/limp with weak hands.",
+                    "hand_strength": "Below opening range",
+                    "range_match": "Not in opening range"
+                }
+        
+        elif action_type == "open":
             # Facing an open raise from VILLAIN - use villain_position for specific range
             # First check if we can 3bet vs this specific villain
             key = f"{position}_vs_{villain_position}"
