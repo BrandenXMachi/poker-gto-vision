@@ -165,31 +165,40 @@ def parse_hand_notation(card1: str, card2: str) -> str:
         "Spades": "s", "Hearts": "h", "Diamonds": "d", "Clubs": "c"
     }
     
-    # Parse card 1
-    parts1 = card1.split(" of ")
-    rank1 = rank_map.get(parts1[0], parts1[0][0].upper())
-    suit1 = suit_map.get(parts1[1], "?") if len(parts1) > 1 else "?"
-    
-    # Parse card 2
-    parts2 = card2.split(" of ")
-    rank2 = rank_map.get(parts2[0], parts2[0][0].upper())
-    suit2 = suit_map.get(parts2[1], "?") if len(parts2) > 1 else "?"
-    
-    # Build notation
-    if rank1 == rank2:
-        # Pocket pair
-        return f"{rank1}{rank2}"
-    else:
-        # Sort by rank strength
-        rank_order = "AKQJT98765432"
-        if rank_order.index(rank1) < rank_order.index(rank2):
-            higher, lower = rank1, rank2
-            suited = "s" if suit1 == suit2 else "o"
-        else:
-            higher, lower = rank2, rank1
-            suited = "s" if suit1 == suit2 else "o"
+    try:
+        # Parse card 1
+        parts1 = card1.split(" of ")
+        rank1 = rank_map.get(parts1[0], parts1[0][0].upper() if parts1[0] else "?")
+        suit1 = suit_map.get(parts1[1], "?") if len(parts1) > 1 else "?"
         
-        return f"{higher}{lower}{suited}"
+        # Parse card 2
+        parts2 = card2.split(" of ")
+        rank2 = rank_map.get(parts2[0], parts2[0][0].upper() if parts2[0] else "?")
+        suit2 = suit_map.get(parts2[1], "?") if len(parts2) > 1 else "?"
+        
+        # Validate ranks are in valid range
+        rank_order = "AKQJT98765432"
+        if rank1 not in rank_order or rank2 not in rank_order:
+            logger.warning(f"Invalid ranks detected: {rank1}, {rank2} from cards: {card1}, {card2}")
+            return "UNKNOWN"
+        
+        # Build notation
+        if rank1 == rank2:
+            # Pocket pair
+            return f"{rank1}{rank2}"
+        else:
+            # Sort by rank strength
+            if rank_order.index(rank1) < rank_order.index(rank2):
+                higher, lower = rank1, rank2
+                suited = "s" if suit1 == suit2 else "o"
+            else:
+                higher, lower = rank2, rank1
+                suited = "s" if suit1 == suit2 else "o"
+            
+            return f"{higher}{lower}{suited}"
+    except Exception as e:
+        logger.error(f"Error parsing hand notation from {card1}, {card2}: {e}")
+        return "UNKNOWN"
 
 
 def detect_action_type(call_amount: float, bb_size: float) -> str:
@@ -284,6 +293,28 @@ class PreflopGTOAnalyzer:
             
             # Parse hand notation
             hand_notation = parse_hand_notation(hero_cards[0], hero_cards[1])
+            
+            # If hand is UNKNOWN (couldn't be parsed), it's likely garbage - recommend fold
+            if hand_notation == "UNKNOWN":
+                return {
+                    "success": True,
+                    "extracted_data": {
+                        "hero_position": position,
+                        "hero_cards": hero_cards,
+                        "hand_notation": "UNKNOWN",
+                        "board_cards": [],
+                        "pot_size_dollars": extracted.get("pot_size", "$0"),
+                        "call_amount": extracted.get("call_amount", "$0"),
+                        "street": "preflop",
+                        "action_type": "unknown"
+                    },
+                    "recommendation": {
+                        "action": "Fold",
+                        "reasoning": f"Could not identify hand from cards: {hero_cards[0]}, {hero_cards[1]}. This appears to be a marginal or weak holding. Fold and wait for a clearer opportunity.",
+                        "hand_strength": "Unknown/Weak",
+                        "range_match": "Not in range"
+                    }
+                }
             
             # Extract call amount
             call_amount_str = extracted.get("call_amount", "$0")
