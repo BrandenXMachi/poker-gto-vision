@@ -253,6 +253,12 @@ class GeminiOnlyAnalyzer:
             "Top-Center", "Top-Right", "Bottom-Right"
         ]
         
+        # Convert IP/OOP to actual positions for Odds mode
+        if hero_position == "IP":
+            hero_position = "BTN"  # In Position defaults to Button
+        elif hero_position == "OOP":
+            hero_position = "BB"   # Out of Position defaults to Big Blind
+        
         hero_idx = positions.index(hero_position)
         mapping = []
         for i, screen_pos in enumerate(screen_positions):

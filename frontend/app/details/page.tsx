@@ -50,6 +50,50 @@ export default function DetailsPage() {
   const [aiMode, setAiMode] = useState<string>('hybrid')
   const [isLoading, setIsLoading] = useState(true)
 
+  // Helper function to convert card text to symbols
+  const convertCardToSymbol = (card: string): string => {
+    // If card is already in symbol format (e.g., "K♦"), return as is
+    if (card.length <= 3 && /[♠♥♦♣]/.test(card)) {
+      return card
+    }
+    
+    // Parse card like "King of Diamonds" or "Kd"
+    const rankMap: Record<string, string> = {
+      'ace': 'A', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+      'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': 'T',
+      'jack': 'J', 'queen': 'Q', 'king': 'K',
+      'a': 'A', 't': 'T', 'j': 'J', 'q': 'Q', 'k': 'K'
+    }
+    
+    const suitMap: Record<string, string> = {
+      'spades': '♠', 'hearts': '♥', 'diamonds': '♦', 'clubs': '♣',
+      's': '♠', 'h': '♥', 'd': '♦', 'c': '♣'
+    }
+    
+    const cardLower = card.toLowerCase().trim()
+    
+    // Try to match "Rank of Suit" pattern
+    const match = cardLower.match(/(\w+)\s+of\s+(\w+)/)
+    if (match) {
+      const rank = rankMap[match[1]] || match[1].toUpperCase()
+      const suit = suitMap[match[2]] || ''
+      return rank + suit
+    }
+    
+    // Try to match "Rs" pattern (e.g., "Kd", "As")
+    if (cardLower.length === 2) {
+      const rank = rankMap[cardLower[0]] || cardLower[0].toUpperCase()
+      const suit = suitMap[cardLower[1]] || ''
+      return rank + suit
+    }
+    
+    return card // Return original if can't parse
+  }
+
+  const convertCards = (cards: string[]): string => {
+    return cards.map(convertCardToSymbol).join(' ')
+  }
+
   useEffect(() => {
     // Load detailed info from localStorage
     const storedInfo = localStorage.getItem('poker_detailed_info')
@@ -170,21 +214,21 @@ export default function DetailsPage() {
               <span className="text-gray-400">Hero&apos;s Hand:</span>
               <span className="font-bold text-xl">
                 {detailedInfo.game_state.hero_cards && detailedInfo.game_state.hero_cards.length > 0
-                  ? detailedInfo.game_state.hero_cards.join(' ')
+                  ? convertCards(detailedInfo.game_state.hero_cards)
                   : 'N/A'}
               </span>
             </div>
             {detailedInfo.game_state.board_cards && detailedInfo.game_state.board_cards.length > 0 && (
               <div className="flex justify-between">
                 <span className="text-gray-400">Board:</span>
-                <span className="font-bold text-xl">{detailedInfo.game_state.board_cards.join(' ')}</span>
+                <span className="font-bold text-xl">{convertCards(detailedInfo.game_state.board_cards)}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Players */}
-        {detailedInfo.players && Object.keys(detailedInfo.players).length > 0 && (
+        {/* Players - Only show for GPT/Hybrid/Deep modes, not for Odds mode */}
+        {isGptMode && detailedInfo.players && Object.keys(detailedInfo.players).length > 0 && (
           <div className={`mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl shadow-xl ${
             isGptMode ? 'border-2 border-blue-500/30' : 'border-2 border-emerald-500/30'
           }`}>
