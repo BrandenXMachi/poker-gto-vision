@@ -231,15 +231,16 @@ class PreflopGTOAnalyzer:
         self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
         logger.info("✅ Preflop GTO Analyzer initialized")
     
-    def analyze(self, image_data: bytes, position: str, villain_position: str, blinds: str) -> Dict[str, Any]:
+    def analyze(self, image_data: bytes, position: str, villain_position: str, blinds: str, is_open_raise: bool = False) -> Dict[str, Any]:
         """
         Analyze preflop situation
         
         Args:
             image_data: Raw image bytes
             position: Hero's position (BTN, SB, BB, UTG, MP, CO)
-            villain_position: Villain's position (BTN, SB, BB, UTG, MP, CO)
+            villain_position: Villain's position (BTN, SB, BB, UTG, MP, CO) - can be None if is_open_raise=True
             blinds: Blind structure (e.g., "0.02/0.05")
+            is_open_raise: If True, hero is first to act (opening the pot), ignore villain_position
             
         Returns:
             GTO preflop recommendation
