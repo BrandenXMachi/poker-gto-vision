@@ -32,6 +32,7 @@ export default function Home() {
   const [villainPositionPreflop, setVillainPositionPreflop] = useState<string>('UTG')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
   const [aiMode, setAiMode] = useState<'odds' | 'deep' | 'preflop'>('odds')
+  const [isOpenRaise, setIsOpenRaise] = useState<boolean>(false)
   
   // Deep Mode specific states
   const [heroPosition, setHeroPosition] = useState<string>('BTN')
@@ -195,10 +196,11 @@ export default function Home() {
         formData.append('blinds', selectedBlinds)
         formData.append('villain_action', villainAction)
       } else if (aiMode === 'preflop') {
-        // Preflop Mode - pass hero position, villain position, and blinds
+        // Preflop Mode - pass hero position, villain position, blinds, and open raise flag
         formData.append('position', selectedPosition)
-        formData.append('villain_position', villainPositionPreflop)
+        formData.append('villain_position', isOpenRaise ? 'NONE' : villainPositionPreflop)
         formData.append('blinds', selectedBlinds)
+        formData.append('is_open_raise', isOpenRaise ? 'true' : 'false')
       } else {
         // Flash Mode
         formData.append('position', selectedPosition)
@@ -601,8 +603,22 @@ export default function Home() {
             {/* Position buttons overlay - For Preflop Mode */}
             {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'preflop' && (
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 z-10">
+                {/* Open Raise toggle button */}
+                <div className="mb-3 flex justify-center">
+                  <button
+                    onClick={() => setIsOpenRaise(!isOpenRaise)}
+                    className={`py-2 px-6 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                      isOpenRaise
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white scale-105 ring-2 ring-yellow-300'
+                        : 'bg-gray-700/80 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {isOpenRaise ? '🚀 OPEN RAISE (First to Act)' : '💬 Facing a Raise?'}
+                  </button>
+                </div>
+                
                 <p className="text-center text-xs text-gray-300 mb-2">
-                  👤 Click Your Position to Capture & Analyze
+                  {isOpenRaise ? '🚀 Opening the pot - Click your position' : '👤 Click Your Position to Capture & Analyze'}
                 </p>
                 <div className="grid grid-cols-6 gap-2">
                   {['BTN', 'CO', 'MP', 'UTG', 'BB', 'SB'].map((pos) => (

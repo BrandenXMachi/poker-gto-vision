@@ -73,7 +73,9 @@ async def analyze_image(
     # Deep Mode specific parameters
     hero_position: str = Form(None),
     villain_position: str = Form(None),
-    villain_action: str = Form(None)
+    villain_action: str = Form(None),
+    # Preflop Mode specific parameters
+    is_open_raise: str = Form("false")
 ):
     """
     Analyze poker table image using selected mode:
@@ -107,12 +109,14 @@ async def analyze_image(
             
         elif ai_mode == "preflop":
             # PREFLOP MODE - Gemini vision + Custom GTO algorithm
-            logger.info(f"🎯 Using Preflop mode - Hero: {position}, Villain: {villain_position}, Blinds: {blinds}")
+            is_open = is_open_raise.lower() == "true"
+            logger.info(f"🎯 Using Preflop mode - Hero: {position}, Villain: {villain_position}, Open Raise: {is_open}, Blinds: {blinds}")
             result = preflop_analyzer.analyze(
                 image_data,
                 position=position,
-                villain_position=villain_position,
-                blinds=blinds
+                villain_position=villain_position if not is_open else None,
+                blinds=blinds,
+                is_open_raise=is_open
             )
             
         else:
