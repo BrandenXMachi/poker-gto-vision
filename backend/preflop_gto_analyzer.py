@@ -347,7 +347,15 @@ class PreflopGTOAnalyzer:
             logger.info(f"✅ Extracted: Hand={hand_notation}, CallAmount=${call_amount}, Pot={pot_size}")
             
             # STEP 2: Determine action type (open, 3bet, 4bet)
-            action_type = detect_action_type(call_amount, bb_size)
+            # Special case: SB position - call amount will be SB size (half BB) when unopened
+            sb_size = float(sb_str)
+            if position == "SB" and abs(call_amount - sb_size) < 0.01:
+                # Hero is in SB, call amount equals SB -> means completing to BB (unopened pot)
+                action_type = "unopened"
+                logger.info(f"📊 SB special case: Call amount = SB size -> treating as unopened pot")
+            else:
+                action_type = detect_action_type(call_amount, bb_size)
+            
             logger.info(f"📊 Detected action type: {action_type}")
             
             # STEP 2.5: Validate input consistency
