@@ -122,7 +122,7 @@ export default function Home() {
     if (isAnalyzing) return
     
     setSelectedPosition(position)
-    await captureAndAnalyze()
+    await captureAndAnalyze(position)  // Pass position directly to avoid state timing issues
   }
 
   // Handle Deep Mode capture button
@@ -132,11 +132,14 @@ export default function Home() {
   }
 
   // Capture photo and analyze
-  const captureAndAnalyze = async () => {
+  const captureAndAnalyze = async (overridePosition?: string) => {
     if (!videoRef.current || !canvasRef.current) {
       setError('Camera not ready')
       return
     }
+    
+    // Use override position if provided, otherwise use current state
+    const positionToUse = overridePosition || selectedPosition
     
     const video = videoRef.current
     const canvas = canvasRef.current
@@ -197,13 +200,13 @@ export default function Home() {
         formData.append('villain_action', villainAction)
       } else if (aiMode === 'preflop') {
         // Preflop Mode - pass hero position, villain position, blinds, and open raise flag
-        formData.append('position', selectedPosition)
+        formData.append('position', positionToUse)
         formData.append('villain_position', isOpenRaise ? 'NONE' : villainPositionPreflop)
         formData.append('blinds', selectedBlinds)
         formData.append('is_open_raise', isOpenRaise ? 'true' : 'false')
       } else {
         // Flash Mode
-        formData.append('position', selectedPosition)
+        formData.append('position', positionToUse)
         formData.append('blinds', selectedBlinds)
       }
       
