@@ -276,11 +276,26 @@ class PreflopGTOAnalyzer:
             response = self.model.generate_content([prompt, image])
             result_text = response.text.strip()
             
-            # Clean JSON
+            logger.info(f"Raw Gemini response: {result_text[:200]}...")
+            
+            # Clean JSON - handle multiple formats
             if "```json" in result_text:
                 result_text = result_text.split("```json")[1].split("```")[0].strip()
             elif "```" in result_text:
                 result_text = result_text.split("```")[1].split("```")[0].strip()
+            
+            # Remove any leading/trailing whitespace and newlines
+            result_text = result_text.strip()
+            
+            # Try to find JSON object if there's extra text
+            if not result_text.startswith('{'):
+                # Look for the first { and last }
+                start = result_text.find('{')
+                end = result_text.rfind('}')
+                if start != -1 and end != -1:
+                    result_text = result_text[start:end+1]
+            
+            logger.info(f"Cleaned JSON: {result_text[:200]}...")
             
             extracted = json.loads(result_text)
             
