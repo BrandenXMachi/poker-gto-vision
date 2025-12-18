@@ -294,6 +294,10 @@ class PreflopGTOAnalyzer:
             # Remove any leading/trailing whitespace and newlines
             result_text = result_text.strip()
             
+            # Fix double curly braces from Gemini ({{...}} -> {...})
+            if result_text.startswith('{{') and result_text.endswith('}}'):
+                result_text = result_text[1:-1].strip()
+            
             # Try to find JSON object if there's extra text
             if not result_text.startswith('{'):
                 # Look for the first { and last }
