@@ -347,24 +347,21 @@ class PreflopGTOAnalyzer:
             logger.info(f"✅ Extracted: Hand={hand_notation}, CallAmount=${call_amount}, Pot={pot_size}")
             
             # STEP 2: Determine action type (open, 3bet, 4bet)
-            # Special case: SB position - call amount will be SB size (half BB) when unopened
-            sb_size = float(sb_str)
-            if position == "SB" and abs(call_amount - sb_size) < 0.01:
-                # Hero is in SB, call amount equals SB -> means completing to BB (unopened pot)
+            # If user activated "Open Raise" mode, TRUST their input - they know best!
+            if is_open_raise:
                 action_type = "unopened"
-                logger.info(f"📊 SB special case: Call amount = SB size -> treating as unopened pot")
+                logger.info(f"📊 User activated Open Raise mode -> treating as unopened pot (trusting user input)")
             else:
-                action_type = detect_action_type(call_amount, bb_size)
-            
-            logger.info(f"📊 Detected action type: {action_type}")
-            
-            # STEP 2.5: Validate input consistency
-            # If action_type is "open" but villain_position is None/NONE, it means user clicked "Open Raise" when facing a raise
-            if action_type == "open" and (villain_position is None or villain_position == "NONE"):
-                return {
-                    "success": False,
-                    "error": "Input Error: You activated 'Open Raise' mode, but there's a villain raise detected (call amount suggests facing a raise). Please turn off 'Open Raise' and select the villain's position, or if you're truly first to act, the call amount should equal the big blind."
-                }
+                # User says there's a villain - use call amount to detect action type
+                # Special case: SB position - call amount will be SB size when unopened
+                sb_size = float(sb_str)
+                if position == "SB" and abs(call_amount - sb_size) < 0.01:
+                    action_type = "unopened"
+                    logger.info(f"📊 SB special case: Call amount = SB size -> treating as unopened pot")
+                else:
+                    action_type = detect_action_type(call_amount, bb_size)
+                
+                logger.info(f"📊 Detected action type: {action_type}")
             
             # STEP 3: Apply GTO ranges WITH villain position
             decision = self._make_gto_decision(hand_notation, position, villain_position, action_type)
