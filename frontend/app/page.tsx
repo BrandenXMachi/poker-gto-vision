@@ -31,13 +31,13 @@ export default function Home() {
   const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
   const [villainPositionPreflop, setVillainPositionPreflop] = useState<string>('UTG')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
-  const [aiMode, setAiMode] = useState<'odds' | 'deep' | 'preflop'>('odds')
+  const [aiMode, setAiMode] = useState<'odds' | 'flop' | 'preflop'>('odds')
   const [isOpenRaise, setIsOpenRaise] = useState<boolean>(false)
   
-  // Deep Mode specific states
-  const [heroPosition, setHeroPosition] = useState<string>('BTN')
-  const [villainPosition, setVillainPosition] = useState<string>('BB')
-  const [villainAction, setVillainAction] = useState<string>('last-to-act')
+  // Flop Mode specific states
+  const [flopHeroPosition, setFlopHeroPosition] = useState<string>('IP')  // "IP" or "OOP"
+  const [flopVillainPosition, setFlopVillainPosition] = useState<string>('BTN')  // Position
+  const [flopPreflopAction, setFlopPreflopAction] = useState<string>('villain_called')  // Preflop action
   
   // Main display info
   const [action, setAction] = useState<string>('')
@@ -192,12 +192,12 @@ export default function Home() {
       const formData = new FormData()
       formData.append('image', blob, 'poker_table.jpg')
       
-      // For Deep Mode, pass manual inputs
-      if (aiMode === 'deep') {
-        formData.append('hero_position', heroPosition)
-        formData.append('villain_position', villainPosition)
+      // For Flop Mode, pass manual inputs
+      if (aiMode === 'flop') {
+        formData.append('hero_position', flopHeroPosition)  // "IP" or "OOP"
+        formData.append('villain_position', flopVillainPosition)  // "UTG", "MP", etc.
+        formData.append('villain_action', flopPreflopAction)  // "villain_called", etc.
         formData.append('blinds', selectedBlinds)
-        formData.append('villain_action', villainAction)
       } else if (aiMode === 'preflop') {
         // Preflop Mode - pass hero position, villain position, blinds, and open raise flag
         formData.append('position', positionToUse)
@@ -245,18 +245,8 @@ export default function Home() {
           setStreet(data.extracted_data.street || '')
         }
         
-        // For Deep Mode, auto-redirect to details page
-        if (aiMode === 'deep' && data.detailed_info) {
-          localStorage.setItem('poker_detailed_info', JSON.stringify(data.detailed_info))
-          localStorage.setItem('poker_action', rec.action)
-          localStorage.setItem('poker_pot_size', potSize)
-          localStorage.setItem('poker_captured_image', capturedImage)
-          localStorage.setItem('poker_ai_mode', aiMode)
-          router.push('/details')
-        } else {
-          // Flash mode: speak the action
-          speak(rec.action)
-        }
+        // Speak the action for all modes
+        speak(rec.action)
       } else if (data.hero_turn === false) {
         setError('Not hero\'s turn detected. Try capturing when action is on you.')
       } else {
@@ -329,23 +319,23 @@ export default function Home() {
                   <div className="text-xs opacity-75 mt-1">GTO Ranges</div>
                 </button>
                 <button
-                  onClick={() => setAiMode('deep')}
+                  onClick={() => setAiMode('flop')}
                   className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
-                    aiMode === 'deep'
+                    aiMode === 'flop'
                       ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
-                  <div className="text-2xl mb-1">🧠</div>
-                  <div>Deep</div>
-                  <div className="text-xs opacity-75 mt-1">Heads-Up</div>
+                  <div className="text-2xl mb-1">🎴</div>
+                  <div>Flop</div>
+                  <div className="text-xs opacity-75 mt-1">Flop GTO</div>
                 </button>
               </div>
               <p className="text-center text-sm text-gray-400 mt-3">
                 Selected: <span className="text-purple-400 font-bold capitalize">{aiMode}</span>
                 {aiMode === 'odds' && ' - 📊 Pot odds calculator'}
                 {aiMode === 'preflop' && ' - 🎯 Preflop GTO ranges'}
-                {aiMode === 'deep' && ' - 🧠 Hybrid GTO (Heads-Up)'}
+                {aiMode === 'flop' && ' - 🎴 Flop GTO strategy'}
               </p>
             </div>
           )}
@@ -421,22 +411,6 @@ export default function Home() {
                   <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{expectedValue}</div>
                 </div>
               </div>
-              
-              {detailedInfo && (
-                <button
-                  onClick={() => {
-                    localStorage.setItem('poker_detailed_info', JSON.stringify(detailedInfo))
-                    localStorage.setItem('poker_action', action)
-                    localStorage.setItem('poker_pot_size', potSize)
-                    localStorage.setItem('poker_captured_image', capturedImage)
-                    localStorage.setItem('poker_ai_mode', aiMode)
-                    router.push('/details')
-                  }}
-                  className="mt-6 w-full bg-white text-emerald-700 hover:bg-emerald-50 font-bold py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
-                >
-                  View Detailed Analysis →
-                </button>
-              )}
             </div>
           )}
 
@@ -495,6 +469,18 @@ export default function Home() {
               <p className="text-center text-sm text-gray-400 mt-3">
                 Selected: <span className="text-blue-400 font-bold">${selectedBlinds}</span>
               </p>
+            </div>
+          )}
+
+          {/* Odds Mode: Simple Capture Button */}
+          {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'odds' && (
+            <div className="mb-6">
+              <button
+                onClick={() => captureAndAnalyze()}
+                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                📸 Capture & Analyze (Math Only)
+              </button>
             </div>
           )}
 
@@ -557,51 +543,15 @@ export default function Home() {
                     aiMode === 'odds' ? 'border-emerald-400' : aiMode === 'preflop' ? 'border-orange-400' : 'border-purple-400'
                   }`}></div>
                   <div className="text-2xl font-bold text-white drop-shadow-lg">
-                    {aiMode === 'odds' ? '📊 Odds Analysis...' : aiMode === 'preflop' ? '🎯 Preflop GTO...' : '🔄 Hybrid Analysis...'}
+                    {aiMode === 'odds' ? '📊 Odds Analysis...' : aiMode === 'preflop' ? '🎯 Preflop GTO...' : '🎴 Flop GTO Analysis...'}
                   </div>
                   <div className={`mt-2 ${aiMode === 'odds' ? 'text-emerald-300' : aiMode === 'preflop' ? 'text-orange-300' : 'text-purple-300'}`}>
-                    {aiMode === 'odds' ? 'Calculating pot odds...' : aiMode === 'preflop' ? 'Checking GTO ranges...' : 'Gemini extracting → Claude analyzing GTO...'}
+                    {aiMode === 'odds' ? 'Calculating pot odds...' : aiMode === 'preflop' ? 'Checking GTO ranges...' : 'Gemini extracting cards → Applying flop GTO strategy...'}
                   </div>
                 </div>
               </div>
             )}
             
-            {/* In Position / Out of Position buttons - For Odds Mode */}
-            {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'odds' && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 z-10">
-                <p className="text-center text-xs text-gray-300 mb-3">
-                  📍 Select Position & Capture
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => {
-                      setIsInPosition(true)
-                      handlePositionClick('IP')
-                    }}
-                    className={`py-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 shadow-lg ${
-                      isInPosition
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white scale-105 ring-2 ring-white'
-                        : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
-                    }`}
-                  >
-                    ✅ In Position
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsInPosition(false)
-                      handlePositionClick('OOP')
-                    }}
-                    className={`py-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 shadow-lg ${
-                      !isInPosition
-                        ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white scale-105 ring-2 ring-white'
-                        : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
-                    }`}
-                  >
-                    ❌ Out of Position
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Position buttons overlay - For Preflop Mode */}
             {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'preflop' && (
@@ -641,82 +591,113 @@ export default function Home() {
               </div>
             )}
 
-            {/* Deep Mode Manual Inputs */}
-            {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'deep' && (
+            {/* Flop Mode: 3 Selection Bubbles */}
+            {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'flop' && (
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 z-10">
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  {/* Hero Position */}
-                  <div className="bg-gray-800/90 p-3 rounded-lg">
-                    <label className="text-xs text-gray-400 mb-1 block">Hero Position</label>
-                    <select
-                      value={heroPosition}
-                      onChange={(e) => setHeroPosition(e.target.value)}
-                      className="w-full bg-gray-700 text-white py-2 px-3 rounded font-bold text-sm"
+                <p className="text-center text-xs text-gray-300 mb-3">
+                  🎴 Select Context & Capture Flop
+                </p>
+                
+                {/* Bubble 1: Hero Position (IP/OOP) */}
+                <div className="mb-3">
+                  <p className="text-center text-xs text-purple-300 mb-2">1️⃣ Hero Position:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setFlopHeroPosition('IP')}
+                      className={`py-3 px-4 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                        flopHeroPosition === 'IP'
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white scale-105 ring-2 ring-white'
+                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
+                      }`}
                     >
-                      <option value="BTN">BTN</option>
-                      <option value="SB">SB</option>
-                      <option value="BB">BB</option>
-                      <option value="UTG">UTG</option>
-                      <option value="MP">MP</option>
-                      <option value="CO">CO</option>
-                    </select>
-                  </div>
-
-                  {/* Villain Position */}
-                  <div className="bg-gray-800/90 p-3 rounded-lg">
-                    <label className="text-xs text-gray-400 mb-1 block">Villain Position</label>
-                    <select
-                      value={villainPosition}
-                      onChange={(e) => setVillainPosition(e.target.value)}
-                      className="w-full bg-gray-700 text-white py-2 px-3 rounded font-bold text-sm"
+                      ✅ In Position
+                    </button>
+                    <button
+                      onClick={() => setFlopHeroPosition('OOP')}
+                      className={`py-3 px-4 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                        flopHeroPosition === 'OOP'
+                          ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white scale-105 ring-2 ring-white'
+                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
+                      }`}
                     >
-                      <option value="BTN">BTN</option>
-                      <option value="SB">SB</option>
-                      <option value="BB">BB</option>
-                      <option value="UTG">UTG</option>
-                      <option value="MP">MP</option>
-                      <option value="CO">CO</option>
-                    </select>
-                  </div>
-
-                  {/* Blinds */}
-                  <div className="bg-gray-800/90 p-3 rounded-lg">
-                    <label className="text-xs text-gray-400 mb-1 block">Blinds</label>
-                    <select
-                      value={selectedBlinds}
-                      onChange={(e) => setSelectedBlinds(e.target.value)}
-                      className="w-full bg-gray-700 text-white py-2 px-3 rounded font-bold text-sm"
-                    >
-                      <option value="0.02/0.05">$0.02/$0.05</option>
-                      <option value="0.05/0.10">$0.05/$0.10</option>
-                      <option value="0.10/0.25">$0.10/$0.25</option>
-                      <option value="0.25/0.50">$0.25/$0.50</option>
-                      <option value="0.50/1.00">$0.50/$1.00</option>
-                    </select>
-                  </div>
-
-                  {/* Villain Action */}
-                  <div className="bg-gray-800/90 p-3 rounded-lg">
-                    <label className="text-xs text-gray-400 mb-1 block">Villain Action</label>
-                    <select
-                      value={villainAction}
-                      onChange={(e) => setVillainAction(e.target.value)}
-                      className="w-full bg-gray-700 text-white py-2 px-3 rounded font-bold text-sm"
-                    >
-                      <option value="last-to-act">Last to Act (Hero First)</option>
-                      <option value="checked">Checked</option>
-                      <option value="raised">Raised</option>
-                      <option value="check-raised">Check-Raised</option>
-                      <option value="re-raised">Re-Raised</option>
-                    </select>
+                      ❌ Out of Position
+                    </button>
                   </div>
                 </div>
 
+                {/* Bubble 2: Preflop Action */}
+                <div className="mb-3">
+                  <p className="text-center text-xs text-purple-300 mb-2">2️⃣ Preflop Action:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setFlopPreflopAction('villain_called')}
+                      className={`py-2 px-2 rounded-lg font-bold text-xs transition-all transform hover:scale-105 shadow-lg ${
+                        flopPreflopAction === 'villain_called'
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
+                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
+                      }`}
+                    >
+                      Villain Called
+                    </button>
+                    <button
+                      onClick={() => setFlopPreflopAction('villain_3bet')}
+                      className={`py-2 px-2 rounded-lg font-bold text-xs transition-all transform hover:scale-105 shadow-lg ${
+                        flopPreflopAction === 'villain_3bet'
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
+                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
+                      }`}
+                    >
+                      Villain 3-Bet
+                    </button>
+                    <button
+                      onClick={() => setFlopPreflopAction('villain_opened')}
+                      className={`py-2 px-2 rounded-lg font-bold text-xs transition-all transform hover:scale-105 shadow-lg ${
+                        flopPreflopAction === 'villain_opened'
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
+                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
+                      }`}
+                    >
+                      Villain Opened
+                    </button>
+                    <button
+                      onClick={() => setFlopPreflopAction('villain_4bet')}
+                      className={`py-2 px-2 rounded-lg font-bold text-xs transition-all transform hover:scale-105 shadow-lg ${
+                        flopPreflopAction === 'villain_4bet'
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
+                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
+                      }`}
+                    >
+                      Villain 4-Bet
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bubble 3: Villain Position */}
+                <div className="mb-3">
+                  <p className="text-center text-xs text-purple-300 mb-2">3️⃣ Villain Position:</p>
+                  <div className="grid grid-cols-6 gap-1">
+                    {['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].map((pos) => (
+                      <button
+                        key={pos}
+                        onClick={() => setFlopVillainPosition(pos)}
+                        className={`py-2 px-1 rounded-lg font-bold text-xs transition-all transform hover:scale-110 shadow-lg ${
+                          flopVillainPosition === pos
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white scale-105 ring-2 ring-white'
+                            : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
+                        }`}
+                      >
+                        {pos}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Capture Button */}
                 <button
                   onClick={handleDeepCapture}
                   className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-base transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
-                  📸 Capture & Analyze (Heads-Up)
+                  📸 Capture & Analyze Flop
                 </button>
               </div>
             )}

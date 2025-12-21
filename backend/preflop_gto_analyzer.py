@@ -24,20 +24,20 @@ else:
 
 # GTO Preflop Ranges
 OPENING_RANGES = {
-    "UTG": ["AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "AKs", "AQs", "AJs", "ATs", "AKo", "AQo", "KQs", "QJs", "JTs"],
-    "MP": ["AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "66", "AKs", "AQs", "AJs", "ATs", "A9s", "AKo", "AQo", "AJo", "KQs", "KJs", "QJs", "T9s", "98s"],
-    "CO": ["AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "66", "55", "AKs", "AQs", "AJs", "ATs", "A9s", "A8s", "A7s", "AKo", "AQo", "AJo", "ATo", "KQs", "KJs", "KTs", "QJs", "QTs", "JTs", "T9s", "98s", "87s", "KQo"],
-    "BTN": ["AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "66", "55", "44", "33", "22", "AKs", "AQs", "AJs", "ATs", "A9s", "A8s", "A7s", "A6s", "A5s", "A4s", "A3s", "A2s", "AKo", "AQo", "AJo", "ATo", "A9o", "KQs", "KJs", "KTs", "K9s", "K8s", "KQo", "KJo", "QJs", "QTs", "Q9s", "QJo", "JTs", "J9s", "J8s", "T9s", "T8s", "98s", "97s", "87s", "86s", "76s", "75s", "65s", "54s"],
+    "UTG": ["AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "AKs", "AQs", "AJs", "ATs", "AKo", "AQo", "KQs", "QJs"],
+    "MP": ["AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "66", "AKs", "AQs", "AJs", "ATs", "A9s", "AKo", "AQo", "AJo", "KQs", "QJs", "T9s", "98s"],
+    "CO": ["AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "66", "55", "AKs", "AQs", "AJs", "ATs", "A9s", "A8s", "AKo", "AQo", "AJo", "ATo", "KQs", "KJs", "KTs", "QJs", "QTs", "JTs", "T9s", "98s", "97s", "87s", "86s", "KQo"],
+    "BTN": ["AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "66", "55", "44", "33", "22", "AKs", "AQs", "AJs", "ATs", "A9s", "A8s", "A7s", "A6s", "A5s", "A4s", "A3s", "A2s", "AKo", "AQo", "AJo", "ATo", "A9o", "A8o", "A7o", "A6o", "KQs", "KJs", "KTs", "K9s", "K8s", "KQo", "KJo", "QJs", "QTs", "Q9s", "QJo", "JTs", "J9s", "J8s", "T9s", "T8s", "98s", "97s", "87s", "86s", "76s", "75s", "65s", "54s"],
     "SB": ["AA", "KK", "QQ", "JJ", "TT", "99", "88", "77", "66", "55", "44", "AKs", "AQs", "AJs", "ATs", "A9s", "A8s", "A7s", "A6s", "A5s", "AKo", "AQo", "AJo", "ATo", "KQs", "KJs", "KTs", "QJs", "QTs", "JTs", "T9s", "98s", "87s", "76s"]
 }
 
 CALLING_VS_OPEN = {
-    "MP_vs_UTG": ["22", "33", "44", "55", "66", "77", "88", "99", "ATs", "AJs", "AQs", "KQs", "QJs", "JTs", "T9s"],
-    "CO_vs_UTG": ["22", "33", "44", "55", "66", "77", "88", "99", "ATs", "AJs", "AQs", "KQs", "QJs", "JTs", "T9s"],
-    "BTN_vs_UTG": ["22", "33", "44", "55", "66", "77", "88", "99", "ATs", "AJs", "AQs", "KQs", "QJs", "JTs", "T9s"],
-    "CO_vs_MP": ["22", "33", "44", "55", "66", "77", "88", "99", "ATs", "AJs", "AQs", "AQo", "AJo", "KQs", "KJs", "QJs", "JTs", "T9s", "98s"],
-    "BTN_vs_MP": ["22", "33", "44", "55", "66", "77", "88", "99", "ATs", "AJs", "AQs", "AQo", "AJo", "KQs", "KJs", "QJs", "JTs", "T9s", "98s"],
-    "BTN_vs_CO": ["22", "33", "44", "55", "66", "77", "88", "A7s", "A8s", "A9s", "ATs", "AJs", "AQs", "ATo", "AJo", "AQo", "KQs", "KJs", "KTs", "QJs", "QTs", "JTs", "T9s", "98s", "87s"],
+    "MP_vs_UTG": ["22", "33", "44", "55", "66", "77", "88", "99", "AJs", "AQs", "KQs", "QJs", "JTs", "T9s"],
+    "CO_vs_UTG": ["22", "33", "44", "55", "66", "77", "88", "99", "AJs", "AQs", "KQs", "QJs", "JTs", "T9s"],
+    "BTN_vs_UTG": ["22", "33", "44", "55", "66", "77", "88", "99", "AJs", "AQs", "KQs", "QJs", "JTs", "T9s"],
+    "CO_vs_MP": ["22", "33", "44", "55", "66", "77", "88", "99", "ATs", "AJs", "AQs", "KQs", "KJs", "QJs", "JTs", "T9s", "98s", "87s"],
+    "BTN_vs_MP": ["22", "33", "44", "55", "66", "77", "88", "99", "ATs", "AJs", "AQs", "KQs", "KJs", "QJs", "JTs", "T9s", "98s", "87s"],
+    "BTN_vs_CO": ["22", "33", "44", "55", "66", "77", "88", "A9s", "ATs", "AJs", "AQs", "ATo", "AJo", "AQo", "KQs", "KJs", "KTs", "QJs", "QTs", "JTs", "T9s", "98s", "87s"],
     "SB_vs_UTG": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "AJs", "ATs", "AQs", "KQs", "KJs", "QJs", "JTs", "T9s", "98s", "AJo", "AQo"],
     "SB_vs_MP": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "ATs", "AJs", "AQs", "KQs", "KJs", "QJs", "JTs", "T9s", "98s", "AJo", "AQo", "KQo"],
     "SB_vs_CO": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "ATs", "AJs", "KQs", "KJs", "KTs", "QJs", "QTs", "JTs", "T9s", "98s", "87s", "AJo", "AQo", "KQo"],
@@ -45,63 +45,63 @@ CALLING_VS_OPEN = {
     "BB_vs_UTG": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "AJs", "ATs", "KQs", "KJs", "QJs", "JTs", "T9s", "98s", "AJo", "AQo", "KQo"],
     "BB_vs_MP": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "AJs", "ATs", "KQs", "KJs", "QJs", "JTs", "T9s", "98s", "AJo", "AQo", "KQo", "KJo"],
     "BB_vs_CO": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "AJs", "ATs", "KQs", "KJs", "KTs", "QJs", "QTs", "JTs", "T9s", "98s", "87s", "AJo", "AQo", "KQo", "KJo"],
-    "BB_vs_BTN": ["22", "33", "44", "55", "66", "77", "88", "99", "A2s", "A3s", "A4s", "A5s", "A6s", "A7s", "A8s", "A9s", "ATs", "AJs", "A9o", "ATo", "AJo", "AQo", "K9s", "KTs", "KJs", "KJo", "KQo", "Q9s", "QTs", "QJs", "J9s", "JTs", "T9s", "98s", "87s", "76s"],
+    "BB_vs_BTN": ["22", "33", "44", "55", "66", "77", "88", "99", "A2s", "A3s", "A4s", "A5s", "A6s", "A7s", "A8s", "A9s", "ATs", "AJs", "ATo", "AJo", "AQo", "K9s", "KTs", "KJs", "KJo", "KQo", "Q9s", "QTs", "QJs", "J9s", "JTs", "T9s", "98s", "87s", "76s"],
     "BB_vs_SB": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "A5s", "A6s", "A7s", "A8s", "A9s", "ATs", "AJs", "K9s", "KTs", "KJs", "KQs", "Q9s", "QTs", "QJs", "J9s", "JTs", "T9s", "98s", "87s", "ATo", "AJo", "AQo", "KQo", "KJo"]
 }
 
 CALLING_VS_3BET = {
     "UTG": ["JJ", "QQ", "AKs", "AQs"],
-    "MP": ["TT", "JJ", "QQ", "AKs", "AQs"],
-    "CO": ["99", "TT", "JJ", "QQ", "AKs", "AQs", "AJs", "KQs"],
-    "BTN": ["88", "99", "TT", "JJ", "QQ", "AKs", "AQs", "AJs", "ATs", "KQs", "QJs", "JTs"],
+    "MP": ["JJ", "QQ", "AKs", "AQs"],
+    "CO": ["99", "TT", "JJ", "QQ", "AKs", "AQs", "AJs", "KQs", "87s", "76s"],
+    "BTN": ["88", "99", "TT", "JJ", "QQ", "AKs", "AQs", "AJs", "ATs", "KQs", "QJs", "JTs", "87s", "76s"],
     "SB": ["77", "88", "99", "TT", "JJ", "QQ", "ATs", "AJs", "AQs", "AJo", "AQo", "AKo", "KQs", "KJs", "QJs", "JTs"]
 }
 
 THREEBET_RANGES = {
-    "MP_vs_UTG": ["AA", "KK", "QQ", "JJ", "AKs", "AKo", "AQs"],
-    "MP_vs_MP": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs"],
-    "MP_vs_CO": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs"],
-    "MP_vs_BTN": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs"],
-    "CO_vs_UTG": ["AA", "KK", "QQ", "JJ", "AKs", "AKo", "AQs"],
-    "CO_vs_MP": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs"],
-    "CO_vs_CO": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs"],
-    "CO_vs_BTN": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs", "ATs", "KQs"],
-    "BTN_vs_UTG": ["AA", "KK", "QQ", "JJ", "AKs", "AKo", "AQs"],
-    "BTN_vs_MP": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs"],
-    "BTN_vs_CO": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs", "KQs"],
-    "BTN_vs_BTN": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs", "ATs", "KQs", "QJs"],
-    "SB_vs_UTG": ["JJ", "QQ", "KK", "AA", "AKs", "AKo", "AQs", "A5s"],
-    "SB_vs_MP": ["QQ", "KK", "AA", "AKs", "AKo", "A5s", "A4s"],
-    "SB_vs_CO": ["QQ", "KK", "AA", "AKs", "AKo", "A5s", "A4s", "A3s", "AQs"],
-    "SB_vs_BTN": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs", "ATs", "KQs", "QJs"],
-    "BB_vs_UTG": ["QQ", "KK", "AA", "AKs", "AKo", "AQs"],
-    "BB_vs_MP": ["QQ", "KK", "AA", "AKs", "AKo", "AQs", "A5s", "A4s"],
-    "BB_vs_CO": ["QQ", "KK", "AA", "AKs", "AKo", "AQs", "A5s", "A4s", "A3s"],
-    "BB_vs_BTN": ["AA", "KK", "QQ", "JJ", "TT", "AKs", "AKo", "AQs", "AJs", "ATs", "KQs", "QJs"],
-    "BB_vs_SB": ["AA", "KK", "QQ", "JJ", "AKs", "AKo", "AQs"]
+    "MP_vs_UTG": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "MP_vs_MP": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "MP_vs_CO": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "MP_vs_BTN": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "CO_vs_UTG": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "CO_vs_MP": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "CO_vs_CO": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "CO_vs_BTN": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "BTN_vs_UTG": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "BTN_vs_MP": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "BTN_vs_CO": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "BTN_vs_BTN": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "SB_vs_UTG": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "SB_vs_MP": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "SB_vs_CO": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "SB_vs_BTN": ["AA", "KK", "QQ", "AKs", "AKo", "AQs", "A5s", "A4s", "A3s", "A2s"],
+    "BB_vs_UTG": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "BB_vs_MP": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "BB_vs_CO": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "BB_vs_BTN": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"],
+    "BB_vs_SB": ["AA", "KK", "QQ", "AKs", "AKo", "AQs"]
 }
 
 FOURBET_RANGES = {
     "MP_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "MP_vs_MP": ["AA", "KK", "AKs", "AKo"],
-    "MP_vs_CO": ["AA", "KK", "QQ", "AKs", "AKo"],
-    "MP_vs_BTN": ["AA", "KK", "QQ", "AKs", "AKo"],
+    "MP_vs_CO": ["AA", "KK", "AKs", "AKo"],
+    "MP_vs_BTN": ["AA", "KK", "AKs", "AKo"],
     "CO_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "CO_vs_MP": ["AA", "KK", "AKs", "AKo"],
     "CO_vs_CO": ["AA", "KK", "AKs", "AKo"],
-    "CO_vs_BTN": ["AA", "KK", "QQ", "AKs", "AKo"],
+    "CO_vs_BTN": ["AA", "KK", "AKs", "AKo"],
     "BTN_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "BTN_vs_MP": ["AA", "KK", "AKs", "AKo"],
-    "BTN_vs_CO": ["AA", "KK", "QQ", "AKs", "AKo"],
-    "BTN_vs_BTN": ["AA", "KK", "QQ", "AKs", "AKo"],
+    "BTN_vs_CO": ["AA", "KK", "AKs", "AKo"],
+    "BTN_vs_BTN": ["AA", "KK", "AKs", "AKo"],
     "SB_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "SB_vs_MP": ["AA", "KK", "AKs", "AKo"],
-    "SB_vs_CO": ["AA", "KK", "QQ", "AKs", "AKo"],
-    "SB_vs_BTN": ["AA", "KK", "QQ", "AKs", "AKo"],
+    "SB_vs_CO": ["AA", "KK", "AKs", "AKo"],
+    "SB_vs_BTN": ["AA", "KK", "AKs", "AKo", "A5s", "A4s", "A3s", "A2s"],
     "BB_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "BB_vs_MP": ["AA", "KK", "AKs", "AKo"],
-    "BB_vs_CO": ["AA", "KK", "QQ", "AKs", "AKo"],
-    "BB_vs_BTN": ["AA", "KK", "QQ", "AKs", "AKo"],
+    "BB_vs_CO": ["AA", "KK", "AKs", "AKo"],
+    "BB_vs_BTN": ["AA", "KK", "AKs", "AKo"],
     "BB_vs_SB": ["AA", "KK", "AKs", "AKo"]
 }
 
@@ -208,20 +208,33 @@ def parse_hand_notation(card1: str, card2: str) -> str:
         return "UNKNOWN"
 
 
-def detect_action_type(call_amount: float, bb_size: float) -> str:
+def detect_action_type(call_amount: float, bb_size: float, hero_position: str, sb_size: float) -> str:
     """
     Detect if unopened pot, facing open raise, 3bet, or 4bet based on call amount relative to BB
     
     Args:
         call_amount: Amount to call in dollars
         bb_size: Big blind size in dollars
+        hero_position: Hero's position (important for SB/BB adjustments)
+        sb_size: Small blind size in dollars
     
     Returns:
         "unopened", "open", "3bet", or "4bet"
     """
-    ratio = call_amount / bb_size
+    # Adjust call amount for SB and BB positions (they've already contributed)
+    actual_raise_size = call_amount
     
-    # If call amount is close to BB (0.9-1.1x), it's an unopened pot - hero is first to act
+    if hero_position == "BB":
+        # BB has already contributed bb_size, so actual raise is call_amount + bb_size
+        actual_raise_size = call_amount + bb_size
+    elif hero_position == "SB":
+        # SB has already contributed sb_size, so actual raise is call_amount + sb_size
+        actual_raise_size = call_amount + sb_size
+    
+    # Calculate ratio based on actual raise size
+    ratio = actual_raise_size / bb_size
+    
+    # If actual raise is close to BB (0.9-1.1x), it's an unopened pot - hero is first to act
     if 0.9 <= ratio <= 1.1:
         return "unopened"  # No one has raised yet - hero considering opening
     elif ratio <= 4.0:
@@ -352,20 +365,22 @@ class PreflopGTOAnalyzer:
             
             # STEP 2: Determine action type (open, 3bet, 4bet)
             # If user activated "Open Raise" mode, TRUST their input - they know best!
+            sb_size = float(sb_str)
+            
             if is_open_raise:
                 action_type = "unopened"
                 logger.info(f"📊 User activated Open Raise mode -> treating as unopened pot (trusting user input)")
             else:
                 # User says there's a villain - use call amount to detect action type
                 # Special case: SB position - call amount will be SB size when unopened
-                sb_size = float(sb_str)
                 if position == "SB" and abs(call_amount - sb_size) < 0.01:
                     action_type = "unopened"
                     logger.info(f"📊 SB special case: Call amount = SB size -> treating as unopened pot")
                 else:
-                    action_type = detect_action_type(call_amount, bb_size)
+                    # Pass hero position and SB size to properly calculate action type
+                    action_type = detect_action_type(call_amount, bb_size, position, sb_size)
                 
-                logger.info(f"📊 Detected action type: {action_type}")
+                logger.info(f"📊 Detected action type: {action_type} (Call: ${call_amount}, Position: {position})")
             
             # STEP 3: Apply GTO ranges WITH villain position
             decision = self._make_gto_decision(hand_notation, position, villain_position, action_type)

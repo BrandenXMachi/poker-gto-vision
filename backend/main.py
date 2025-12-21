@@ -14,7 +14,7 @@ import os
 load_dotenv()
 
 from gemini_only_analyzer import GeminiOnlyAnalyzer
-from deep_gto_analyzer import DeepGTOAnalyzer
+from flop_gto_analyzer import FlopGTOAnalyzer
 from preflop_gto_analyzer import PreflopGTOAnalyzer
 
 # Configure logging
@@ -46,7 +46,7 @@ app.add_middleware(
 
 # Initialize AI analyzers
 flash_analyzer = GeminiOnlyAnalyzer()
-deep_analyzer = DeepGTOAnalyzer()
+flop_analyzer = FlopGTOAnalyzer()
 preflop_analyzer = PreflopGTOAnalyzer()
 
 
@@ -96,15 +96,15 @@ async def analyze_image(
             logger.info(f"📊 Using Odds mode (pot odds)")
             result = flash_analyzer.analyze(image_data, hero_position=position, blinds=blinds)
             
-        elif ai_mode == "deep":
-            # DEEP MODE - Heads-up GTO analysis with manual inputs
-            logger.info(f"🧠 Using Deep mode (Heads-Up GTO) Hero: {hero_position}, Villain: {villain_position}, Action: {villain_action}")
-            result = deep_analyzer.analyze(
-                image_data, 
-                hero_position=hero_position,
-                villain_position=villain_position,
-                blinds=blinds,
-                villain_action=villain_action
+        elif ai_mode == "flop":
+            # FLOP MODE - Flop-only GTO analysis with preflop context
+            logger.info(f"🎴 Using Flop mode - Hero: {hero_position}, Villain: {villain_position}, Preflop: {villain_action}")
+            result = flop_analyzer.analyze(
+                image_data,
+                hero_position=hero_position,  # "IP" or "OOP"
+                preflop_action=villain_action,  # "villain_called", "villain_3bet", "villain_opened", "villain_4bet"
+                villain_position=villain_position,  # "UTG", "MP", "CO", "BTN", "SB", "BB"
+                blinds=blinds
             )
             
         elif ai_mode == "preflop":

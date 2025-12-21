@@ -23,34 +23,17 @@ else:
     logger.warning("⚠️ GEMINI_API_KEY not set")
 
 
-GEMINI_COMPLETE_PROMPT = """You are a poker expert with both visual analysis AND strategic decision-making capabilities.
+GEMINI_COMPLETE_PROMPT = """You are a poker expert specializing in MATHEMATICAL ANALYSIS ONLY.
 
-Your task: Analyze this GGPoker screenshot and provide a complete analysis in ONE response.
+Your task: Analyze this GGPoker screenshot and make a purely MATHEMATICAL decision based on pot odds, equity, and EV. IGNORE all positional considerations.
 
-**HERO INFORMATION:**
-- Hero position: {hero_position}
-- Blinds: {blinds}
-- Hero is at BOTTOM-CENTER of the table
+**IMPORTANT: This is MATH-ONLY mode. Position does NOT matter. Make decisions based ONLY on:**
+1. Pot Odds vs Hand Equity
+2. Expected Value calculations
+3. Implied Odds for drawing hands
+4. Fold Equity for bluffs
 
-**⚠️ CRITICAL - POSITION MAPPING (DO NOT DEDUCE POSITIONS - USE THIS MAPPING!):**
-
-{position_mapping}
-
-**POSITION RULES - READ CAREFULLY:**
-1. The hero position ({hero_position}) is ALWAYS CORRECT - user provided this
-2. ALL other positions are derived from hero's position using the mapping above
-3. DO NOT try to deduce positions from visual cues or table layout
-4. ONLY use the position mapping provided above
-5. Each screen position maps to exactly ONE poker position
-
-Example: If hero is BTN (Bottom-Center):
-- Bottom-Left = SB (immediately left of hero)
-- Top-Left = BB (left of SB)
-- Top-Center = UTG
-- Top-Right = MP
-- Bottom-Right = CO
-
-**When reporting villain positions, use ONLY the poker positions from the mapping, NOT screen positions.**
+**Blinds: {blinds}**
 
 ---
 
@@ -294,12 +277,10 @@ class GeminiOnlyAnalyzer:
             logger.info(f"⚡ Gemini fast analyzing... Hero: {hero_position}, Blinds: {blinds}")
             
             image = Image.open(BytesIO(image_data))
-            position_map = self._get_position_mapping(hero_position)
             
             prompt = GEMINI_COMPLETE_PROMPT.format(
-                hero_position=hero_position,
                 blinds=blinds,
-                position_mapping=position_map
+                hero_position="N/A (Position-agnostic mode)"
             )
             
             response = self.model.generate_content([prompt, image])
