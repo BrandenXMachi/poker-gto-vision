@@ -119,6 +119,10 @@ class FlopGTOAnalyzer:
             board_texture = self._classify_board_texture(flop_cards)
             villain_range_type = self._classify_villain_range(villain_position)
             
+            # STEP 2.5: Generate detailed descriptions for UI
+            board_description = self._describe_board(flop_cards)
+            hand_description = self._describe_hand(hero_cards, flop_cards)
+            
             # STEP 3: Apply comprehensive flop GTO logic
             decision = self._make_flop_decision(
                 preflop_action=preflop_action,
@@ -137,7 +141,9 @@ class FlopGTOAnalyzer:
                     "flop_cards": flop_cards,
                     "hand_strength": hand_strength,
                     "board_texture": board_texture,
-                    "villain_range": villain_range_type
+                    "villain_range": villain_range_type,
+                    "board_description": board_description,
+                    "hand_description": hand_description
                 },
                 "recommendation": decision
             }
@@ -425,3 +431,69 @@ class FlopGTOAnalyzer:
             
             else:  # medium or weak
                 return {"action": "Check-fold", "reasoning": "Not strong enough vs 4bet IP - fold"}
+    
+    def _describe_board(self, flop_cards: List[str]) -> str:
+        """Generate human-readable board description"""
+        # Extract ranks and suits
+        board_str = ", ".join(flop_cards)
+        
+        # Count suits for flush draws
+        suits = {}
+        for card in flop_cards:
+            suit = card.split(" of ")[-1] if " of " in card else ""
+            suits[suit] = suits.get(suit, 0) + 1
+        
+        descriptions = []
+        
+        # Check for flush draws
+        if max(suits.values(), default=0) >= 2:
+            descriptions.append("Flush draw possible")
+        
+        # Check for monotone (all same suit)
+        if max(suits.values(), default=0) == 3:
+            descriptions.append("Monotone board (all same suit)")
+        
+        # Simple texture analysis (placeholder - can be improved)
+        if any("Ace" in card or "King" in card for card in flop_cards):
+            descriptions.append("High card board")
+        else:
+            descriptions.append("Low/medium board")
+        
+        description_text = " • " + "\n • ".join(descriptions) if descriptions else ""
+        
+        return f"{board_str}\n{description_text}"
+    
+    def _describe_hand(self, hero_cards: List[str], flop_cards: List[str]) -> str:
+        """Generate human-readable hand description"""
+        # This is a simplified version - in production, use proper hand evaluator
+        hand_str = ", ".join(hero_cards)
+        
+        descriptions = []
+        
+        # Check for pairs (very simplified)
+        hero_ranks = [card.split(" of ")[0] if " of " in card else "" for card in hero_cards]
+        if hero_ranks[0] == hero_ranks[1]:
+            descriptions.append(f"Pocket {hero_ranks[0]}s")
+        
+        # Check for high cards
+        high_cards = ["Ace", "King", "Queen"]
+        if any(high in hero_ranks[0] or high in hero_ranks[1] for high in high_cards):
+            descriptions.append("High card strength")
+        
+        # Check for flush draws (same suit in hand)
+        hero_suits = [card.split(" of ")[-1] if " of " in card else "" for card in hero_cards]
+        if hero_suits[0] == hero_suits[1]:
+            # Check if any board card matches
+            board_suits = [card.split(" of ")[-1] if " of " in card else "" for card in flop_cards]
+            if hero_suits[0] in board_suits:
+                count = board_suits.count(hero_suits[0]) + 2  # 2 from hero
+                if count >= 4:
+                    descriptions.append("Flush draw (4+ suited cards)")
+        
+        # Placeholder for more complex analysis
+        if not descriptions:
+            descriptions.append("Analyzing hand strength...")
+        
+        description_text = " • " + "\n • ".join(descriptions)
+        
+        return f"{hand_str}\n{description_text}"

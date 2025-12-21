@@ -62,6 +62,8 @@ export default function Home() {
   const [heroCards, setHeroCards] = useState<string[]>([])
   const [boardCards, setBoardCards] = useState<string[]>([])
   const [street, setStreet] = useState<string>('')
+  const [boardDescription, setBoardDescription] = useState<string>('')
+  const [handDescription, setHandDescription] = useState<string>('')
   
   // Detailed info for navigation to details page
   const [detailedInfo, setDetailedInfo] = useState<DetailedInfo | null>(null)
@@ -352,6 +354,8 @@ export default function Home() {
           setHeroCards(data.extracted_data.hero_cards || [])
           setBoardCards(data.extracted_data.board_cards || [])
           setStreet(data.extracted_data.street || '')
+          setBoardDescription(data.extracted_data.board_description || '')
+          setHandDescription(data.extracted_data.hand_description || '')
         }
         
         // Speak the action for all modes
@@ -610,6 +614,31 @@ export default function Home() {
                   {reasoning || 'Analyzing flop GTO strategy...'}
                 </div>
               </div>
+
+              {/* Board and Hand Analysis - Show detailed descriptions */}
+              {(boardDescription || handDescription) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* Board Analysis */}
+                  {boardDescription && (
+                    <div className="bg-cyan-500/10 backdrop-blur-sm p-4 rounded-xl border border-cyan-400/30">
+                      <div className="text-xs text-cyan-300 font-bold uppercase tracking-wider mb-2">🎴 Board:</div>
+                      <div className="text-sm text-white/90 whitespace-pre-line">
+                        {boardDescription}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Hand Analysis */}
+                  {handDescription && (
+                    <div className="bg-yellow-500/10 backdrop-blur-sm p-4 rounded-xl border border-yellow-400/30">
+                      <div className="text-xs text-yellow-300 font-bold uppercase tracking-wider mb-2">🃏 Hero's Hand:</div>
+                      <div className="text-sm text-white/90 whitespace-pre-line">
+                        {handDescription}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Continue to Odds Button - Only show if not folding */}
               {!action.toLowerCase().includes('fold') && (
