@@ -493,6 +493,143 @@ export default function Home() {
             </div>
           )}
 
+          {/* Flop Mode: Hero Position Selector - Show above camera */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flop' && (
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-purple-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
+                1️⃣ Hero Position
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setFlopHeroPosition('IP')}
+                  className={`py-4 px-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 shadow-lg ${
+                    flopHeroPosition === 'IP'
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  ✅ In Position
+                </button>
+                <button
+                  onClick={() => setFlopHeroPosition('OOP')}
+                  className={`py-4 px-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 shadow-lg ${
+                    flopHeroPosition === 'OOP'
+                      ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  ❌ Out of Position
+                </button>
+              </div>
+              <p className="text-center text-sm text-gray-400 mt-3">
+                Selected: <span className="text-purple-400 font-bold">{flopHeroPosition === 'IP' ? 'In Position' : 'Out of Position'}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Flop Mode: Preflop Action Selector - Show above camera */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flop' && (
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-purple-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
+                2️⃣ Preflop Action
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setFlopPreflopAction('villain_called')}
+                  className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                    flopPreflopAction === 'villain_called'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Villain Called Open
+                </button>
+                <button
+                  onClick={() => setFlopPreflopAction('villain_called_3bet')}
+                  className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                    flopPreflopAction === 'villain_called_3bet'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Villain Called 3-Bet
+                </button>
+                <button
+                  onClick={() => setFlopPreflopAction('villain_3bet')}
+                  className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                    flopPreflopAction === 'villain_3bet'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Villain 3-Bet
+                </button>
+                <button
+                  onClick={() => setFlopPreflopAction('villain_opened')}
+                  className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                    flopPreflopAction === 'villain_opened'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Villain Opened
+                </button>
+                <button
+                  onClick={() => setFlopPreflopAction('villain_4bet')}
+                  className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                    flopPreflopAction === 'villain_4bet'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Villain 4-Bet
+                </button>
+              </div>
+              <p className="text-center text-sm text-gray-400 mt-3">
+                Selected: <span className="text-purple-400 font-bold capitalize">{flopPreflopAction.replace(/_/g, ' ')}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Flop Mode: Villain Position Selector - Show above camera */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flop' && (
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-purple-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
+                3️⃣ Villain Position
+              </h3>
+              <div className="grid grid-cols-6 gap-2">
+                {['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].map((pos) => (
+                  <button
+                    key={pos}
+                    onClick={() => setFlopVillainPosition(pos)}
+                    className={`py-3 px-2 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                      flopVillainPosition === pos
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white scale-105 ring-2 ring-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {pos}
+                  </button>
+                ))}
+              </div>
+              <p className="text-center text-sm text-gray-400 mt-3">
+                Villain is at: <span className="text-purple-400 font-bold">{flopVillainPosition}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Flop Mode: Capture Button - Show above camera */}
+          {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'flop' && (
+            <div className="mb-6">
+              <button
+                onClick={handleDeepCapture}
+                className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                📸 Capture & Analyze Flop
+              </button>
+            </div>
+          )}
+
           {/* Blinds Selector - Show for Odds and Preflop Modes */}
           {isCameraActive && !isAnalyzing && !capturedImage && (aiMode === 'odds' || aiMode === 'preflop') && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-blue-500/30 shadow-xl">
@@ -639,116 +776,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* Flop Mode: 3 Selection Bubbles */}
-            {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'flop' && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4 z-10">
-                <p className="text-center text-xs text-gray-300 mb-3">
-                  🎴 Select Context & Capture Flop
-                </p>
-                
-                {/* Bubble 1: Hero Position (IP/OOP) */}
-                <div className="mb-3">
-                  <p className="text-center text-xs text-purple-300 mb-2">1️⃣ Hero Position:</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setFlopHeroPosition('IP')}
-                      className={`py-3 px-4 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
-                        flopHeroPosition === 'IP'
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white scale-105 ring-2 ring-white'
-                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
-                      }`}
-                    >
-                      ✅ In Position
-                    </button>
-                    <button
-                      onClick={() => setFlopHeroPosition('OOP')}
-                      className={`py-3 px-4 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
-                        flopHeroPosition === 'OOP'
-                          ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white scale-105 ring-2 ring-white'
-                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
-                      }`}
-                    >
-                      ❌ Out of Position
-                    </button>
-                  </div>
-                </div>
-
-                {/* Bubble 2: Preflop Action */}
-                <div className="mb-3">
-                  <p className="text-center text-xs text-purple-300 mb-2">2️⃣ Preflop Action:</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setFlopPreflopAction('villain_called')}
-                      className={`py-2 px-2 rounded-lg font-bold text-xs transition-all transform hover:scale-105 shadow-lg ${
-                        flopPreflopAction === 'villain_called'
-                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
-                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
-                      }`}
-                    >
-                      Villain Called
-                    </button>
-                    <button
-                      onClick={() => setFlopPreflopAction('villain_3bet')}
-                      className={`py-2 px-2 rounded-lg font-bold text-xs transition-all transform hover:scale-105 shadow-lg ${
-                        flopPreflopAction === 'villain_3bet'
-                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
-                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
-                      }`}
-                    >
-                      Villain 3-Bet
-                    </button>
-                    <button
-                      onClick={() => setFlopPreflopAction('villain_opened')}
-                      className={`py-2 px-2 rounded-lg font-bold text-xs transition-all transform hover:scale-105 shadow-lg ${
-                        flopPreflopAction === 'villain_opened'
-                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
-                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
-                      }`}
-                    >
-                      Villain Opened
-                    </button>
-                    <button
-                      onClick={() => setFlopPreflopAction('villain_4bet')}
-                      className={`py-2 px-2 rounded-lg font-bold text-xs transition-all transform hover:scale-105 shadow-lg ${
-                        flopPreflopAction === 'villain_4bet'
-                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
-                          : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
-                      }`}
-                    >
-                      Villain 4-Bet
-                    </button>
-                  </div>
-                </div>
-
-                {/* Bubble 3: Villain Position */}
-                <div className="mb-3">
-                  <p className="text-center text-xs text-purple-300 mb-2">3️⃣ Villain Position:</p>
-                  <div className="grid grid-cols-6 gap-1">
-                    {['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].map((pos) => (
-                      <button
-                        key={pos}
-                        onClick={() => setFlopVillainPosition(pos)}
-                        className={`py-2 px-1 rounded-lg font-bold text-xs transition-all transform hover:scale-110 shadow-lg ${
-                          flopVillainPosition === pos
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white scale-105 ring-2 ring-white'
-                            : 'bg-gray-800/90 text-gray-200 hover:bg-gray-700'
-                        }`}
-                      >
-                        {pos}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Capture Button */}
-                <button
-                  onClick={handleDeepCapture}
-                  className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-base transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  📸 Capture & Analyze Flop
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Hidden canvas */}

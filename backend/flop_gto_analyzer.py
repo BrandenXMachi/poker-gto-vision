@@ -182,19 +182,23 @@ class FlopGTOAnalyzer:
         Comprehensive flop decision logic based on preflop line, position, and hand strength
         """
         
-        # STATE 1: Villain called hero's open
+        # STATE 1: Villain called hero's open (SRP)
         if preflop_action == "villain_called":
             return self._villain_called_hero_open(hero_position, villain_range_type, hand_strength, board_texture)
         
-        # STATE 2: Villain 3-bet hero's open and hero called
+        # STATE 2: Villain called hero's 3-bet (3-bet pot - villain flatted)
+        elif preflop_action == "villain_called_3bet":
+            return self._villain_called_hero_3bet(hero_position, villain_range_type, hand_strength, board_texture)
+        
+        # STATE 3: Villain 3-bet hero's open and hero called
         elif preflop_action == "villain_3bet":
             return self._villain_3bet_hero_called(hero_position, villain_range_type, hand_strength, board_texture)
         
-        # STATE 3: Villain open-raised and hero called
+        # STATE 4: Villain open-raised and hero called
         elif preflop_action == "villain_opened":
             return self._villain_opened_hero_called(hero_position, villain_range_type, hand_strength, board_texture)
         
-        # STATE 4: Villain 4-bet and hero called
+        # STATE 5: Villain 4-bet and hero called
         elif preflop_action == "villain_4bet":
             return self._villain_4bet_hero_called(hero_position, villain_range_type, hand_strength, board_texture)
         
@@ -252,6 +256,52 @@ class FlopGTOAnalyzer:
             
             else:  # weak
                 return {"action": "Check-fold", "reasoning": "Weak hand OOP - fold to pressure"}
+    
+    def _villain_called_hero_3bet(self, hero_pos: str, villain_range: str, hand_str: str, board: str) -> Dict[str, Any]:
+        """Hero 3-bet, villain called (3-bet pot) - Villain has very strong, condensed range"""
+        
+        if hero_pos == "IP":
+            # In position after 3-betting
+            if hand_str == "monster":
+                if board == "dry":
+                    return {"action": "Bet 33% pot", "reasoning": "Monster in 3bet pot IP dry - small value bet"}
+                else:
+                    return {"action": "Bet 75% pot", "reasoning": "Monster in 3bet pot IP wet - large value bet"}
+            
+            elif hand_str == "strong":
+                if board == "dry":
+                    return {"action": "Bet 40% pot", "reasoning": "Strong in 3bet pot IP dry - medium bet"}
+                else:
+                    return {"action": "Bet 60% pot", "reasoning": "Strong in 3bet pot IP wet - protect"}
+            
+            elif hand_str == "medium":
+                return {"action": "Check back", "reasoning": "Medium in 3bet pot IP - too weak to bet, pot control"}
+            
+            elif hand_str == "draw":
+                if board == "wet":
+                    return {"action": "Bet 75% pot", "reasoning": "Strong draw in 3bet pot IP - aggressive semi-bluff"}
+                else:
+                    return {"action": "Check back", "reasoning": "Weak draw in 3bet pot IP - give up"}
+            
+            else:  # weak
+                return {"action": "Check back", "reasoning": "Weak in 3bet pot IP - check and fold to bet"}
+        
+        else:  # OOP
+            # Out of position after 3-betting - very cautious
+            if hand_str == "monster":
+                return {"action": "Bet 50% pot or check-raise 3x", "reasoning": "Monster in 3bet pot OOP - bet for value or trap"}
+            
+            elif hand_str == "strong":
+                return {"action": "Check-call limit 75% pot", "reasoning": "Strong in 3bet pot OOP - check-call cautiously"}
+            
+            elif hand_str == "medium":
+                return {"action": "Check-fold", "reasoning": "Medium in 3bet pot OOP - too weak vs villain's strong range"}
+            
+            elif hand_str == "draw":
+                return {"action": "Check-raise 3.5x (nut draws only)", "reasoning": "Nut draw in 3bet pot OOP - aggressive check-raise"}
+            
+            else:  # weak
+                return {"action": "Check-fold", "reasoning": "Weak in 3bet pot OOP - give up immediately"}
     
     def _villain_3bet_hero_called(self, hero_pos: str, villain_range: str, hand_str: str, board: str) -> Dict[str, Any]:
         """Hero's range is capped - villain 3-bet and hero called"""
