@@ -174,6 +174,9 @@ async def analyze_image(
             "hero_turn": True,
             "ai_mode": ai_mode,
             
+            # Extracted data at root level for frontend access
+            "extracted_data": extracted_data,
+            
             # Main display - 5 decision metrics
             "recommendation": {
                 "action": action,
