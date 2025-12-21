@@ -31,7 +31,7 @@ export default function Home() {
   const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
   const [villainPositionPreflop, setVillainPositionPreflop] = useState<string>('UTG')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
-  const [aiMode, setAiMode] = useState<'odds' | 'flop' | 'preflop'>('odds')
+  const [aiMode, setAiMode] = useState<'odds' | 'flop' | 'preflop'>('preflop')
   const [isOpenRaise, setIsOpenRaise] = useState<boolean>(false)
   
   // Flop Mode specific states
@@ -295,18 +295,6 @@ export default function Home() {
               </h3>
               <div className="grid grid-cols-3 gap-3">
                 <button
-                  onClick={() => setAiMode('odds')}
-                  className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
-                    aiMode === 'odds'
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  <div className="text-2xl mb-1">📊</div>
-                  <div>Odds</div>
-                  <div className="text-xs opacity-75 mt-1">All Streets</div>
-                </button>
-                <button
                   onClick={() => setAiMode('preflop')}
                   className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
                     aiMode === 'preflop'
@@ -329,6 +317,18 @@ export default function Home() {
                   <div className="text-2xl mb-1">🎴</div>
                   <div>Flop</div>
                   <div className="text-xs opacity-75 mt-1">Flop GTO</div>
+                </button>
+                <button
+                  onClick={() => setAiMode('odds')}
+                  className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
+                    aiMode === 'odds'
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">📊</div>
+                  <div>Odds</div>
+                  <div className="text-xs opacity-75 mt-1">All Streets</div>
                 </button>
               </div>
               <p className="text-center text-sm text-gray-400 mt-3">
@@ -440,6 +440,54 @@ export default function Home() {
               <div className="bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20">
                 <div className="text-sm text-white/90 leading-relaxed whitespace-pre-line">
                   {reasoning || 'Analyzing GTO ranges...'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main recommendation display - For Flop Mode */}
+          {action && aiMode === 'flop' && (
+            <div className="bg-gradient-to-br from-purple-600 via-pink-600 to-fuchsia-600 border-purple-400/30 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 backdrop-blur">
+              <div className="text-center mb-2">
+                <p className="text-sm font-semibold text-white/80 mb-2">🎴 FLOP GTO STRATEGY</p>
+              </div>
+              <div className="text-5xl font-extrabold text-center mb-8 drop-shadow-lg">
+                {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
+              </div>
+              
+              {/* Card Display */}
+              {(heroCards.length > 0 || boardCards.length > 0) && (
+                <div className="mb-6 bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Hero Cards */}
+                    {heroCards.length > 0 && (
+                      <div>
+                        <div className="text-xs text-white/60 uppercase tracking-wider mb-2">Your Hand:</div>
+                        <div className="text-2xl font-bold text-yellow-300">
+                          🃏 {heroCards.join(' ')}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Board Cards */}
+                    {boardCards.length > 0 && (
+                      <div>
+                        <div className="text-xs text-white/60 uppercase tracking-wider mb-2">
+                          Flop:
+                        </div>
+                        <div className="text-2xl font-bold text-cyan-300">
+                          🎴 {boardCards.join(' ')}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Flop GTO Analysis - Display the detailed strategy */}
+              <div className="bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20">
+                <div className="text-sm text-white/90 leading-relaxed whitespace-pre-line">
+                  {reasoning || 'Analyzing flop GTO strategy...'}
                 </div>
               </div>
             </div>
