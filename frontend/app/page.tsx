@@ -39,6 +39,15 @@ export default function Home() {
   const [flopVillainPosition, setFlopVillainPosition] = useState<string>('BTN')  // Position
   const [flopPreflopAction, setFlopPreflopAction] = useState<string>('villain_called')  // Preflop action
   
+  // Context inheritance for mode transitions
+  const [inheritedContext, setInheritedContext] = useState<{
+    fromMode: string
+    heroPosition: string
+    villainPosition: string
+    preflopAction: string
+    preflopRecommendation: string
+  } | null>(null)
+  
   // Main display info
   const [action, setAction] = useState<string>('')
   const [potOdds, setPotOdds] = useState<string>('')
@@ -75,6 +84,106 @@ export default function Home() {
       utterance.volume = 1.0
       synthRef.current.speak(utterance)
     }
+  }
+
+  // Smart action mapping: Preflop recommendation → Flop preflop action
+  const mapPreflopToFlopAction = (preflopAction: string): string => {
+    const actionLower = preflopAction.toLowerCase()
+    
+    // If we 3-bet in preflop → villain called our 3-bet
+    if (actionLower.includes('3-bet') || actionLower.includes('3bet')) {
+      return 'villain_called_3bet'
+    }
+    
+    // If we called villain's raise → villain opened
+    if (actionLower.includes('call')) {
+      return 'villain_opened'
+    }
+    
+    // If we raised/opened → villain called our open (SRP)
+    if (actionLower.includes('raise') || actionLower.includes('open')) {
+      return 'villain_called'
+    }
+    
+    // Default fallback
+    return 'villain_called'
+  }
+
+  // Determine IP/OOP from positions
+  const determineIPorOOP = (heroPos: string, villainPos: string): string => {
+    const positions = ['SB', 'BB', 'UTG', 'MP', 'CO', 'BTN']
+    const heroIndex = positions.indexOf(heroPos)
+    const villainIndex = positions.indexOf(villainPos)
+    
+    // If hero is later in position order, they're IP
+    return heroIndex > villainIndex ? 'IP' : 'OOP'
+  }
+
+  // Continue to Flop mode with context
+  const continueToFlop = () => {
+    if (!action) return
+    
+    // Check if we folded - can't continue
+    if (action.toLowerCase().includes('fold')) {
+      setError('Cannot continue after folding')
+      return
+    }
+    
+    // Check if we're opening (no villain identified yet)
+    const isOpeningAction = action.toLowerCase().includes('raise') || action.toLowerCase().includes('open')
+    
+    if (isOpenRaise || !villainPositionPreflop || isOpeningAction) {
+      // We opened, no villain yet - show full inputs in flop mode
+      setAiMode('flop')
+      setInheritedContext(null)
+      setCapturedImage('')
+      setAction('')
+      startCamera()
+    } else {
+      // We have a villain - pass context
+      const flopAction = mapPreflopToFlopAction(action)
+      const ipOrOop = determineIPorOOP(selectedPosition, villainPositionPreflop)
+      
+      setInheritedContext({
+        fromMode: 'preflop',
+        heroPosition: ipOrOop,
+        villainPosition: villainPositionPreflop,
+        preflopAction: flopAction,
+        preflopRecommendation: action
+      })
+      
+      // Set flop mode states from inherited context
+      setFlopHeroPosition(ipOrOop)
+      setFlopVillainPosition(villainPositionPreflop)
+      setFlopPreflopAction(flopAction)
+      
+      setAiMode('flop')
+      setCapturedImage('')
+      setAction('')
+      startCamera()
+    }
+  }
+
+  // Continue to Odds mode
+  const continueToOdds = () => {
+    if (!action) return
+    
+    // Check if we folded - can't continue
+    if (action.toLowerCase().includes('fold')) {
+      setError('Cannot continue after folding')
+      return
+    }
+    
+    setAiMode('odds')
+    setCapturedImage('')
+    setAction('')
+    setInheritedContext(null) // Odds mode doesn't use context
+    startCamera()
+  }
+
+  // Reset inherited context (manual input mode)
+  const resetToManualInput = () => {
+    setInheritedContext(null)
   }
 
   // Start camera
@@ -437,11 +546,22 @@ export default function Home() {
               )}
               
               {/* GTO Reasoning - Display the detailed analysis */}
-              <div className="bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20">
+              <div className="bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20 mb-4">
                 <div className="text-sm text-white/90 leading-relaxed whitespace-pre-line">
                   {reasoning || 'Analyzing GTO ranges...'}
                 </div>
               </div>
+
+              {/* Continue to Flop Button - Only show if not folding */}
+              {!action.toLowerCase().includes('fold') && (
+                <button
+                  onClick={continueToFlop}
+                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <span>Continue to Flop</span>
+                  <span className="text-2xl">🎴 →</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -485,16 +605,51 @@ export default function Home() {
               )}
               
               {/* Flop GTO Analysis - Display the detailed strategy */}
-              <div className="bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20">
+              <div className="bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20 mb-4">
                 <div className="text-sm text-white/90 leading-relaxed whitespace-pre-line">
                   {reasoning || 'Analyzing flop GTO strategy...'}
                 </div>
               </div>
+
+              {/* Continue to Odds Button - Only show if not folding */}
+              {!action.toLowerCase().includes('fold') && (
+                <button
+                  onClick={continueToOdds}
+                  className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <span>Continue to Odds</span>
+                  <span className="text-2xl">📊 →</span>
+                </button>
+              )}
             </div>
           )}
 
-          {/* Flop Mode: Hero Position Selector - Show above camera */}
-          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flop' && (
+          {/* Context Indicator - Show when flop mode has inherited context */}
+          {isCameraActive && !capturedImage && aiMode === 'flop' && inheritedContext && (
+            <div className="mb-6 bg-gradient-to-r from-blue-600 to-purple-600 p-5 rounded-2xl border-2 border-blue-400/30 shadow-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-2">
+                    📋 Context from Preflop
+                  </h3>
+                  <div className="text-sm text-white/90 space-y-1">
+                    <p>• Position: <span className="font-bold">{inheritedContext.heroPosition}</span> vs Villain at <span className="font-bold">{inheritedContext.villainPosition}</span></p>
+                    <p>• Action: <span className="font-bold capitalize">{inheritedContext.preflopAction.replace(/_/g, ' ')}</span></p>
+                    <p>• You {inheritedContext.preflopRecommendation}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={resetToManualInput}
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg font-bold text-sm transition-all"
+                >
+                  ⚙️ Manual Input
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Flop Mode: Hero Position Selector - Hide if context inherited */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flop' && !inheritedContext && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-purple-500/30 shadow-xl">
               <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
                 1️⃣ Hero Position
@@ -527,8 +682,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Flop Mode: Preflop Action Selector - Show above camera */}
-          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flop' && (
+          {/* Flop Mode: Preflop Action Selector - Hide if context inherited */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flop' && !inheritedContext && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-purple-500/30 shadow-xl">
               <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
                 2️⃣ Preflop Action
@@ -591,8 +746,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Flop Mode: Villain Position Selector - Show above camera */}
-          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flop' && (
+          {/* Flop Mode: Villain Position Selector - Hide if context inherited */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flop' && !inheritedContext && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-purple-500/30 shadow-xl">
               <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
                 3️⃣ Villain Position
