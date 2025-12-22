@@ -631,7 +631,7 @@ export default function Home() {
                   {/* Hand Analysis */}
                   {handDescription && (
                     <div className="bg-yellow-500/10 backdrop-blur-sm p-4 rounded-xl border border-yellow-400/30">
-                      <div className="text-xs text-yellow-300 font-bold uppercase tracking-wider mb-2">🃏 Hero's Hand:</div>
+                      <div className="text-xs text-yellow-300 font-bold uppercase tracking-wider mb-2">🃏 Hero&apos;s Hand:</div>
                       <div className="text-sm text-white/90 whitespace-pre-line">
                         {handDescription}
                       </div>
