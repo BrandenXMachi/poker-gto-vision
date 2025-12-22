@@ -361,7 +361,7 @@ export default function Home() {
         // Speak the action for all modes
         speak(rec.action)
       } else if (data.hero_turn === false) {
-        setError('Not hero\'s turn detected. Try capturing when action is on you.')
+        setError("Not hero's turn detected. Try capturing when action is on you.")
       } else {
         setError(data.message || 'Analysis failed. Please try again.')
       }
