@@ -136,8 +136,12 @@ export default function Home() {
     
     if (isOpenRaise || !villainPositionPreflop || isOpeningAction) {
       // We opened, no villain yet - show full inputs in flop mode
-      setAiMode('flop')
+      console.log('🚀 Opening scenario - showing full flop inputs')
       setInheritedContext(null)
+      setFlopHeroPosition('IP')
+      setFlopVillainPosition('BTN')
+      setFlopPreflopAction('villain_called')
+      setAiMode('flop')
       setCapturedImage('')
       setAction('')
       startCamera()
@@ -146,22 +150,33 @@ export default function Home() {
       const flopAction = mapPreflopToFlopAction(action)
       const ipOrOop = determineIPorOOP(selectedPosition, villainPositionPreflop)
       
-      setInheritedContext({
+      console.log('📋 Passing context to Flop:', {
+        heroPosition: ipOrOop,
+        villainPosition: villainPositionPreflop,
+        preflopAction: flopAction,
+        recommendation: action
+      })
+      
+      const contextData = {
         fromMode: 'preflop',
         heroPosition: ipOrOop,
         villainPosition: villainPositionPreflop,
         preflopAction: flopAction,
         preflopRecommendation: action
-      })
+      }
       
-      // Set flop mode states from inherited context
+      // Set all flop states BEFORE changing mode
       setFlopHeroPosition(ipOrOop)
       setFlopVillainPosition(villainPositionPreflop)
       setFlopPreflopAction(flopAction)
+      setInheritedContext(contextData)
       
-      setAiMode('flop')
+      // Clear UI states
       setCapturedImage('')
       setAction('')
+      
+      // Change mode and start camera
+      setAiMode('flop')
       startCamera()
     }
   }
