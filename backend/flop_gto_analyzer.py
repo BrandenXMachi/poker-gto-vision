@@ -10,6 +10,7 @@ from typing import Dict, Any, List
 import google.generativeai as genai
 from PIL import Image
 from io import BytesIO
+from hand_evaluator import evaluate_hand, HandEvaluation
 
 logger = logging.getLogger(__name__)
 
@@ -114,14 +115,17 @@ class FlopGTOAnalyzer:
             
             logger.info(f"✅ Extracted: Hero={hero_cards}, Flop={flop_cards}")
             
-            # STEP 2: Classify hand strength and board texture
-            hand_strength = self._classify_hand_strength(hero_cards, flop_cards)
-            board_texture = self._classify_board_texture(flop_cards)
+            # STEP 2: Use hand evaluator for proper analysis
+            evaluation = evaluate_hand(hero_cards, flop_cards)
+            
+            # Extract classifications
+            hand_strength = evaluation.strength
+            board_texture = self._classify_board_texture(flop_cards, hero_cards, evaluation)
             villain_range_type = self._classify_villain_range(villain_position)
             
             # STEP 2.5: Generate detailed descriptions for UI
-            board_description = self._describe_board(flop_cards)
-            hand_description = self._describe_hand(hero_cards, flop_cards)
+            board_description = self._describe_board(flop_cards, hero_cards, evaluation)
+            hand_description = self._describe_hand(hero_cards, flop_cards, evaluation)
             
             # STEP 3: Apply comprehensive flop GTO logic
             decision = self._make_flop_decision(
@@ -155,19 +159,52 @@ class FlopGTOAnalyzer:
                 "error": str(e)
             }
     
-    def _classify_hand_strength(self, hero_cards: List[str], flop_cards: List[str]) -> str:
-        """Classify hero's hand strength on the flop"""
-        # Simplified classification - in production, use proper hand evaluator
-        # Returns: "monster", "strong", "medium", "weak", "draw"
-        # TODO: Implement proper hand evaluation logic
-        return "strong"  # Placeholder
-    
-    def _classify_board_texture(self, flop_cards: List[str]) -> str:
-        """Classify board as dry or wet"""
-        # Simplified classification
-        # Returns: "dry" or "wet"
-        # TODO: Implement proper board texture analysis
-        return "dry"  # Placeholder
+    def _classify_board_texture(self, flop_cards: List[str], hero_cards: List[str], evaluation: HandEvaluation) -> str:
+        """
+        Classify board as dry or wet
+        Dry = low connectivity, few draws possible
+        Wet = high connectivity, many draws possible
+        """
+        from hand_evaluator import Card
+        
+        try:
+            # Parse cards
+            board = [Card(c) for c in flop_cards]
+            
+            # Count suits on board
+            suit_counts = {}
+            for card in board:
+                suit_counts[card.suit] = suit_counts.get(card.suit, 0) + 1
+            
+            # Count connected ranks (for straight possibilities)
+            ranks = sorted([c.rank for c in board])
+            max_gap = max(ranks) - min(ranks)
+            
+            # Wet board indicators:
+            # 1. Two or three cards of same suit (flush draws possible)
+            # 2. Connected cards (straight draws possible)
+            # 3. Multiple broadway cards
+            
+            is_wet = False
+            
+            # Check for flush draw potential
+            if max(suit_counts.values()) >= 2:
+                is_wet = True
+            
+            # Check for straight draw potential (cards within 4 ranks)
+            if max_gap <= 4:
+                is_wet = True
+            
+            # Check for multiple broadway cards (can hit many strong hands)
+            broadway_count = sum(1 for r in ranks if r >= 11)  # J, Q, K, A
+            if broadway_count >= 2:
+                is_wet = True
+            
+            return "wet" if is_wet else "dry"
+            
+        except Exception as e:
+            logger.error(f"Board texture classification error: {e}")
+            return "dry"  # Default to dry on error
     
     def _classify_villain_range(self, villain_position: str) -> str:
         """Classify villain range type based on position"""
@@ -432,28 +469,44 @@ class FlopGTOAnalyzer:
             else:  # medium or weak
                 return {"action": "Check-fold", "reasoning": "Not strong enough vs 4bet IP - fold"}
     
-    def _describe_board(self, flop_cards: List[str]) -> str:
-        """Generate human-readable board description"""
-        # Extract ranks and suits
+    def _describe_board(self, flop_cards: List[str], hero_cards: List[str], evaluation: HandEvaluation) -> str:
+        """
+        Generate human-readable board description
+        NOW HERO-SPECIFIC: Only shows draws that are actually possible for hero
+        """
         board_str = ", ".join(flop_cards)
-        
-        # Count suits for flush draws
-        suits = {}
-        for card in flop_cards:
-            suit = card.split(" of ")[-1] if " of " in card else ""
-            suits[suit] = suits.get(suit, 0) + 1
-        
         descriptions = []
         
-        # Check for flush draws
-        if max(suits.values(), default=0) >= 2:
-            descriptions.append("Flush draw possible")
+        # Only show flush draws if HERO actually has flush draw possibilities
+        if evaluation.has_flush_draw:
+            descriptions.append(f"Flush draw ({evaluation.flush_draw_outs} outs)")
+        elif evaluation.has_backdoor_flush_draw:
+            descriptions.append("Backdoor flush draw")
+        else:
+            # Check if there are 2+ same suit on board (draw possible for opponents)
+            from hand_evaluator import Card
+            try:
+                board = [Card(c) for c in flop_cards]
+                suit_counts = {}
+                for card in board:
+                    suit_counts[card.suit] = suit_counts.get(card.suit, 0) + 1
+                
+                if max(suit_counts.values()) >= 2:
+                    descriptions.append("Flush draw possible (for opponents)")
+                else:
+                    descriptions.append("No flush draw possible")
+            except:
+                pass
         
-        # Check for monotone (all same suit)
-        if max(suits.values(), default=0) == 3:
-            descriptions.append("Monotone board (all same suit)")
+        # Show straight draws if hero has them
+        if evaluation.has_oesd:
+            descriptions.append(f"Open-ended straight draw ({evaluation.straight_draw_outs} outs)")
+        elif evaluation.has_gutshot:
+            descriptions.append(f"Gutshot straight draw ({evaluation.straight_draw_outs} outs)")
+        elif evaluation.has_backdoor_straight_draw:
+            descriptions.append("Backdoor straight draw")
         
-        # Simple texture analysis (placeholder - can be improved)
+        # Board texture (high card vs low card)
         if any("Ace" in card or "King" in card for card in flop_cards):
             descriptions.append("High card board")
         else:
@@ -463,36 +516,19 @@ class FlopGTOAnalyzer:
         
         return f"{board_str}\n{description_text}"
     
-    def _describe_hand(self, hero_cards: List[str], flop_cards: List[str]) -> str:
-        """Generate human-readable hand description"""
-        # This is a simplified version - in production, use proper hand evaluator
+    def _describe_hand(self, hero_cards: List[str], flop_cards: List[str], evaluation: HandEvaluation) -> str:
+        """
+        Generate human-readable hand description using evaluation results
+        """
         hand_str = ", ".join(hero_cards)
-        
         descriptions = []
         
-        # Check for pairs (very simplified)
-        hero_ranks = [card.split(" of ")[0] if " of " in card else "" for card in hero_cards]
-        if hero_ranks[0] == hero_ranks[1]:
-            descriptions.append(f"Pocket {hero_ranks[0]}s")
+        # Show made hand
+        descriptions.append(evaluation.description)
         
-        # Check for high cards
-        high_cards = ["Ace", "King", "Queen"]
-        if any(high in hero_ranks[0] or high in hero_ranks[1] for high in high_cards):
-            descriptions.append("High card strength")
-        
-        # Check for flush draws (same suit in hand)
-        hero_suits = [card.split(" of ")[-1] if " of " in card else "" for card in hero_cards]
-        if hero_suits[0] == hero_suits[1]:
-            # Check if any board card matches
-            board_suits = [card.split(" of ")[-1] if " of " in card else "" for card in flop_cards]
-            if hero_suits[0] in board_suits:
-                count = board_suits.count(hero_suits[0]) + 2  # 2 from hero
-                if count >= 4:
-                    descriptions.append("Flush draw (4+ suited cards)")
-        
-        # Placeholder for more complex analysis
-        if not descriptions:
-            descriptions.append("Analyzing hand strength...")
+        # Show draw information
+        if evaluation.draw_description:
+            descriptions.append(evaluation.draw_description)
         
         description_text = " • " + "\n • ".join(descriptions)
         
