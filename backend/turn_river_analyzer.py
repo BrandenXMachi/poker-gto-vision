@@ -205,7 +205,9 @@ class TurnRiverAnalyzer:
     
     def _classify_bet_size(self, pot: float, call_amount: float, bb_size: float) -> Tuple[str, float]:
         """
-        Classify bet size relative to both pot and BB
+        Classify bet size for TURN/RIVER play
+        Primary: pot-relative sizing (pots are large on turn/river)
+        Secondary: BB sizing for additional context
         Returns: (category, bet_size_in_bb)
         """
         if call_amount == 0:
@@ -215,21 +217,24 @@ class TurnRiverAnalyzer:
         pot_ratio = call_amount / pot
         bb_ratio = call_amount / bb_size
         
-        # Classify based on combined criteria
-        # Small bets
-        if bb_ratio < 0.5:
-            category = "tiny"  # < 0.5 BB = blocking bet
-        elif bb_ratio < 1.0 or pot_ratio < 0.33:
-            category = "small"  # < 1 BB or < 33% pot
-        # Medium bets
-        elif (bb_ratio < 2.0 and pot_ratio < 0.5) or (pot_ratio < 0.67):
-            category = "medium"  # 1-2 BB but < 50% pot, or 33-67% pot
-        # Large bets
-        elif bb_ratio < 3.0 or pot_ratio < 1.0:
-            category = "large"  # 2-3 BB or 67-100% pot
-        # Overbets
+        # For turn/river, pot-relative sizing is PRIMARY
+        # BB sizing provides secondary context
+        
+        # Tiny/Blocking bet: < 25% pot
+        if pot_ratio < 0.25:
+            category = "tiny"
+        # Small bet: 25-40% pot
+        elif pot_ratio < 0.40:
+            category = "small"
+        # Medium/Standard bet: 40-70% pot
+        elif pot_ratio < 0.70:
+            category = "medium"
+        # Large bet: 70-100% pot
+        elif pot_ratio < 1.0:
+            category = "large"
+        # Overbet: > pot
         else:
-            category = "overbet"  # > 3 BB or > pot
+            category = "overbet"
         
         return category, bb_ratio
     
