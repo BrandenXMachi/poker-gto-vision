@@ -52,8 +52,8 @@ CALLING_VS_OPEN = {
 CALLING_VS_3BET = {
     "UTG": ["JJ", "QQ", "AKs", "AQs"],  # KK removed - always 4-bets
     "MP": ["JJ", "QQ", "AKs", "AQs"],
-    "CO": ["99", "TT", "JJ", "QQ", "AKs", "AQs", "AJs", "KQs", "87s", "76s"],
-    "BTN": ["88", "99", "TT", "JJ", "QQ", "AKs", "AQs", "AJs", "ATs", "KQs", "QJs", "JTs", "87s", "76s"],
+    "CO": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "A2s", "A3s", "A4s", "A5s", "A6s", "A7s", "A8s", "A9s", "ATs", "AJs", "AQs", "AQo", "KQs", "KJs", "QJs", "JTs", "KTs", "QTs", "T9s", "98s", "87s"],  # Updated for 20% VPIP
+    "BTN": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "A2s", "A3s", "A4s", "A5s", "A6s", "A7s", "A8s", "A9s", "ATs", "AJs", "AQs", "AQo", "KQs", "KJs", "QJs", "JTs", "KTs", "QTs", "T9s", "98s", "87s", "J9s"],  # Updated for 20% VPIP
     "SB": ["77", "88", "99", "TT", "JJ", "QQ", "ATs", "AJs", "AQs", "AJo", "AQo", "AKo", "KQs", "KJs", "QJs", "JTs"]
 }
 
@@ -96,6 +96,7 @@ FOURBET_RANGES = {
     "CO_vs_MP": ["AA", "KK", "AKs", "AKo"],
     "CO_vs_CO": ["AA", "KK", "AKs", "AKo"],
     "CO_vs_BTN": ["AA", "KK", "AKs", "AKo"],
+    "CO_vs_SB": ["AA", "KK", "AKs", "AKo"],  # ADDED - was missing!
     "CO_vs_BB": ["AA", "KK", "AKs", "AKo"],  # ADDED - was missing!
     "BTN_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "BTN_vs_MP": ["AA", "KK", "AKs", "AKo"],
