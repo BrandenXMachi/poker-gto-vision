@@ -129,12 +129,6 @@ export default function Home() {
   const continueToFlop = () => {
     if (!action) return
     
-    // Check if we folded - can't continue
-    if (action.toLowerCase().includes('fold')) {
-      setError('Cannot continue after folding')
-      return
-    }
-    
     // Check if we're opening (no villain identified yet)
     const isOpeningAction = action.toLowerCase().includes('raise') || action.toLowerCase().includes('open')
     
@@ -189,13 +183,7 @@ export default function Home() {
   const continueToTR = () => {
     if (!action) return
     
-    // Check if we folded - can't continue
-    if (action.toLowerCase().includes('fold')) {
-      setError('Cannot continue after folding')
-      return
-    }
-    
-    // Pass flop context to T/R mode
+    // Pass flop context to T/R mode (even if fold recommended - for learning)
     const contextData = {
       fromMode: 'flop',
       heroPosition: flopHeroPosition,  // "IP" or "OOP"
@@ -612,15 +600,18 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Continue to Flop Button - Only show if not folding */}
-              {!action.toLowerCase().includes('fold') && (
-                <button
-                  onClick={continueToFlop}
-                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  <span>Continue to Flop</span>
-                  <span className="text-2xl">🎴 →</span>
-                </button>
+              {/* Continue to Flop Button - Always show */}
+              <button
+                onClick={continueToFlop}
+                className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+              >
+                <span>Continue to Flop</span>
+                <span className="text-2xl">🎴 →</span>
+              </button>
+              {action.toLowerCase().includes('fold') && (
+                <p className="text-center text-sm text-white/70 mt-2">
+                  💡 Continue anyway to see flop analysis (assumes action checks through)
+                </p>
               )}
             </div>
           )}
@@ -696,15 +687,18 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Continue to T/R Button - Only show if not folding */}
-              {!action.toLowerCase().includes('fold') && (
-                <button
-                  onClick={continueToTR}
-                  className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  <span>Continue to T/R</span>
-                  <span className="text-2xl">📊 →</span>
-                </button>
+              {/* Continue to T/R Button - Always show, even if fold recommended */}
+              <button
+                onClick={continueToTR}
+                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+              >
+                <span>Continue to T/R</span>
+                <span className="text-2xl">📊 →</span>
+              </button>
+              {action.toLowerCase().includes('fold') && (
+                <p className="text-center text-sm text-white/70 mt-2">
+                  💡 Continue anyway to see turn/river analysis (assumes action checks through)
+                </p>
               )}
             </div>
           )}
