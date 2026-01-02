@@ -384,11 +384,23 @@ export default function Home() {
       if (data.success && data.recommendation) {
         const rec = data.recommendation
         setAction(rec.action)
-        setPotOdds(rec.pot_odds?.value || rec.pot_odds || 'N/A')
-        setHandEquity(rec.hand_equity?.value || rec.hand_equity || 'N/A')
-        setImpliedOdds(rec.implied_odds?.value || rec.implied_odds || 'N/A')
-        setFoldEquity(rec.fold_equity?.value || rec.fold_equity || 'N/A')
-        setExpectedValue(rec.expected_value?.value || rec.expected_value || 'N/A')
+        
+        // For T/R mode, get variables from analysis object instead of recommendation
+        if (aiMode === 'tr' && data.analysis) {
+          setPotOdds(data.analysis.pot_odds?.percent || 'N/A')
+          setHandEquity(data.analysis.equity?.value || 'N/A')
+          setImpliedOdds('N/A')  // Not calculated in T/R mode
+          setFoldEquity('N/A')   // Not calculated in T/R mode
+          setExpectedValue(data.analysis.expected_value?.value || 'N/A')
+        } else {
+          // For other modes, use recommendation object
+          setPotOdds(rec.pot_odds?.value || rec.pot_odds || 'N/A')
+          setHandEquity(rec.hand_equity?.value || rec.hand_equity || 'N/A')
+          setImpliedOdds(rec.implied_odds?.value || rec.implied_odds || 'N/A')
+          setFoldEquity(rec.fold_equity?.value || rec.fold_equity || 'N/A')
+          setExpectedValue(rec.expected_value?.value || rec.expected_value || 'N/A')
+        }
+        
         setPotSize(rec.pot_size || 'N/A')
         setReasoning(rec.reasoning || '')
         setDetailedInfo(data.detailed_info || null)
