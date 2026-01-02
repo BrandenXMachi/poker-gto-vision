@@ -338,9 +338,9 @@ class HandEvaluator:
         elif eval.made_hand == "straight":
             eval.strength = "monster"
         
-        # Strong hands
+        # Strong hands - SETS ARE MONSTERS!
         elif eval.made_hand == "trips":
-            eval.strength = "strong"
+            eval.strength = "monster"  # Sets are extremely strong on the flop
         elif eval.made_hand == "two_pair":
             eval.strength = "strong"
         
