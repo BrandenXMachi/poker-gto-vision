@@ -137,8 +137,8 @@ class TurnRiverAnalyzer:
             # STEP 3: Evaluate hand
             evaluation = evaluate_hand(hero_cards, board_cards)
             
-            # STEP 4: Calculate bet sizing category
-            bet_category = self._classify_bet_size(pot_size, call_amount)
+            # STEP 4: Calculate bet sizing category (pot-relative AND BB-relative)
+            bet_category, bet_size_bb = self._classify_bet_size(pot_size, call_amount, bb_size)
             
             # STEP 5: Count outs (turn only)
             outs, draw_types = self._count_outs(hero_cards, board_cards, evaluation, street)
@@ -172,6 +172,7 @@ class TurnRiverAnalyzer:
                     "board_cards": board_cards,
                     "pot_size": pot_size_str,
                     "call_amount": call_amount_str,
+                    "bet_size_bb": f"{bet_size_bb:.1f} BB",
                     "street": street.upper(),
                     "bet_category": bet_category
                 },
@@ -202,21 +203,35 @@ class TurnRiverAnalyzer:
                 "error": str(e)
             }
     
-    def _classify_bet_size(self, pot: float, call_amount: float) -> str:
-        """Classify bet size relative to pot"""
+    def _classify_bet_size(self, pot: float, call_amount: float, bb_size: float) -> Tuple[str, float]:
+        """
+        Classify bet size relative to both pot and BB
+        Returns: (category, bet_size_in_bb)
+        """
         if call_amount == 0:
-            return "check"
+            return "check", 0.0
         
-        ratio = call_amount / pot
+        # Calculate both ratios
+        pot_ratio = call_amount / pot
+        bb_ratio = call_amount / bb_size
         
-        if ratio < 0.33:
-            return "small"
-        elif ratio < 0.67:
-            return "medium"
-        elif ratio < 1.0:
-            return "large"
+        # Classify based on combined criteria
+        # Small bets
+        if bb_ratio < 0.5:
+            category = "tiny"  # < 0.5 BB = blocking bet
+        elif bb_ratio < 1.0 or pot_ratio < 0.33:
+            category = "small"  # < 1 BB or < 33% pot
+        # Medium bets
+        elif (bb_ratio < 2.0 and pot_ratio < 0.5) or (pot_ratio < 0.67):
+            category = "medium"  # 1-2 BB but < 50% pot, or 33-67% pot
+        # Large bets
+        elif bb_ratio < 3.0 or pot_ratio < 1.0:
+            category = "large"  # 2-3 BB or 67-100% pot
+        # Overbets
         else:
-            return "overbet"
+            category = "overbet"  # > 3 BB or > pot
+        
+        return category, bb_ratio
     
     def _count_outs(self, hero_cards: List[str], board_cards: List[str], evaluation: HandEvaluation, street: str) -> Tuple[int, List[str]]:
         """
