@@ -45,12 +45,12 @@ CALLING_VS_OPEN = {
     "BB_vs_UTG": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "AJs", "ATs", "KQs", "KJs", "QJs", "JTs", "T9s", "98s", "AJo", "AQo", "KQo"],
     "BB_vs_MP": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "AJs", "ATs", "KQs", "KJs", "QJs", "JTs", "T9s", "98s", "AJo", "AQo", "KQo", "KJo"],
     "BB_vs_CO": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "AJs", "ATs", "KQs", "KJs", "KTs", "QJs", "QTs", "JTs", "T9s", "98s", "87s", "AJo", "AQo", "KQo", "KJo"],
-    "BB_vs_BTN": ["22", "33", "44", "55", "66", "77", "88", "99", "A2s", "A3s", "A4s", "A5s", "A6s", "A7s", "A8s", "A9s", "ATs", "AJs", "ATo", "AJo", "AQo", "K9s", "KTs", "KJs", "KJo", "KQo", "Q9s", "QTs", "QJs", "J9s", "JTs", "T9s", "98s", "87s", "76s"],
+    "BB_vs_BTN": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "JJ", "A2s", "A3s", "A4s", "A5s", "A6s", "A7s", "A8s", "A9s", "ATs", "AJs", "ATo", "AJo", "AQo", "K9s", "KTs", "KJs", "KJo", "KQo", "Q9s", "QTs", "QJs", "J9s", "JTs", "T9s", "98s", "87s", "76s"],
     "BB_vs_SB": ["22", "33", "44", "55", "66", "77", "88", "99", "TT", "A5s", "A6s", "A7s", "A8s", "A9s", "ATs", "AJs", "K9s", "KTs", "KJs", "KQs", "Q9s", "QTs", "QJs", "J9s", "JTs", "T9s", "98s", "87s", "ATo", "AJo", "AQo", "KQo", "KJo"]
 }
 
 CALLING_VS_3BET = {
-    "UTG": ["JJ", "QQ", "AKs", "AQs"],
+    "UTG": ["JJ", "QQ", "AKs", "AQs"],  # KK removed - always 4-bets
     "MP": ["JJ", "QQ", "AKs", "AQs"],
     "CO": ["99", "TT", "JJ", "QQ", "AKs", "AQs", "AJs", "KQs", "87s", "76s"],
     "BTN": ["88", "99", "TT", "JJ", "QQ", "AKs", "AQs", "AJs", "ATs", "KQs", "QJs", "JTs", "87s", "76s"],
@@ -489,30 +489,29 @@ class PreflopGTOAnalyzer:
             }
         
         elif action_type == "3bet":
-            # Facing a 3bet - check if we should call, 4bet, or fold
+            # Facing a 3bet - check 4-bet range FIRST (KK should always 4-bet, never call)
+            key = f"{position}_vs_{villain_position}"
+            if key in FOURBET_RANGES and check_hand_in_range(hand, FOURBET_RANGES[key]):
+                return {
+                    "action": "Raise (4-bet recommended)",
+                    "reasoning": f"With {hand} from {position} facing a 3-bet from {villain_position}, this is a premium hand that plays well in a 4-bet pot. Always 4-bet with AA/KK. Raise to build the pot and apply pressure.",
+                    "hand_strength": "Premium",
+                    "range_match": f"4-bet range vs {villain_position} 3-bet"
+                }
+            
+            # Then check calling range (hands not quite premium enough to 4-bet)
             if position in CALLING_VS_3BET and check_hand_in_range(hand, CALLING_VS_3BET[position]):
                 return {
                     "action": "Call",
-                    "reasoning": f"With {hand} from {position} facing a 3-bet, this hand is strong enough to call but not quite premium enough to 4-bet. Call to see a flop in position.",
+                    "reasoning": f"With {hand} from {position} facing a 3-bet from {villain_position}, this hand is strong enough to call but not quite premium enough to 4-bet. Call to see a flop.",
                     "hand_strength": "Strong",
                     "range_match": f"Calling 3-bet range from {position}"
                 }
             
-            # Check 4-bet range
-            for aggressor_pos in ["UTG", "MP", "CO", "BTN", "SB"]:
-                key = f"{position}_vs_{aggressor_pos}"
-                if key in FOURBET_RANGES and check_hand_in_range(hand, FOURBET_RANGES[key]):
-                    return {
-                        "action": "Raise (4-bet recommended)",
-                        "reasoning": f"With {hand} from {position} facing a 3-bet, this is a premium hand that plays well in a 4-bet pot. Raise to build the pot and apply pressure.",
-                        "hand_strength": "Premium",
-                        "range_match": f"4-bet range vs 3-bet"
-                    }
-            
             # Otherwise fold
             return {
                 "action": "Fold",
-                "reasoning": f"With {hand} from {position} facing a 3-bet, this hand is not strong enough to continue against aggression. Fold.",
+                "reasoning": f"With {hand} from {position} facing a 3-bet from {villain_position}, this hand is not strong enough to continue against aggression. Fold.",
                 "hand_strength": "Medium/Weak",
                 "range_match": "Not in range"
             }
