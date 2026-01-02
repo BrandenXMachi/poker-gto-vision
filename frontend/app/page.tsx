@@ -558,7 +558,7 @@ export default function Home() {
                 </div>
               )}
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
                   <div className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Pot Odds</div>
                   <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{potOdds}</div>
@@ -566,14 +566,6 @@ export default function Home() {
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
                   <div className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Hand Equity</div>
                   <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{handEquity}</div>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Implied Odds</div>
-                  <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{impliedOdds}</div>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Fold Equity</div>
-                  <div className="text-2xl md:text-3xl font-bold text-white drop-shadow">{foldEquity}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl border border-white/20 hover:bg-white/15 transition-all">
                   <div className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">EV</div>
