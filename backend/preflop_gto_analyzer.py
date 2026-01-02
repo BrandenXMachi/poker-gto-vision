@@ -82,22 +82,32 @@ THREEBET_RANGES = {
 }
 
 FOURBET_RANGES = {
+    "UTG_vs_MP": ["AA", "KK", "AKs", "AKo"],
+    "UTG_vs_CO": ["AA", "KK", "AKs", "AKo"],
+    "UTG_vs_BTN": ["AA", "KK", "AKs", "AKo"],
+    "UTG_vs_SB": ["AA", "KK", "AKs", "AKo"],
+    "UTG_vs_BB": ["AA", "KK", "AKs", "AKo"],  # ADDED - was missing!
     "MP_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "MP_vs_MP": ["AA", "KK", "AKs", "AKo"],
     "MP_vs_CO": ["AA", "KK", "AKs", "AKo"],
     "MP_vs_BTN": ["AA", "KK", "AKs", "AKo"],
+    "MP_vs_BB": ["AA", "KK", "AKs", "AKo"],  # ADDED - was missing!
     "CO_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "CO_vs_MP": ["AA", "KK", "AKs", "AKo"],
     "CO_vs_CO": ["AA", "KK", "AKs", "AKo"],
     "CO_vs_BTN": ["AA", "KK", "AKs", "AKo"],
+    "CO_vs_BB": ["AA", "KK", "AKs", "AKo"],  # ADDED - was missing!
     "BTN_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "BTN_vs_MP": ["AA", "KK", "AKs", "AKo"],
     "BTN_vs_CO": ["AA", "KK", "AKs", "AKo"],
     "BTN_vs_BTN": ["AA", "KK", "AKs", "AKo"],
+    "BTN_vs_SB": ["AA", "KK", "AKs", "AKo"],  # ADDED - was missing!
+    "BTN_vs_BB": ["AA", "KK", "AKs", "AKo"],  # ADDED - was missing!
     "SB_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "SB_vs_MP": ["AA", "KK", "AKs", "AKo"],
     "SB_vs_CO": ["AA", "KK", "AKs", "AKo"],
     "SB_vs_BTN": ["AA", "KK", "AKs", "AKo", "A5s", "A4s", "A3s", "A2s"],
+    "SB_vs_BB": ["AA", "KK", "AKs", "AKo"],  # ADDED - was missing!
     "BB_vs_UTG": ["AA", "KK", "AKs", "AKo"],
     "BB_vs_MP": ["AA", "KK", "AKs", "AKo"],
     "BB_vs_CO": ["AA", "KK", "AKs", "AKo"],
