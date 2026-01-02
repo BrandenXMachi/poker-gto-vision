@@ -1,6 +1,6 @@
 """
 Main FastAPI server for Poker Vision
-Three modes: Odds, Preflop, and Deep
+Three modes: Preflop, Flop, and Turn/River
 """
 
 from fastapi import FastAPI, File, UploadFile, Form
@@ -13,9 +13,9 @@ import os
 # Load environment variables
 load_dotenv()
 
-from gemini_only_analyzer import GeminiOnlyAnalyzer
 from flop_gto_analyzer import FlopGTOAnalyzer
 from preflop_gto_analyzer import PreflopGTOAnalyzer
+from turn_river_analyzer import TurnRiverAnalyzer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -45,9 +45,9 @@ app.add_middleware(
 )
 
 # Initialize AI analyzers
-flash_analyzer = GeminiOnlyAnalyzer()
 flop_analyzer = FlopGTOAnalyzer()
 preflop_analyzer = PreflopGTOAnalyzer()
+tr_analyzer = TurnRiverAnalyzer()
 
 
 @app.get("/")
@@ -55,11 +55,11 @@ async def root():
     """Health check endpoint"""
     return {
         "status": "Poker Vision Backend",
-        "version": "5.0.0",
+        "version": "6.0.0",
         "modes": {
-            "flash": "Gemini 2.0 Flash Experimental - Fast analysis",
-            "deep": "Gemini + Claude Hybrid - Advanced GTO strategy",
-            "preflop": "Gemini + Custom GTO Algorithm - Preflop-only decisions"
+            "preflop": "Preflop Mode - GTO ranges + structured preflop decisions",
+            "flop": "Flop Mode - Hand evaluator + position-aware flop strategy",
+            "tr": "Turn/River Mode - Mathematical pot odds + equity analysis"
         }
     }
 
@@ -79,8 +79,9 @@ async def analyze_image(
 ):
     """
     Analyze poker table image using selected mode:
-    - "flash": Fast analysis (Gemini 2.0 Flash) - Quick decisions
-    - "deep": Deep GTO analysis (Gemini 2.0 Pro) - Advanced strategy with position, stacks, VPIP
+    - "preflop": Preflop GTO analysis with optimized ranges
+    - "flop": Flop analysis with hand evaluator and position-aware strategy
+    - "tr": Turn/River mathematical analysis with pot odds and equity
     
     Returns: Complete poker analysis with recommendation
     """
@@ -91,12 +92,7 @@ async def analyze_image(
         image_data = await image.read()
         
         # Route to appropriate analyzer based on mode
-        if ai_mode == "odds" or ai_mode == "flash":
-            # ODDS MODE - Pot odds calculator
-            logger.info(f"📊 Using Odds mode (pot odds)")
-            result = flash_analyzer.analyze(image_data, hero_position=position, blinds=blinds)
-            
-        elif ai_mode == "flop":
+        if ai_mode == "flop":
             # FLOP MODE - Flop-only GTO analysis with preflop context
             logger.info(f"🎴 Using Flop mode - Hero: {hero_position}, Villain: {villain_position}, Preflop: {villain_action}")
             result = flop_analyzer.analyze(
@@ -119,10 +115,18 @@ async def analyze_image(
                 is_open_raise=is_open
             )
             
+        elif ai_mode == "tr":
+            # TURN/RIVER MODE - Mathematical pot odds analysis
+            logger.info(f"🎴 Using Turn/River mode - Blinds: {blinds}")
+            result = tr_analyzer.analyze(
+                image_data,
+                blinds=blinds
+            )
+            
         else:
             return {
                 "success": False,
-                "error": f"Invalid mode: {ai_mode}. Use 'flash', 'deep', or 'preflop'",
+                "error": f"Invalid mode: {ai_mode}. Use 'preflop', 'flop', or 'tr'",
                 "message": "Invalid analysis mode selected."
             }
         
@@ -136,24 +140,6 @@ async def analyze_image(
         
         extracted_data = result.get("extracted_data", {})
         recommendation = result.get("recommendation", {})
-        
-        # For Odds Mode only - check if hero's cards were extracted
-        if ai_mode == "odds" or ai_mode == "flash":
-            hero_cards = extracted_data.get("hero_cards", [])
-            if not hero_cards or len(hero_cards) == 0:
-                return {
-                    "success": False,
-                    "error": "Hero's cards not detected",
-                    "message": "❌ Failed to identify your hole cards. Please capture again with cards clearly visible."
-                }
-            
-            # Check if it's hero's turn
-            if not extracted_data.get("is_hero_turn", False):
-                return {
-                    "success": False,
-                    "hero_turn": False,
-                    "message": "Not hero's turn detected. Capture when action is on you."
-                }
         
         # Format for frontend
         action = recommendation.get("action", "Unknown")

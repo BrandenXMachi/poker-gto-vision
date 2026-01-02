@@ -31,7 +31,7 @@ export default function Home() {
   const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
   const [villainPositionPreflop, setVillainPositionPreflop] = useState<string>('UTG')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
-  const [aiMode, setAiMode] = useState<'odds' | 'flop' | 'preflop'>('preflop')
+  const [aiMode, setAiMode] = useState<'tr' | 'flop' | 'preflop'>('preflop')
   const [isOpenRaise, setIsOpenRaise] = useState<boolean>(false)
   
   // Flop Mode specific states
@@ -181,8 +181,8 @@ export default function Home() {
     }
   }
 
-  // Continue to Odds mode
-  const continueToOdds = () => {
+  // Continue to T/R mode
+  const continueToTR = () => {
     if (!action) return
     
     // Check if we folded - can't continue
@@ -191,10 +191,10 @@ export default function Home() {
       return
     }
     
-    setAiMode('odds')
+    setAiMode('tr')
     setCapturedImage('')
     setAction('')
-    setInheritedContext(null) // Odds mode doesn't use context
+    setInheritedContext(null) // T/R mode doesn't use context
     startCamera()
   }
 
@@ -447,21 +447,21 @@ export default function Home() {
                   <div className="text-xs opacity-75 mt-1">Flop GTO</div>
                 </button>
                 <button
-                  onClick={() => setAiMode('odds')}
+                  onClick={() => setAiMode('tr')}
                   className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
-                    aiMode === 'odds'
+                    aiMode === 'tr'
                       ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
                   <div className="text-2xl mb-1">📊</div>
-                  <div>Odds</div>
-                  <div className="text-xs opacity-75 mt-1">All Streets</div>
+                  <div>T/R</div>
+                  <div className="text-xs opacity-75 mt-1">Turn/River</div>
                 </button>
               </div>
               <p className="text-center text-sm text-gray-400 mt-3">
                 Selected: <span className="text-purple-400 font-bold capitalize">{aiMode}</span>
-                {aiMode === 'odds' && ' - 📊 Pot odds calculator'}
+                {aiMode === 'tr' && ' - 📊 Turn/River math'}
                 {aiMode === 'preflop' && ' - 🎯 Preflop GTO ranges'}
                 {aiMode === 'flop' && ' - 🎴 Flop GTO strategy'}
               </p>
@@ -478,11 +478,11 @@ export default function Home() {
             </div>
           )}
 
-          {/* Main recommendation display - Only for Odds Mode */}
-          {action && aiMode === 'odds' && (
+          {/* Main recommendation display - Only for T/R Mode */}
+          {action && aiMode === 'tr' && (
             <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 border-emerald-400/30 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 backdrop-blur">
               <div className="text-center mb-2">
-                <p className="text-sm font-semibold text-white/80 mb-2">📊 ODDS ANALYSIS</p>
+                <p className="text-sm font-semibold text-white/80 mb-2">📊 T/R ANALYSIS</p>
               </div>
               <div className="text-5xl font-extrabold text-center mb-8 drop-shadow-lg">
                 {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
@@ -655,13 +655,13 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Continue to Odds Button - Only show if not folding */}
+              {/* Continue to T/R Button - Only show if not folding */}
               {!action.toLowerCase().includes('fold') && (
                 <button
-                  onClick={continueToOdds}
+                  onClick={continueToTR}
                   className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
                 >
-                  <span>Continue to Odds</span>
+                  <span>Continue to T/R</span>
                   <span className="text-2xl">📊 →</span>
                 </button>
               )}
@@ -829,8 +829,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Blinds Selector - Show for Odds and Preflop Modes */}
-          {isCameraActive && !isAnalyzing && !capturedImage && (aiMode === 'odds' || aiMode === 'preflop') && (
+          {/* Blinds Selector - Show for T/R and Preflop Modes */}
+          {isCameraActive && !isAnalyzing && !capturedImage && (aiMode === 'tr' || aiMode === 'preflop') && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-blue-500/30 shadow-xl">
               <h3 className="text-center text-lg font-bold text-blue-400 mb-4">
                 💵 Select Blinds
@@ -856,14 +856,14 @@ export default function Home() {
             </div>
           )}
 
-          {/* Odds Mode: Simple Capture Button */}
-          {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'odds' && (
+          {/* T/R Mode: Simple Capture Button */}
+          {isCameraActive && !capturedImage && !isAnalyzing && aiMode === 'tr' && (
             <div className="mb-6">
               <button
                 onClick={() => captureAndAnalyze()}
                 className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
               >
-                📸 Capture & Analyze (Math Only)
+                📸 Capture & Analyze T/R
               </button>
             </div>
           )}
@@ -916,7 +916,7 @@ export default function Home() {
             {/* Analyzing overlay */}
             {isAnalyzing && (
               <div className={`absolute inset-0 backdrop-blur-sm flex items-center justify-center z-20 ${
-                aiMode === 'odds' 
+                aiMode === 'tr' 
                   ? 'bg-gradient-to-br from-emerald-900/95 to-teal-900/95'
                   : aiMode === 'preflop'
                   ? 'bg-gradient-to-br from-orange-900/95 to-amber-900/95'
@@ -924,13 +924,13 @@ export default function Home() {
               }`}>
                 <div className="text-center">
                   <div className={`w-20 h-20 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-6 ${
-                    aiMode === 'odds' ? 'border-emerald-400' : aiMode === 'preflop' ? 'border-orange-400' : 'border-purple-400'
+                    aiMode === 'tr' ? 'border-emerald-400' : aiMode === 'preflop' ? 'border-orange-400' : 'border-purple-400'
                   }`}></div>
                   <div className="text-2xl font-bold text-white drop-shadow-lg">
-                    {aiMode === 'odds' ? '📊 Odds Analysis...' : aiMode === 'preflop' ? '🎯 Preflop GTO...' : '🎴 Flop GTO Analysis...'}
+                    {aiMode === 'tr' ? '📊 T/R Analysis...' : aiMode === 'preflop' ? '🎯 Preflop GTO...' : '🎴 Flop GTO Analysis...'}
                   </div>
-                  <div className={`mt-2 ${aiMode === 'odds' ? 'text-emerald-300' : aiMode === 'preflop' ? 'text-orange-300' : 'text-purple-300'}`}>
-                    {aiMode === 'odds' ? 'Calculating pot odds...' : aiMode === 'preflop' ? 'Checking GTO ranges...' : 'Gemini extracting cards → Applying flop GTO strategy...'}
+                  <div className={`mt-2 ${aiMode === 'tr' ? 'text-emerald-300' : aiMode === 'preflop' ? 'text-orange-300' : 'text-purple-300'}`}>
+                    {aiMode === 'tr' ? 'Calculating pot odds...' : aiMode === 'preflop' ? 'Checking GTO ranges...' : 'Gemini extracting cards → Applying flop GTO strategy...'}
                   </div>
                 </div>
               </div>
