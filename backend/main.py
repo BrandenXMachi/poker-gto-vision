@@ -70,12 +70,16 @@ async def analyze_image(
     position: str = Form(None),
     blinds: str = Form("0.02/0.05"),
     ai_mode: str = Form("flash"),
-    # Deep Mode specific parameters
+    # Flop Mode specific parameters
     hero_position: str = Form(None),
     villain_position: str = Form(None),
     villain_action: str = Form(None),
     # Preflop Mode specific parameters
-    is_open_raise: str = Form("false")
+    is_open_raise: str = Form("false"),
+    # T/R Mode context from Flop (optional)
+    hero_cards: str = Form(None),
+    flop_cards: str = Form(None),
+    flop_action: str = Form(None)
 ):
     """
     Analyze poker table image using selected mode:
@@ -117,10 +121,34 @@ async def analyze_image(
             
         elif ai_mode == "tr":
             # TURN/RIVER MODE - Mathematical pot odds analysis
-            logger.info(f"🎴 Using Turn/River mode - Blinds: {blinds}")
+            # Parse context if provided from Flop mode
+            import json
+            hero_cards_list = None
+            flop_cards_list = None
+            
+            if hero_cards:
+                try:
+                    hero_cards_list = json.loads(hero_cards)
+                    logger.info(f"✅ Received hero cards from flop: {hero_cards_list}")
+                except:
+                    pass
+            
+            if flop_cards:
+                try:
+                    flop_cards_list = json.loads(flop_cards)
+                    logger.info(f"✅ Received flop cards: {flop_cards_list}")
+                except:
+                    pass
+            
+            logger.info(f"📊 Using Turn/River mode - Blinds: {blinds}, Has Context: {hero_cards_list is not None}")
             result = tr_analyzer.analyze(
                 image_data,
-                blinds=blinds
+                blinds=blinds,
+                hero_cards=hero_cards_list,
+                flop_cards=flop_cards_list,
+                hero_position=hero_position,
+                villain_position=villain_position,
+                flop_action=flop_action
             )
             
         else:

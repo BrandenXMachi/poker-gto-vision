@@ -318,7 +318,7 @@ class FlopGTOAnalyzer:
                     return {"action": "Bet 60% pot", "reasoning": "Strong in 3bet pot IP wet - protect"}
             
             elif hand_str == "medium":
-                return {"action": "Check back", "reasoning": "Medium in 3bet pot IP - too weak to bet, pot control"}
+                return {"action": "Check back, call limit 50% pot", "reasoning": "Medium in 3bet pot IP - check for pot control, call small bets up to 50% pot if villain bets"}
             
             elif hand_str == "draw":
                 if board == "wet":
@@ -327,7 +327,7 @@ class FlopGTOAnalyzer:
                     return {"action": "Check back", "reasoning": "Weak draw in 3bet pot IP - give up"}
             
             else:  # weak
-                return {"action": "Check back", "reasoning": "Weak in 3bet pot IP - check and fold to bet"}
+                return {"action": "Check back and fold to bet", "reasoning": "Weak in 3bet pot IP - check and fold to any bet"}
         
         else:  # OOP
             # Out of position after 3-betting - very cautious
@@ -338,7 +338,7 @@ class FlopGTOAnalyzer:
                 return {"action": "Check-call limit 75% pot", "reasoning": "Strong in 3bet pot OOP - check-call cautiously"}
             
             elif hand_str == "medium":
-                return {"action": "Check-fold", "reasoning": "Medium in 3bet pot OOP - too weak vs villain's strong range"}
+                return {"action": "Check-call limit 40% pot", "reasoning": "Medium in 3bet pot OOP - call small bets only (villain has strong range, be cautious)"}
             
             elif hand_str == "draw":
                 return {"action": "Check-raise 3.5x (nut draws only)", "reasoning": "Nut draw in 3bet pot OOP - aggressive check-raise"}
@@ -348,6 +348,8 @@ class FlopGTOAnalyzer:
     
     def _villain_3bet_hero_called(self, hero_pos: str, villain_range: str, hand_str: str, board: str) -> Dict[str, Any]:
         """Hero's range is capped - villain 3-bet and hero called"""
+        
+        early_position = (villain_range == "early")
         
         if hero_pos == "IP":
             if hand_str == "monster":
@@ -363,7 +365,10 @@ class FlopGTOAnalyzer:
                     return {"action": "Check-call small bets only", "reasoning": "Strong vs 3bet wet - check-call small"}
             
             elif hand_str == "medium":
-                return {"action": "Check-call small bets (≤40% pot)", "reasoning": "Medium vs 3bet - only call very small"}
+                if early_position:
+                    return {"action": "Check-call limit 40% pot", "reasoning": "Medium vs 3bet IP (early) - call small bets only (villain has tight 3-bet range)"}
+                else:
+                    return {"action": "Check-call limit 50% pot", "reasoning": "Medium vs 3bet IP (late) - call up to 50% pot (wider 3-bet range)"}
             
             elif hand_str == "draw":
                 return {"action": "Check-call", "reasoning": "Draw vs 3bet - check-call"}
@@ -379,7 +384,7 @@ class FlopGTOAnalyzer:
                 return {"action": "Check-call limit 60% pot", "reasoning": "Strong vs 3bet OOP - check-call tight"}
             
             elif hand_str == "medium":
-                return {"action": "Check-fold", "reasoning": "Medium vs 3bet OOP - too weak"}
+                return {"action": "Check-call limit 33% pot", "reasoning": "Medium vs 3bet OOP - call very small bets only (fold to anything > 33% pot)"}
             
             elif hand_str == "draw":
                 return {"action": "Check-raise 4x villain bet", "reasoning": "Strong draw vs 3bet OOP - check-raise combo"}
@@ -405,9 +410,9 @@ class FlopGTOAnalyzer:
             
             elif hand_str == "medium":
                 if early_position:
-                    return {"action": "Check-fold", "reasoning": "Medium vs early open OOP - fold"}
+                    return {"action": "Check-call limit 33% pot", "reasoning": "Medium vs early open OOP - call small bets only (fold to bets > 33% pot)"}
                 else:
-                    return {"action": "Check-call limit 33% pot", "reasoning": "Medium vs late open OOP - call small only"}
+                    return {"action": "Check-call limit 50% pot", "reasoning": "Medium vs late open OOP - call up to 50% pot bets"}
             
             elif hand_str == "draw":
                 return {"action": "Check-raise 3x villain bet", "reasoning": "Draw vs open OOP - semi-bluff check-raise"}
@@ -427,9 +432,15 @@ class FlopGTOAnalyzer:
             
             elif hand_str == "medium":
                 if early_position:
-                    return {"action": "Fold", "reasoning": "Medium vs early open IP - fold"}
+                    if board == "dry":
+                        return {"action": "Call limit 50% pot", "reasoning": "Medium vs early open IP dry - call up to 50% pot (you have position + reasonable equity)"}
+                    else:
+                        return {"action": "Call limit 40% pot", "reasoning": "Medium vs early open IP wet - call up to 40% pot (more draws in villain range)"}
                 else:
-                    return {"action": "Float (call)", "reasoning": "Medium vs late open IP - float"}
+                    if board == "dry":
+                        return {"action": "Call limit 75% pot", "reasoning": "Medium vs late open IP dry - call up to 75% pot (villain has wide range)"}
+                    else:
+                        return {"action": "Call limit 60% pot", "reasoning": "Medium vs late open IP wet - call up to 60% pot"}
             
             elif hand_str == "draw":
                 if board == "wet" and not early_position:

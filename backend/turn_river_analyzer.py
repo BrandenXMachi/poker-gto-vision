@@ -69,13 +69,50 @@ class TurnRiverAnalyzer:
         self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
         logger.info("✅ Turn/River Analyzer initialized")
     
-    def analyze(self, image_data: bytes, blinds: str = "0.02/0.05") -> Dict[str, Any]:
+    def _build_partial_prompt(self):
+        """Build simplified Gemini prompt when hero cards + flop already known"""
+        return """You are analyzing a poker table for TURN or RIVER.
+
+We ALREADY KNOW the hero's 2 hole cards and the 3 flop cards.
+
+## EXTRACT ONLY:
+
+1. **NEW CARD(S)**: The turn card (1 card) OR turn+river cards (2 cards)
+   - DO NOT extract hero cards or flop cards - we already have them
+   - Format: "Rank of Suit" (e.g., "8 of Diamonds")
+   - For turn: extract 1 new card
+   - For river: extract 2 new cards (turn + river)
+
+2. **POT SIZE**: Look for "Total Pot: $X.XX" or "Pot: $X.XX"
+
+3. **CALL AMOUNT**: Look at "Call $X.XX" button
+   - If checked to you, use "$0.00"
+
+Output JSON:
+{
+  "success": true,
+  "new_cards": ["8 of Diamonds"],
+  "pot_size": "$10.50",
+  "call_amount": "$5.00"
+}
+
+**IMPORTANT:** Only extract NEW board cards (1-2 cards), not all cards."""
+    
+    def analyze(self, image_data: bytes, blinds: str = "0.02/0.05",
+                hero_cards: List[str] = None, flop_cards: List[str] = None,
+                hero_position: str = None, villain_position: str = None,
+                flop_action: str = None) -> Dict[str, Any]:
         """
         Analyze turn or river situation
         
         Args:
             image_data: Raw image bytes
             blinds: Blind structure
+            hero_cards: Optional - Hero's 2 cards from Flop mode
+            flop_cards: Optional - 3 flop cards from Flop mode
+            hero_position: Optional - IP/OOP from Flop mode
+            villain_position: Optional - Villain position from Flop mode
+            flop_action: Optional - Flop action context
             
         Returns:
             Complete analysis with recommendation
@@ -87,7 +124,8 @@ class TurnRiverAnalyzer:
             }
         
         try:
-            logger.info(f"🎴 Turn/River Mode analyzing... Blinds: {blinds}")
+            has_context = hero_cards is not None and flop_cards is not None
+            logger.info(f"🎴 Turn/River Mode analyzing... Blinds: {blinds}, Has Context: {has_context}")
             
             # Extract BB size
             sb_str, bb_str = blinds.split("/")
@@ -95,7 +133,14 @@ class TurnRiverAnalyzer:
             
             # STEP 1: Gemini extracts visual data
             image = Image.open(BytesIO(image_data))
-            prompt = build_gemini_tr_prompt()
+            
+            # Use simplified prompt if we have context from Flop
+            if has_context:
+                prompt = self._build_partial_prompt()
+                logger.info("✅ Using partial extraction (turn/river card + pot/call only)")
+            else:
+                prompt = build_gemini_tr_prompt()
+                logger.info("📊 Using full extraction (all cards + pot/call)")
             
             response = self.model.generate_content([prompt, image])
             result_text = response.text.strip()
@@ -112,36 +157,47 @@ class TurnRiverAnalyzer:
             if not extracted.get("success"):
                 return {"success": False, "error": "Failed to extract visual data"}
             
-            hero_cards = extracted.get("hero_cards", [])
-            board_cards = extracted.get("board_cards", [])
+            # Handle partial vs full extraction
+            if has_context:
+                # Partial extraction - combine known cards with new cards
+                final_hero_cards = hero_cards  # Use provided hero cards
+                new_cards = extracted.get("new_cards", [])
+                final_board_cards = flop_cards + new_cards  # Combine flop + turn/river
+                
+                logger.info(f"✅ Combined cards: Hero={final_hero_cards}, Flop={flop_cards}, New={new_cards}, Total Board={final_board_cards}")
+            else:
+                # Full extraction - use extracted cards
+                final_hero_cards = extracted.get("hero_cards", [])
+                final_board_cards = extracted.get("board_cards", [])
+            
             pot_size_str = extracted.get("pot_size", "$0")
             call_amount_str = extracted.get("call_amount", "$0")
             
             # Validate
-            if len(hero_cards) != 2:
+            if len(final_hero_cards) != 2:
                 return {"success": False, "error": "Could not detect 2 hero cards"}
             
-            if len(board_cards) not in [4, 5]:
-                return {"success": False, "error": f"Invalid board size: {len(board_cards)} cards (need 4 or 5)"}
+            if len(final_board_cards) not in [4, 5]:
+                return {"success": False, "error": f"Invalid board size: {len(final_board_cards)} cards (need 4 or 5)"}
             
             # Parse amounts
             pot_size = float(pot_size_str.replace("$", ""))
             call_amount = float(call_amount_str.replace("$", ""))
             
-            logger.info(f"✅ Extracted: Hero={hero_cards}, Board={board_cards}, Pot=${pot_size}, Call=${call_amount}")
+            logger.info(f"✅ Extracted: Hero={final_hero_cards}, Board={final_board_cards}, Pot=${pot_size}, Call=${call_amount}")
             
             # STEP 2: Detect street
-            street = "turn" if len(board_cards) == 4 else "river"
+            street = "turn" if len(final_board_cards) == 4 else "river"
             logger.info(f"📊 Detected street: {street.upper()}")
             
             # STEP 3: Evaluate hand
-            evaluation = evaluate_hand(hero_cards, board_cards)
+            evaluation = evaluate_hand(final_hero_cards, final_board_cards)
             
             # STEP 4: Calculate bet sizing category (pot-relative AND BB-relative)
             bet_category, bet_size_bb = self._classify_bet_size(pot_size, call_amount, bb_size)
             
             # STEP 5: Count outs (turn only)
-            outs, draw_types = self._count_outs(hero_cards, board_cards, evaluation, street)
+            outs, draw_types = self._count_outs(final_hero_cards, final_board_cards, evaluation, street)
             
             # STEP 6: Calculate equity
             equity = self._calculate_equity(street, outs, evaluation.strength, evaluation)
@@ -160,7 +216,7 @@ class TurnRiverAnalyzer:
                 equity=equity,
                 pot_odds=pot_odds,
                 bet_category=bet_category,
-                board_cards=board_cards
+                board_cards=final_board_cards
             )
             
             logger.info(f"✅ Decision: {decision['action']}")
@@ -168,8 +224,8 @@ class TurnRiverAnalyzer:
             return {
                 "success": True,
                 "extracted_data": {
-                    "hero_cards": hero_cards,
-                    "board_cards": board_cards,
+                    "hero_cards": final_hero_cards,
+                    "board_cards": final_board_cards,
                     "pot_size": pot_size_str,
                     "call_amount": call_amount_str,
                     "bet_size_bb": f"{bet_size_bb:.1f} BB",

@@ -44,8 +44,12 @@ export default function Home() {
     fromMode: string
     heroPosition: string
     villainPosition: string
-    preflopAction: string
-    preflopRecommendation: string
+    preflopAction?: string
+    preflopRecommendation?: string
+    heroCards?: string[]
+    flopCards?: string[]
+    flopAction?: string
+    flopRecommendation?: string
   } | null>(null)
   
   // Main display info
@@ -181,7 +185,7 @@ export default function Home() {
     }
   }
 
-  // Continue to T/R mode
+  // Continue to T/R mode with context from Flop
   const continueToTR = () => {
     if (!action) return
     
@@ -191,10 +195,23 @@ export default function Home() {
       return
     }
     
+    // Pass flop context to T/R mode
+    const contextData = {
+      fromMode: 'flop',
+      heroPosition: flopHeroPosition,  // "IP" or "OOP"
+      villainPosition: flopVillainPosition,
+      heroCards: heroCards,  // Save hero's 2 cards from flop
+      flopCards: boardCards.slice(0, 3),  // Save first 3 board cards (flop only)
+      flopAction: flopPreflopAction,
+      flopRecommendation: action
+    }
+    
+    console.log('📋 Passing context to T/R:', contextData)
+    
+    setInheritedContext(contextData)
     setAiMode('tr')
     setCapturedImage('')
     setAction('')
-    setInheritedContext(null) // T/R mode doesn't use context
     startCamera()
   }
 
@@ -330,6 +347,30 @@ export default function Home() {
         formData.append('villain_position', isOpenRaise ? 'NONE' : villainPositionPreflop)
         formData.append('blinds', selectedBlinds)
         formData.append('is_open_raise', isOpenRaise ? 'true' : 'false')
+      } else if (aiMode === 'tr') {
+        // T/R Mode - pass blinds and context if available
+        formData.append('blinds', selectedBlinds)
+        
+        // If we have context from flop, pass the known cards and positional info
+        if (inheritedContext && inheritedContext.fromMode === 'flop') {
+          if (inheritedContext.heroCards && inheritedContext.heroCards.length === 2) {
+            formData.append('hero_cards', JSON.stringify(inheritedContext.heroCards))
+            console.log('✅ Passing hero cards from flop:', inheritedContext.heroCards)
+          }
+          if (inheritedContext.flopCards && inheritedContext.flopCards.length === 3) {
+            formData.append('flop_cards', JSON.stringify(inheritedContext.flopCards))
+            console.log('✅ Passing flop cards:', inheritedContext.flopCards)
+          }
+          if (inheritedContext.heroPosition) {
+            formData.append('hero_position', inheritedContext.heroPosition)
+          }
+          if (inheritedContext.villainPosition) {
+            formData.append('villain_position', inheritedContext.villainPosition)
+          }
+          if (inheritedContext.flopAction) {
+            formData.append('flop_action', inheritedContext.flopAction)
+          }
+        }
       } else {
         // Flash Mode
         formData.append('position', positionToUse)
@@ -668,8 +709,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Context Indicator - Show when flop mode has inherited context */}
-          {isCameraActive && !capturedImage && aiMode === 'flop' && inheritedContext && (
+          {/* Context Indicator - Show when flop mode has inherited context from Preflop */}
+          {isCameraActive && !capturedImage && aiMode === 'flop' && inheritedContext && inheritedContext.fromMode === 'preflop' && (
             <div className="mb-6 bg-gradient-to-r from-blue-600 to-purple-600 p-5 rounded-2xl border-2 border-blue-400/30 shadow-xl">
               <div className="flex items-center justify-between">
                 <div>
@@ -678,8 +719,41 @@ export default function Home() {
                   </h3>
                   <div className="text-sm text-white/90 space-y-1">
                     <p>• Position: <span className="font-bold">{inheritedContext.heroPosition}</span> vs Villain at <span className="font-bold">{inheritedContext.villainPosition}</span></p>
-                    <p>• Action: <span className="font-bold capitalize">{inheritedContext.preflopAction.replace(/_/g, ' ')}</span></p>
-                    <p>• You {inheritedContext.preflopRecommendation}</p>
+                    {inheritedContext.preflopAction && (
+                      <p>• Action: <span className="font-bold capitalize">{inheritedContext.preflopAction.replace(/_/g, ' ')}</span></p>
+                    )}
+                    {inheritedContext.preflopRecommendation && (
+                      <p>• You {inheritedContext.preflopRecommendation}</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={resetToManualInput}
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg font-bold text-sm transition-all"
+                >
+                  ⚙️ Manual Input
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Context Indicator - Show when T/R mode has inherited context from Flop */}
+          {isCameraActive && !capturedImage && aiMode === 'tr' && inheritedContext && inheritedContext.fromMode === 'flop' && (
+            <div className="mb-6 bg-gradient-to-r from-emerald-600 to-teal-600 p-5 rounded-2xl border-2 border-emerald-400/30 shadow-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-white mb-2">
+                    📋 Cards from Flop Analysis
+                  </h3>
+                  <div className="text-sm text-white/90 space-y-1">
+                    {inheritedContext.heroCards && inheritedContext.heroCards.length === 2 && (
+                      <p>• Your Hand: <span className="font-bold">{inheritedContext.heroCards.join(' ')}</span></p>
+                    )}
+                    {inheritedContext.flopCards && inheritedContext.flopCards.length === 3 && (
+                      <p>• Flop: <span className="font-bold">{inheritedContext.flopCards.join(' ')}</span></p>
+                    )}
+                    <p>• Position: <span className="font-bold">{inheritedContext.heroPosition}</span> vs <span className="font-bold">{inheritedContext.villainPosition}</span></p>
+                    <p className="text-xs opacity-75 mt-2">Gemini will only identify turn/river card + pot/call amounts</p>
                   </div>
                 </div>
                 <button
