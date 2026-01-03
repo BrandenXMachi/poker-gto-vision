@@ -168,6 +168,7 @@ async def analyze_image(
         
         extracted_data = result.get("extracted_data", {})
         recommendation = result.get("recommendation", {})
+        analysis = result.get("analysis", {})  # T/R mode puts metrics here!
         
         # Format for frontend
         action = recommendation.get("action", "Unknown")
@@ -192,13 +193,14 @@ async def analyze_image(
             "extracted_data": extracted_data,
             
             # Main display - 5 decision metrics
+            # T/R mode stores metrics in analysis, other modes in recommendation
             "recommendation": {
                 "action": action,
-                "pot_odds": recommendation.get("pot_odds", {}).get("value", recommendation.get("pot_odds", "N/A")) if isinstance(recommendation.get("pot_odds"), dict) else recommendation.get("pot_odds", "N/A"),
-                "hand_equity": recommendation.get("hand_equity", {}).get("value", recommendation.get("hand_equity", "N/A")) if isinstance(recommendation.get("hand_equity"), dict) else recommendation.get("hand_equity", "N/A"),
-                "implied_odds": recommendation.get("implied_odds", {}).get("value", recommendation.get("implied_odds", "N/A")) if isinstance(recommendation.get("implied_odds"), dict) else recommendation.get("implied_odds", "N/A"),
-                "fold_equity": recommendation.get("fold_equity", {}).get("value", recommendation.get("fold_equity", "N/A")) if isinstance(recommendation.get("fold_equity"), dict) else recommendation.get("fold_equity", "N/A"),
-                "expected_value": recommendation.get("expected_value", {}).get("value", recommendation.get("expected_value", "N/A")) if isinstance(recommendation.get("expected_value"), dict) else recommendation.get("expected_value", "N/A"),
+                "pot_odds": analysis.get("pot_odds", {}).get("percent", "N/A") if analysis.get("pot_odds") else recommendation.get("pot_odds", "N/A"),
+                "hand_equity": analysis.get("equity", {}).get("value", "N/A") if analysis.get("equity") else recommendation.get("hand_equity", "N/A"),
+                "implied_odds": recommendation.get("implied_odds", "N/A"),  # Not in T/R mode
+                "fold_equity": recommendation.get("fold_equity", "N/A"),  # Not in T/R mode
+                "expected_value": analysis.get("expected_value", {}).get("value", "N/A") if analysis.get("expected_value") else recommendation.get("expected_value", "N/A"),
                 "pot_size": f"{pot_bb:.1f} BB",
                 "position": extracted_data.get("hero_position", position),
                 "reasoning": reasoning
@@ -224,11 +226,11 @@ async def analyze_image(
                     for pos, data in extracted_data.get("villain_positions", {}).items()
                     if not data.get("has_folded", False)
                 },
-                "pot_odds": recommendation.get("pot_odds", {}),
-                "hand_equity": recommendation.get("hand_equity", {}),
+                "pot_odds": analysis.get("pot_odds", {}) if analysis.get("pot_odds") else recommendation.get("pot_odds", {}),
+                "hand_equity": analysis.get("equity", {}) if analysis.get("equity") else recommendation.get("hand_equity", {}),
                 "implied_odds": recommendation.get("implied_odds", {}),
                 "fold_equity": recommendation.get("fold_equity", {}),
-                "expected_value": recommendation.get("expected_value", {}),
+                "expected_value": analysis.get("expected_value", {}) if analysis.get("expected_value") else recommendation.get("expected_value", {}),
                 "optimal_play": recommendation.get("optimal_play", reasoning),
                 "gto_frequency": recommendation.get("gto_frequency", ""),
                 "range_advantage": recommendation.get("range_advantage", ""),
