@@ -341,25 +341,27 @@ Output JSON:
         """
         Calculate hand equity vs single opponent
         Different calculation for turn vs river
+        
+        FIXED: When you have outs, use ONLY draw equity (not max of draw vs showdown)
+        Example: 4-out gutshot = 8.7% equity, even if classified as "weak" hand
         """
         if street == "turn":
-            # Turn equity = draw equity + made hand equity
-            draw_equity = (outs / 46) * 100 if outs > 0 else 0
+            # If we have outs, use draw equity (probability of hitting on river)
+            if outs > 0:
+                draw_equity = (outs / 46) * 100
+                return draw_equity  # This is our real equity - hitting the draw
             
-            # Made hand base equity (vs unknown opponent)
+            # If no outs, use showdown equity based on made hand strength
             if hand_strength == "monster":
-                made_equity = 85
+                return 85
             elif hand_strength == "strong":
-                made_equity = 70
+                return 70
             elif hand_strength == "medium":
-                made_equity = 50
+                return 50
             elif hand_strength == "weak":
-                made_equity = 30
+                return 20  # Weak made hand has very limited showdown value
             else:  # air
-                made_equity = 10
-            
-            # Use higher of draw or made hand equity
-            return max(draw_equity, made_equity)
+                return 10
         
         else:  # river
             # No more draws - pure showdown equity
