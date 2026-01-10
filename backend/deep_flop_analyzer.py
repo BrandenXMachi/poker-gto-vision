@@ -122,8 +122,31 @@ class DeepFlopAnalyzer:
     """Deep flop analysis using Gemini 3.0 Flash - Two-stage processing"""
     
     def __init__(self):
-        """Initialize Gemini 3.0 Flash model"""
-        self.model = genai.GenerativeModel('gemini-3-flash-preview')
+        """Initialize Gemini 3.0 Flash model with safety settings"""
+        # Configure safety settings to allow poker content
+        safety_settings = [
+            {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_NONE"
+            },
+            {
+                "category": "HARM_CATEGORY_HATE_SPEECH",
+                "threshold": "BLOCK_NONE"
+            },
+            {
+                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "BLOCK_NONE"
+            },
+            {
+                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "threshold": "BLOCK_NONE"
+            }
+        ]
+        
+        self.model = genai.GenerativeModel(
+            'gemini-3-flash-preview',
+            safety_settings=safety_settings
+        )
         logger.info("✅ Deep Flop Analyzer initialized (Gemini 3.0 Flash Preview)")
     
     def analyze(
