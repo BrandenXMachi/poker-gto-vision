@@ -94,7 +94,7 @@ STRATEGIC_ANALYSIS_PROMPT = """You are a professional poker GTO strategist. Anal
    - Explain WHY this is optimal
 
 **OUTPUT FORMAT (JSON ONLY):**
-{
+{{
   "game_summary": "$0.02/$0.05 (6 player holdem game)",
   "hero_summary": "in position with Ace of spades and King of spades",
   "board_summary": "3 of spades, 7 of spades and K of diamonds",
@@ -106,7 +106,7 @@ STRATEGIC_ANALYSIS_PROMPT = """You are a professional poker GTO strategist. Anal
   "ev_call": "+$0.85" or "N/A",
   "optimal_strategy": "RAISE 100% of pot",
   "reasoning": "Detailed explanation of why this strategy is optimal based on hand strength, position, pot odds, equity, and EV"
-}
+}}
 
 **IMPORTANT RULES:**
 - Use exact card names from input (e.g., "Ace of spades" not "A♠")
