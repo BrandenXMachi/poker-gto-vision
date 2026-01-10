@@ -122,8 +122,8 @@ class DeepFlopAnalyzer:
     
     def __init__(self):
         """Initialize Gemini 3.0 Flash model"""
-        self.model = genai.GenerativeModel('gemini-3-flash')
-        logger.info("✅ Deep Flop Analyzer initialized (Gemini 3.0 Flash)")
+        self.model = genai.GenerativeModel('gemini-3-flash-preview')
+        logger.info("✅ Deep Flop Analyzer initialized (Gemini 3.0 Flash Preview)")
     
     def analyze(
         self,
