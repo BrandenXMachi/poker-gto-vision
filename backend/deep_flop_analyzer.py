@@ -7,6 +7,7 @@ Flop-only mode with comprehensive GTO analysis
 import os
 import json
 import logging
+import re
 from typing import Dict, Any
 import google.generativeai as genai
 from PIL import Image
@@ -163,19 +164,15 @@ class DeepFlopAnalyzer:
             image = Image.open(BytesIO(image_data))
             
             response_stage1 = self.model.generate_content([VISUAL_EXTRACTION_PROMPT, image])
-            extraction_text = response_stage1.text.strip()
+            raw_text = response_stage1.text
             
-            # Remove markdown if present - be more aggressive
-            if "```json" in extraction_text:
-                extraction_text = extraction_text.split("```json")[1].split("```")[0]
-            elif "```" in extraction_text:
-                extraction_text = extraction_text.split("```")[1].split("```")[0]
-            
-            # Clean up the text - remove literal \n strings and extra whitespace
-            extraction_text = extraction_text.replace("\\n", " ").strip()
-            # Remove any leading newlines or whitespace
-            while extraction_text and extraction_text[0] in ['\n', '\r', ' ', '\t']:
-                extraction_text = extraction_text[1:]
+            # Find JSON by looking for { and } brackets
+            match = re.search(r'\{[^{}]*\}', raw_text, re.DOTALL)
+            if match:
+                extraction_text = match.group(0)
+            else:
+                # Fallback to original text cleaning
+                extraction_text = raw_text.strip()
             
             extracted_data = json.loads(extraction_text)
             
@@ -213,19 +210,15 @@ class DeepFlopAnalyzer:
             )
             
             response_stage2 = self.model.generate_content(analysis_prompt)
-            analysis_text = response_stage2.text.strip()
+            raw_text = response_stage2.text
             
-            # Remove markdown if present - be more aggressive
-            if "```json" in analysis_text:
-                analysis_text = analysis_text.split("```json")[1].split("```")[0]
-            elif "```" in analysis_text:
-                analysis_text = analysis_text.split("```")[1].split("```")[0]
-            
-            # Clean up the text - remove literal \n strings and extra whitespace
-            analysis_text = analysis_text.replace("\\n", " ").strip()
-            # Remove any leading newlines or whitespace
-            while analysis_text and analysis_text[0] in ['\n', '\r', ' ', '\t']:
-                analysis_text = analysis_text[1:]
+            # Find JSON by looking for { and } brackets with nested support
+            match = re.search(r'\{(?:[^{}]|(?:\{[^{}]*\}))*\}', raw_text, re.DOTALL)
+            if match:
+                analysis_text = match.group(0)
+            else:
+                # Fallback to original text cleaning
+                analysis_text = raw_text.strip()
             
             analysis = json.loads(analysis_text)
             
