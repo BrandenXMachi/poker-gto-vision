@@ -166,14 +166,16 @@ class DeepFlopAnalyzer:
             response_stage1 = self.model.generate_content([VISUAL_EXTRACTION_PROMPT, image])
             raw_text = response_stage1.text
             
-            # Find JSON by looking for { and } brackets
-            match = re.search(r'\{[^{}]*\}', raw_text, re.DOTALL)
-            if match:
-                extraction_text = match.group(0)
+            # Find JSON by locating first { and last }
+            first_brace = raw_text.find('{')
+            last_brace = raw_text.rfind('}')
+            
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                extraction_text = raw_text[first_brace:last_brace+1]
             else:
-                # Fallback to original text cleaning
                 extraction_text = raw_text.strip()
             
+            logger.info(f"Extracted text for parsing: {extraction_text[:200]}...")
             extracted_data = json.loads(extraction_text)
             
             logger.info(f"✅ Stage 1 complete: {extracted_data}")
@@ -212,14 +214,16 @@ class DeepFlopAnalyzer:
             response_stage2 = self.model.generate_content(analysis_prompt)
             raw_text = response_stage2.text
             
-            # Find JSON by looking for { and } brackets with nested support
-            match = re.search(r'\{(?:[^{}]|(?:\{[^{}]*\}))*\}', raw_text, re.DOTALL)
-            if match:
-                analysis_text = match.group(0)
+            # Find JSON by locating first { and last }
+            first_brace = raw_text.find('{')
+            last_brace = raw_text.rfind('}')
+            
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                analysis_text = raw_text[first_brace:last_brace+1]
             else:
-                # Fallback to original text cleaning
                 analysis_text = raw_text.strip()
             
+            logger.info(f"Extracted analysis for parsing: {analysis_text[:200]}...")
             analysis = json.loads(analysis_text)
             
             logger.info(f"✅ Stage 2 complete: {analysis.get('optimal_strategy', 'Unknown')}")
