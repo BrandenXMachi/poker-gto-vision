@@ -171,7 +171,12 @@ class DeepFlopAnalyzer:
             elif "```" in extraction_text:
                 extraction_text = extraction_text.split("```")[1].split("```")[0]
             
-            extraction_text = extraction_text.strip()
+            # Clean up the text - remove literal \n strings and extra whitespace
+            extraction_text = extraction_text.replace("\\n", " ").strip()
+            # Remove any leading newlines or whitespace
+            while extraction_text and extraction_text[0] in ['\n', '\r', ' ', '\t']:
+                extraction_text = extraction_text[1:]
+            
             extracted_data = json.loads(extraction_text)
             
             logger.info(f"✅ Stage 1 complete: {extracted_data}")
@@ -216,7 +221,12 @@ class DeepFlopAnalyzer:
             elif "```" in analysis_text:
                 analysis_text = analysis_text.split("```")[1].split("```")[0]
             
-            analysis_text = analysis_text.strip()
+            # Clean up the text - remove literal \n strings and extra whitespace
+            analysis_text = analysis_text.replace("\\n", " ").strip()
+            # Remove any leading newlines or whitespace
+            while analysis_text and analysis_text[0] in ['\n', '\r', ' ', '\t']:
+                analysis_text = analysis_text[1:]
+            
             analysis = json.loads(analysis_text)
             
             logger.info(f"✅ Stage 2 complete: {analysis.get('optimal_strategy', 'Unknown')}")
