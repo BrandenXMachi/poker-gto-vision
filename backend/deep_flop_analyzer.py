@@ -165,13 +165,11 @@ class DeepFlopAnalyzer:
             response_stage1 = self.model.generate_content([VISUAL_EXTRACTION_PROMPT, image])
             extraction_text = response_stage1.text.strip()
             
-            # Remove markdown if present
-            if extraction_text.startswith("```json"):
-                extraction_text = extraction_text[7:]
-            if extraction_text.startswith("```"):
-                extraction_text = extraction_text[3:]
-            if extraction_text.endswith("```"):
-                extraction_text = extraction_text[:-3]
+            # Remove markdown if present - be more aggressive
+            if "```json" in extraction_text:
+                extraction_text = extraction_text.split("```json")[1].split("```")[0]
+            elif "```" in extraction_text:
+                extraction_text = extraction_text.split("```")[1].split("```")[0]
             
             extraction_text = extraction_text.strip()
             extracted_data = json.loads(extraction_text)
@@ -212,13 +210,11 @@ class DeepFlopAnalyzer:
             response_stage2 = self.model.generate_content(analysis_prompt)
             analysis_text = response_stage2.text.strip()
             
-            # Remove markdown if present
-            if analysis_text.startswith("```json"):
-                analysis_text = analysis_text[7:]
-            if analysis_text.startswith("```"):
-                analysis_text = analysis_text[3:]
-            if analysis_text.endswith("```"):
-                analysis_text = analysis_text[:-3]
+            # Remove markdown if present - be more aggressive
+            if "```json" in analysis_text:
+                analysis_text = analysis_text.split("```json")[1].split("```")[0]
+            elif "```" in analysis_text:
+                analysis_text = analysis_text.split("```")[1].split("```")[0]
             
             analysis_text = analysis_text.strip()
             analysis = json.loads(analysis_text)
@@ -246,9 +242,10 @@ class DeepFlopAnalyzer:
             
         except json.JSONDecodeError as e:
             logger.error(f"❌ Failed to parse Gemini response: {e}")
+            logger.error(f"Raw response text: {response_stage2.text if 'response_stage2' in locals() else response_stage1.text}")
             return {
                 "success": False,
-                "error": "Failed to parse analysis response"
+                "error": f"Failed to parse analysis response: {str(e)}"
             }
             
         except Exception as e:
