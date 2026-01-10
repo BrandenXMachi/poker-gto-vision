@@ -31,8 +31,13 @@ export default function Home() {
   const [selectedBlinds, setSelectedBlinds] = useState<string>('0.02/0.05')
   const [villainPositionPreflop, setVillainPositionPreflop] = useState<string>('UTG')
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
-  const [aiMode, setAiMode] = useState<'tr' | 'flop' | 'preflop'>('preflop')
+  const [aiMode, setAiMode] = useState<'tr' | 'flop' | 'preflop' | 'deep'>('preflop')
   const [isOpenRaise, setIsOpenRaise] = useState<boolean>(false)
+  
+  // Deep Mode specific states
+  const [deepHeroPosition, setDeepHeroPosition] = useState<string>('IP')  // "IP" or "OOP"
+  const [deepVillainPosition, setDeepVillainPosition] = useState<string>('BTN')
+  const [deepPreflopPotType, setDeepPreflopPotType] = useState<string>('open_raise')  // "open_raise", "3bet", "4bet"
   
   // Flop Mode specific states
   const [flopHeroPosition, setFlopHeroPosition] = useState<string>('IP')  // "IP" or "OOP"
@@ -335,6 +340,12 @@ export default function Home() {
         formData.append('villain_position', isOpenRaise ? 'NONE' : villainPositionPreflop)
         formData.append('blinds', selectedBlinds)
         formData.append('is_open_raise', isOpenRaise ? 'true' : 'false')
+      } else if (aiMode === 'deep') {
+        // Deep Mode - pass manual inputs for Gemini 3.0
+        formData.append('hero_position', deepHeroPosition)  // "IP" or "OOP"
+        formData.append('villain_position', deepVillainPosition)  // "UTG", "MP", etc.
+        formData.append('preflop_pot_type', deepPreflopPotType)  // "open_raise", "3bet", "4bet"
+        formData.append('blinds', selectedBlinds)
       } else if (aiMode === 'tr') {
         // T/R Mode - pass blinds and context if available
         formData.append('blinds', selectedBlinds)
@@ -462,7 +473,7 @@ export default function Home() {
               <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
                 🎯 Analysis Mode
               </h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 <button
                   onClick={() => setAiMode('preflop')}
                   className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
@@ -488,6 +499,18 @@ export default function Home() {
                   <div className="text-xs opacity-75 mt-1">Flop GTO</div>
                 </button>
                 <button
+                  onClick={() => setAiMode('deep')}
+                  className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
+                    aiMode === 'deep'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg scale-105'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">🧠</div>
+                  <div>Deep</div>
+                  <div className="text-xs opacity-75 mt-1">Gemini 3.0</div>
+                </button>
+                <button
                   onClick={() => setAiMode('tr')}
                   className={`py-4 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 ${
                     aiMode === 'tr'
@@ -505,6 +528,7 @@ export default function Home() {
                 {aiMode === 'tr' && ' - 📊 Turn/River math'}
                 {aiMode === 'preflop' && ' - 🎯 Preflop GTO ranges'}
                 {aiMode === 'flop' && ' - 🎴 Flop GTO strategy'}
+                {aiMode === 'deep' && ' - 🧠 Gemini 3.0 Flash deep analysis'}
               </p>
             </div>
           )}
@@ -617,6 +641,25 @@ export default function Home() {
                   💡 Continue anyway to see flop analysis (assumes action checks through)
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Main recommendation display - For Deep Mode */}
+          {action && aiMode === 'deep' && (
+            <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 border-blue-400/30 text-white p-8 rounded-2xl mb-6 shadow-2xl border-2 backdrop-blur">
+              <div className="text-center mb-2">
+                <p className="text-sm font-semibold text-white/80 mb-2">🧠 DEEP ANALYSIS (Gemini 3.0)</p>
+              </div>
+              <div className="text-5xl font-extrabold text-center mb-8 drop-shadow-lg">
+                {action.includes('Fold') ? '❌' : action.includes('Call') ? '✅' : '🚀'} {action}
+              </div>
+              
+              {/* Comprehensive Analysis Display */}
+              <div className="bg-white/5 backdrop-blur-sm p-6 rounded-xl border border-white/20">
+                <div className="text-sm text-white/95 leading-relaxed whitespace-pre-line font-mono">
+                  {reasoning || 'Analyzing with Gemini 3.0...'}
+                </div>
+              </div>
             </div>
           )}
 
@@ -963,6 +1006,141 @@ export default function Home() {
               </div>
               <p className="text-center text-sm text-gray-400 mt-3">
                 Villain is at: <span className="text-orange-400 font-bold">{villainPositionPreflop}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Deep Mode: Blinds Selector */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'deep' && (
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-blue-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-blue-400 mb-4">
+                1️⃣ Select Blinds
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {['0.02/0.05', '0.05/0.10', '0.10/0.25'].map((blinds) => (
+                  <button
+                    key={blinds}
+                    onClick={() => setSelectedBlinds(blinds)}
+                    className={`py-3 px-2 rounded-xl font-bold text-sm md:text-base transition-all transform hover:scale-105 ${
+                      selectedBlinds === blinds
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg scale-105'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    ${blinds}
+                  </button>
+                ))}
+              </div>
+              <p className="text-center text-sm text-gray-400 mt-3">
+                Selected: <span className="text-blue-400 font-bold">${selectedBlinds}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Deep Mode: Hero Position Selector */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'deep' && (
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-blue-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-blue-400 mb-4">
+                2️⃣ Hero Position
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setDeepHeroPosition('IP')}
+                  className={`py-4 px-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 shadow-lg ${
+                    deepHeroPosition === 'IP'
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  ✅ In Position
+                </button>
+                <button
+                  onClick={() => setDeepHeroPosition('OOP')}
+                  className={`py-4 px-4 rounded-xl font-bold text-base transition-all transform hover:scale-105 shadow-lg ${
+                    deepHeroPosition === 'OOP'
+                      ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  ❌ Out of Position
+                </button>
+              </div>
+              <p className="text-center text-sm text-gray-400 mt-3">
+                Selected: <span className="text-blue-400 font-bold">{deepHeroPosition === 'IP' ? 'In Position' : 'Out of Position'}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Deep Mode: Preflop Pot Type Selector */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'deep' && (
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-blue-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-blue-400 mb-4">
+                3️⃣ Preflop Pot Type
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => setDeepPreflopPotType('open_raise')}
+                  className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                    deepPreflopPotType === 'open_raise'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Open Raise Pot
+                </button>
+                <button
+                  onClick={() => setDeepPreflopPotType('3bet')}
+                  className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                    deepPreflopPotType === '3bet'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  3-Bet Pot
+                </button>
+                <button
+                  onClick={() => setDeepPreflopPotType('4bet')}
+                  className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                    deepPreflopPotType === '4bet'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white scale-105 ring-2 ring-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  4-Bet Pot
+                </button>
+              </div>
+              <p className="text-center text-sm text-gray-400 mt-3">
+                Selected: <span className="text-blue-400 font-bold capitalize">{deepPreflopPotType.replace('_', ' ')}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Deep Mode: Villain Position Selector - Triggers auto-capture */}
+          {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'deep' && (
+            <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-blue-500/30 shadow-xl">
+              <h3 className="text-center text-lg font-bold text-blue-400 mb-4">
+                4️⃣ Villain Position (Clicking triggers capture)
+              </h3>
+              <div className="grid grid-cols-6 gap-2">
+                {['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].map((pos) => (
+                  <button
+                    key={pos}
+                    onClick={() => {
+                      setDeepVillainPosition(pos)
+                      handleDeepCapture()
+                    }}
+                    className={`py-3 px-2 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                      deepVillainPosition === pos
+                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white scale-105 ring-2 ring-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {pos}
+                  </button>
+                ))}
+              </div>
+              <p className="text-center text-sm text-gray-400 mt-3">
+                Click a position to capture & analyze with Gemini 3.0
               </p>
             </div>
           )}
