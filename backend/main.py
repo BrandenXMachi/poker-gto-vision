@@ -13,7 +13,6 @@ import os
 # Load environment variables
 load_dotenv()
 
-from flop_gto_analyzer import FlopGTOAnalyzer
 from preflop_gto_analyzer import PreflopGTOAnalyzer
 from turn_river_analyzer import TurnRiverAnalyzer
 from deep_flop_analyzer import DeepFlopAnalyzer
@@ -46,10 +45,9 @@ app.add_middleware(
 )
 
 # Initialize AI analyzers
-flop_analyzer = FlopGTOAnalyzer()
 preflop_analyzer = PreflopGTOAnalyzer()
+flop_analyzer = DeepFlopAnalyzer()  # Using hybrid Gemini 2.0 vision + 3.0 strategy
 tr_analyzer = TurnRiverAnalyzer()
-deep_analyzer = DeepFlopAnalyzer()
 
 
 @app.get("/")
@@ -57,12 +55,11 @@ async def root():
     """Health check endpoint"""
     return {
         "status": "Poker Vision Backend",
-        "version": "7.0.0",
+        "version": "8.0.0",
         "modes": {
             "preflop": "Preflop Mode - GTO ranges + structured preflop decisions",
-            "flop": "Flop Mode - Hand evaluator + position-aware flop strategy",
-            "tr": "Turn/River Mode - Mathematical pot odds + equity analysis",
-            "deep": "Deep Mode - Gemini 3.0 Flash flop-only comprehensive analysis"
+            "flop": "Flop Mode - Hybrid Gemini 2.0 vision + Gemini 3.0 strategy",
+            "tr": "Turn/River Mode - Mathematical pot odds + equity analysis"
         }
     }
 
@@ -103,13 +100,13 @@ async def analyze_image(
         
         # Route to appropriate analyzer based on mode
         if ai_mode == "flop":
-            # FLOP MODE - Flop-only GTO analysis with preflop context
-            logger.info(f"🎴 Using Flop mode - Hero: {hero_position}, Villain: {villain_position}, Preflop: {villain_action}")
+            # FLOP MODE - Hybrid Gemini 2.0 vision + Gemini 3.0 strategy
+            logger.info(f"🎴 Using Flop mode - Hero: {hero_position}, Villain: {villain_position}, Pot Type: {preflop_pot_type}")
             result = flop_analyzer.analyze(
                 image_data,
                 hero_position=hero_position,  # "IP" or "OOP"
-                preflop_action=villain_action,  # "villain_called", "villain_3bet", "villain_opened", "villain_4bet"
                 villain_position=villain_position,  # "UTG", "MP", "CO", "BTN", "SB", "BB"
+                preflop_pot_type=preflop_pot_type,  # "open_raise", "3bet", "4bet"
                 blinds=blinds
             )
             
@@ -123,17 +120,6 @@ async def analyze_image(
                 villain_position=villain_position if not is_open else None,
                 blinds=blinds,
                 is_open_raise=is_open
-            )
-            
-        elif ai_mode == "deep":
-            # DEEP MODE - Gemini 3.0 Flash flop-only comprehensive analysis
-            logger.info(f"🧠 Using Deep mode - Hero: {hero_position}, Villain: {villain_position}, Pot Type: {preflop_pot_type}")
-            result = deep_analyzer.analyze(
-                image_data,
-                hero_position=hero_position,  # "IP" or "OOP"
-                villain_position=villain_position,  # "UTG", "MP", "CO", "BTN", "SB", "BB"
-                preflop_pot_type=preflop_pot_type,  # "open_raise", "3bet", "4bet"
-                blinds=blinds
             )
             
         elif ai_mode == "tr":
@@ -171,7 +157,7 @@ async def analyze_image(
         else:
             return {
                 "success": False,
-                "error": f"Invalid mode: {ai_mode}. Use 'preflop', 'flop', 'tr', or 'deep'",
+                "error": f"Invalid mode: {ai_mode}. Use 'preflop', 'flop', or 'tr'",
                 "message": "Invalid analysis mode selected."
             }
         
