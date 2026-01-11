@@ -47,107 +47,44 @@ VISUAL_EXTRACTION_PROMPT = """You are a visual data extraction expert for poker 
 
 Extract ONLY what you can see. Be precise. Return ONLY valid JSON, no markdown, no extra text."""
 
-# Stage 2: Strategic analysis prompt
-STRATEGIC_ANALYSIS_PROMPT = """You are a professional poker GTO strategist. Analyze this flop situation and provide optimal strategy.
+# Stage 2: Strategic analysis prompt - Simplified for Gemini 3.0
+STRATEGIC_ANALYSIS_PROMPT = """You are a professional poker GTO strategist. Given the following information, analyze the flop situation:
 
-**GAME INFORMATION:**
+**SITUATION:**
 - Blinds: {blinds}
-- Hero Position: {hero_position}
+- Hero Position: {hero_position} 
 - Villain Position: {villain_position}
-- Preflop Pot Type: {preflop_pot_type}
-
-**EXTRACTED DATA:**
+- Preflop: {preflop_pot_type}
 - Hero's Cards: {hero_cards}
-- Board Cards: {board_cards}
-- Current Pot Size: {pot_size}
+- Board: {board_cards}
+- Pot Size: {pot_size}
 - Villain's Raise: {villain_raise}
 
-**YOUR ANALYSIS TASK:**
+**PROVIDE:**
+1. **Board Connection**: How do hero's cards connect with the board? (e.g., "Top pair with King, Queen kicker" or "Flush draw and overcards")
+2. **Optimal Play**: The single best action (FOLD, CHECK, CALL, RAISE X% pot, CHECK-RAISE X% pot)
 
-1. **Hand Strength Analysis**
-   - Describe hero's hand (e.g., "Top pair, top kicker and a nut flush draw")
-   - Consider both made hands and draws
-
-2. **Pot Odds Calculation**
-   - If villain raised: Calculate pot odds as percentage
-   - Formula: (Call amount) / (Pot after call) × 100
-   - Example: To call $0.50 into pot of $1.25 = $0.50 / ($1.25 + $0.50) = 28.6%
-
-3. **Equity Estimation**
-   - Estimate hero's equity vs villain's likely range
-   - Consider villain's position and preflop pot type
-   - Provide percentage or range (e.g., "65%" or "≈65%-68%")
-
-4. **Expected Value (EV)**
-   - Calculate EV for calling (if facing a raise)
-   - Formula: (Equity × Pot) - Call amount
-   - Express in dollars (e.g., "+$0.85" or "-$0.22")
-
-5. **Optimal Strategy**
-   - Recommend ONE action (or two if equally optimal):
-     * FOLD
-     * CHECK
-     * CALL
-     * RAISE [X]% of pot (e.g., "RAISE 75% of pot")
-     * CHECK-RAISE [X]% of pot
-     * CHECK-CALL max: $[X]
-   - Explain WHY this is optimal
-
-**OUTPUT FORMAT (JSON ONLY):**
+**OUTPUT (JSON ONLY):**
 {{
-  "game_summary": "$0.02/$0.05 (6 player holdem game)",
-  "hero_summary": "in position with Ace of spades and King of spades",
-  "board_summary": "3 of spades, 7 of spades and K of diamonds",
-  "phase": "Flop",
-  "villain_summary": "Under the Gun and has raised $0.5" or "Under the Gun - no raise",
-  "hand_strength": "Top pair, top kicker and a nut flush draw",
-  "pot_odds": "24.4%" or "N/A",
-  "equity": "≈65%-68%" or "66%",
-  "ev_call": "+$0.85" or "N/A",
-  "optimal_strategy": "RAISE 100% of pot",
-  "reasoning": "Detailed explanation of why this strategy is optimal based on hand strength, position, pot odds, equity, and EV"
+  "board_connection": "Description of how hero's hand connects with the board",
+  "optimal_play": "The recommended action"
 }}
 
-**IMPORTANT RULES:**
-- Use exact card names from input (e.g., "Ace of spades" not "A♠")
-- Calculate pot odds ONLY if villain raised
-- Show your math work in reasoning
-- Be precise with percentages and dollar amounts
-- If no clear optimal play, provide both options
-
-Return ONLY valid JSON, no markdown, no extra text."""
+Return ONLY valid JSON."""
 
 
 class DeepFlopAnalyzer:
-    """Deep flop analysis using Gemini 3.0 Flash - Two-stage processing"""
+    """Deep flop analysis - Hybrid approach: Gemini 2.0 vision + Gemini 3.0 reasoning"""
     
     def __init__(self):
-        """Initialize Gemini 3.0 Flash model with safety settings"""
-        # Configure safety settings to allow poker content
-        safety_settings = [
-            {
-                "category": "HARM_CATEGORY_HARASSMENT",
-                "threshold": "BLOCK_NONE"
-            },
-            {
-                "category": "HARM_CATEGORY_HATE_SPEECH",
-                "threshold": "BLOCK_NONE"
-            },
-            {
-                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                "threshold": "BLOCK_NONE"
-            },
-            {
-                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                "threshold": "BLOCK_NONE"
-            }
-        ]
+        """Initialize both Gemini models"""
+        # Gemini 2.0 Flash for vision (proven to work)
+        self.vision_model = genai.GenerativeModel('gemini-2.0-flash-exp')
         
-        self.model = genai.GenerativeModel(
-            'gemini-3-flash-preview',
-            safety_settings=safety_settings
-        )
-        logger.info("✅ Deep Flop Analyzer initialized (Gemini 3.0 Flash Preview)")
+        # Gemini 3.0 Flash for strategic reasoning
+        self.strategy_model = genai.GenerativeModel('gemini-3-flash-preview')
+        
+        logger.info("✅ Deep Flop Analyzer initialized (Gemini 2.0 vision + Gemini 3.0 strategy)")
     
     def analyze(
         self,
@@ -181,12 +118,12 @@ class DeepFlopAnalyzer:
             }
         
         try:
-            # STAGE 1: Visual Extraction
-            logger.info("👁️ Stage 1: Visual extraction with Gemini 3.0 Flash")
+            # STAGE 1: Visual Extraction with Gemini 2.0 Flash (proven)
+            logger.info("👁️ Stage 1: Visual extraction with Gemini 2.0 Flash")
             
             image = Image.open(BytesIO(image_data))
             
-            response_stage1 = self.model.generate_content([VISUAL_EXTRACTION_PROMPT, image])
+            response_stage1 = self.vision_model.generate_content([VISUAL_EXTRACTION_PROMPT, image])
             raw_text = response_stage1.text
             
             # Find JSON by locating first { and last }
@@ -213,7 +150,7 @@ class DeepFlopAnalyzer:
                     "error": f"Invalid card extraction: {len(hero_cards)} hero cards, {len(board_cards)} board cards"
                 }
             
-            # STAGE 2: Strategic Analysis
+            # STAGE 2: Strategic Analysis with Gemini 3.0 Flash
             logger.info("🧠 Stage 2: Strategic analysis with Gemini 3.0 Flash")
             
             # Format preflop pot type for display
@@ -234,7 +171,7 @@ class DeepFlopAnalyzer:
                 villain_raise=extracted_data.get("villain_raise_amount", "0")
             )
             
-            response_stage2 = self.model.generate_content(analysis_prompt)
+            response_stage2 = self.strategy_model.generate_content(analysis_prompt)
             raw_text = response_stage2.text
             
             # Find JSON by locating first { and last }
@@ -249,7 +186,7 @@ class DeepFlopAnalyzer:
             logger.info(f"Extracted analysis for parsing: {analysis_text[:200]}...")
             analysis = json.loads(analysis_text)
             
-            logger.info(f"✅ Stage 2 complete: {analysis.get('optimal_strategy', 'Unknown')}")
+            logger.info(f"✅ Stage 2 complete: {analysis.get('optimal_play', 'Unknown')}")
             
             # Format final response
             return {
@@ -261,11 +198,13 @@ class DeepFlopAnalyzer:
                     "villain_raise": extracted_data.get("villain_raise_amount", "0"),
                     "street": "flop",
                     "hero_position": hero_position,
-                    "villain_position": villain_position
+                    "villain_position": villain_position,
+                    "board_description": analysis.get("board_connection", "Unknown"),
+                    "hand_description": f"{', '.join(hero_cards)}"
                 },
                 "recommendation": {
-                    "action": analysis.get("optimal_strategy", "Unknown"),
-                    "reasoning": self._format_analysis_display(analysis, blinds)
+                    "action": analysis.get("optimal_play", "Unknown"),
+                    "reasoning": analysis.get("board_connection", "")
                 },
                 "analysis": analysis
             }
@@ -284,41 +223,3 @@ class DeepFlopAnalyzer:
                 "success": False,
                 "error": str(e)
             }
-    
-    def _format_analysis_display(self, analysis: Dict[str, Any], blinds: str) -> str:
-        """Format the analysis into the specified display format"""
-        lines = []
-        
-        # Game summary
-        lines.append(f"{analysis.get('game_summary', 'Unknown game')}")
-        lines.append(f"Hero: {analysis.get('hero_summary', 'Unknown position')}")
-        lines.append(f"Board: {analysis.get('board_summary', 'Unknown board')}")
-        lines.append(f"Phase: {analysis.get('phase', 'Flop')}")
-        lines.append(f"Villain: {analysis.get('villain_summary', 'Unknown villain')}")
-        lines.append("")
-        
-        # Hand strength
-        lines.append(f"Hand strength: {analysis.get('hand_strength', 'Unknown')}")
-        
-        # Metrics
-        if analysis.get('pot_odds') and analysis.get('pot_odds') != "N/A":
-            lines.append(f"Pot odds: {analysis.get('pot_odds')}")
-        
-        if analysis.get('equity'):
-            lines.append(f"Equity: {analysis.get('equity')}")
-        
-        if analysis.get('ev_call') and analysis.get('ev_call') != "N/A":
-            lines.append(f"EV(call): {analysis.get('ev_call')}")
-        
-        lines.append("")
-        
-        # Optimal strategy
-        lines.append(f"Optimal strategy: {analysis.get('optimal_strategy', 'Unknown')}")
-        
-        # Reasoning
-        if analysis.get('reasoning'):
-            lines.append("")
-            lines.append("Analysis:")
-            lines.append(analysis.get('reasoning'))
-        
-        return "\n".join(lines)
