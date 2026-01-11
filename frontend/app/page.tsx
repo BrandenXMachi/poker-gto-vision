@@ -35,11 +35,6 @@ export default function Home() {
   const [isOpenRaise, setIsOpenRaise] = useState<boolean>(false)
   const [is3BetToggle, setIs3BetToggle] = useState<boolean>(false)
   
-  // Deep Mode specific states
-  const [deepHeroPosition, setDeepHeroPosition] = useState<string>('IP')  // "IP" or "OOP"
-  const [deepVillainPosition, setDeepVillainPosition] = useState<string>('BTN')
-  const [deepPreflopPotType, setDeepPreflopPotType] = useState<string>('open_raise')  // "open_raise", "3bet", "4bet"
-  
   // Flop Mode specific states
   const [flopHeroPosition, setFlopHeroPosition] = useState<string>('IP')  // "IP" or "OOP"
   const [flopVillainPosition, setFlopVillainPosition] = useState<string>('BTN')  // Position
