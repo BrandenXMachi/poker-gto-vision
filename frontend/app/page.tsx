@@ -97,27 +97,31 @@ export default function Home() {
     }
   }
 
-  // Smart action mapping: Preflop recommendation → Flop preflop action
-  const mapPreflopToFlopAction = (preflopAction: string): string => {
+  // Smart pot type inference: Preflop recommendation → Flop pot type
+  // Based on user's 3 rules:
+  // Rule 1: Assume hero did suggested action (unless open raise)
+  // Rule 2: Villain who opened called our 3-bet
+  // Rule 3: Villain who 3-bet called our 4-bet
+  const mapPreflopToPotType = (preflopAction: string): string => {
     const actionLower = preflopAction.toLowerCase()
     
-    // If we 3-bet in preflop → villain called our 3-bet
+    // Rule 1 + Rule 3: If we 4-bet → assume villain called → "4bet" pot
+    if (actionLower.includes('4-bet') || actionLower.includes('4bet')) {
+      return '4bet'
+    }
+    
+    // Rule 1 + Rule 2: If we 3-bet → assume villain called → "3bet" pot
     if (actionLower.includes('3-bet') || actionLower.includes('3bet')) {
-      return 'villain_called_3bet'
+      return '3bet'
     }
     
-    // If we called villain's raise → villain opened
+    // Rule 1: If we called villain's raise → "open_raise" pot (single raised pot)
     if (actionLower.includes('call')) {
-      return 'villain_opened'
+      return 'open_raise'
     }
     
-    // If we raised/opened → villain called our open (SRP)
-    if (actionLower.includes('raise') || actionLower.includes('open')) {
-      return 'villain_called'
-    }
-    
-    // Default fallback
-    return 'villain_called'
+    // Default: "open_raise" pot (most common)
+    return 'open_raise'
   }
 
   // Determine IP/OOP from positions
@@ -143,20 +147,20 @@ export default function Home() {
       setInheritedContext(null)
       setFlopHeroPosition('IP')
       setFlopVillainPosition('BTN')
-      setFlopPreflopAction('villain_called')
+      setFlopPreflopPotType('open_raise')
       setAiMode('flop')
       setCapturedImage('')
       setAction('')
       startCamera()
     } else {
-      // We have a villain - pass context
-      const flopAction = mapPreflopToFlopAction(action)
+      // We have a villain - pass context with smart pot type inference
+      const potType = mapPreflopToPotType(action)
       const ipOrOop = determineIPorOOP(selectedPosition, villainPositionPreflop)
       
       console.log('📋 Passing context to Flop:', {
         heroPosition: ipOrOop,
         villainPosition: villainPositionPreflop,
-        preflopAction: flopAction,
+        potType: potType,
         recommendation: action
       })
       
@@ -164,14 +168,14 @@ export default function Home() {
         fromMode: 'preflop',
         heroPosition: ipOrOop,
         villainPosition: villainPositionPreflop,
-        preflopAction: flopAction,
+        preflopAction: potType,
         preflopRecommendation: action
       }
       
       // Set all flop states BEFORE changing mode
       setFlopHeroPosition(ipOrOop)
       setFlopVillainPosition(villainPositionPreflop)
-      setFlopPreflopAction(flopAction)
+      setFlopPreflopPotType(potType)
       setInheritedContext(contextData)
       
       // Clear UI states
@@ -195,7 +199,7 @@ export default function Home() {
       villainPosition: flopVillainPosition,
       heroCards: heroCards,  // Save hero's 2 cards from flop
       flopCards: boardCards.slice(0, 3),  // Save first 3 board cards (flop only)
-      flopAction: flopPreflopAction,
+      flopAction: flopPreflopPotType,
       flopRecommendation: action
     }
     
@@ -807,62 +811,42 @@ export default function Home() {
           {isCameraActive && !isAnalyzing && !capturedImage && aiMode === 'flop' && !inheritedContext && (
             <div className="mb-6 bg-gray-800/90 backdrop-blur p-6 rounded-2xl border-2 border-purple-500/30 shadow-xl">
               <h3 className="text-center text-lg font-bold text-purple-400 mb-4">
-                2️⃣ Preflop Action
+                2️⃣ Preflop Pot Type
               </h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <button
-                  onClick={() => setFlopPreflopAction('villain_called')}
+                  onClick={() => setFlopPreflopPotType('open_raise')}
                   className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
-                    flopPreflopAction === 'villain_called'
+                    flopPreflopPotType === 'open_raise'
                       ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
-                  Villain Called Open
+                  Open Raise Pot
                 </button>
                 <button
-                  onClick={() => setFlopPreflopAction('villain_called_3bet')}
+                  onClick={() => setFlopPreflopPotType('3bet')}
                   className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
-                    flopPreflopAction === 'villain_called_3bet'
+                    flopPreflopPotType === '3bet'
                       ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
-                  Villain Called 3-Bet
+                  3-Bet Pot
                 </button>
                 <button
-                  onClick={() => setFlopPreflopAction('villain_3bet')}
+                  onClick={() => setFlopPreflopPotType('4bet')}
                   className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
-                    flopPreflopAction === 'villain_3bet'
+                    flopPreflopPotType === '4bet'
                       ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                 >
-                  Villain 3-Bet
-                </button>
-                <button
-                  onClick={() => setFlopPreflopAction('villain_opened')}
-                  className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
-                    flopPreflopAction === 'villain_opened'
-                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  Villain Opened
-                </button>
-                <button
-                  onClick={() => setFlopPreflopAction('villain_4bet')}
-                  className={`py-3 px-3 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
-                    flopPreflopAction === 'villain_4bet'
-                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white scale-105 ring-2 ring-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  Villain 4-Bet
+                  4-Bet Pot
                 </button>
               </div>
               <p className="text-center text-sm text-gray-400 mt-3">
-                Selected: <span className="text-purple-400 font-bold capitalize">{flopPreflopAction.replace(/_/g, ' ')}</span>
+                Selected: <span className="text-purple-400 font-bold capitalize">{flopPreflopPotType.replace(/_/g, ' ')}</span>
               </p>
             </div>
           )}
