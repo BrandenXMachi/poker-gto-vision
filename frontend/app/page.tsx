@@ -33,6 +33,7 @@ export default function Home() {
   const [selectedPosition, setSelectedPosition] = useState<string>('BTN')
   const [aiMode, setAiMode] = useState<'tr' | 'flop' | 'preflop'>('preflop')
   const [isOpenRaise, setIsOpenRaise] = useState<boolean>(false)
+  const [is3BetToggle, setIs3BetToggle] = useState<boolean>(false)
   
   // Deep Mode specific states
   const [deepHeroPosition, setDeepHeroPosition] = useState<string>('IP')  // "IP" or "OOP"
@@ -134,58 +135,83 @@ export default function Home() {
     return heroIndex > villainIndex ? 'IP' : 'OOP'
   }
 
+  // Handle position click when hero opened - transfers to Flop with context
+  const handleOpenRaisePositionClick = (villainPos: string) => {
+    // Determine pot type based on 3-Bet toggle
+    const potType = is3BetToggle ? '3bet' : 'open_raise'
+    
+    // Calculate IP/OOP
+    const ipOrOop = determineIPorOOP(selectedPosition, villainPos)
+    
+    console.log('📋 Open raise → Flop transfer:', {
+      heroPosition: selectedPosition,
+      villainPosition: villainPos,
+      heroIPorOOP: ipOrOop,
+      potType: potType,
+      toggleState: is3BetToggle
+    })
+    
+    const contextData = {
+      fromMode: 'preflop',
+      heroPosition: ipOrOop,
+      villainPosition: villainPos,
+      preflopAction: potType,
+      preflopRecommendation: `Opened from ${selectedPosition}, ${is3BetToggle ? 'villain 3-bet and we called' : 'villain called'}`
+    }
+    
+    // Set flop states
+    setFlopHeroPosition(ipOrOop)
+    setFlopVillainPosition(villainPos)
+    setFlopPreflopPotType(potType)
+    setInheritedContext(contextData)
+    
+    // Clear UI and switch to Flop mode
+    setCapturedImage('')
+    setAction('')
+    setIs3BetToggle(false)  // Reset toggle
+    setAiMode('flop')
+    startCamera()
+  }
+
   // Continue to Flop mode with context
   const continueToFlop = () => {
     if (!action) return
     
-    // Check if we're opening (no villain identified yet)
-    const isOpeningAction = action.toLowerCase().includes('raise') || action.toLowerCase().includes('open')
+    // NOTE: This function is now only called for non-open-raise scenarios
+    // Open raise scenarios use handleOpenRaisePositionClick instead
     
-    if (isOpenRaise || !villainPositionPreflop || isOpeningAction) {
-      // We opened, no villain yet - show full inputs in flop mode
-      console.log('🚀 Opening scenario - showing full flop inputs')
-      setInheritedContext(null)
-      setFlopHeroPosition('IP')
-      setFlopVillainPosition('BTN')
-      setFlopPreflopPotType('open_raise')
-      setAiMode('flop')
-      setCapturedImage('')
-      setAction('')
-      startCamera()
-    } else {
-      // We have a villain - pass context with smart pot type inference
-      const potType = mapPreflopToPotType(action)
-      const ipOrOop = determineIPorOOP(selectedPosition, villainPositionPreflop)
-      
-      console.log('📋 Passing context to Flop:', {
-        heroPosition: ipOrOop,
-        villainPosition: villainPositionPreflop,
-        potType: potType,
-        recommendation: action
-      })
-      
-      const contextData = {
-        fromMode: 'preflop',
-        heroPosition: ipOrOop,
-        villainPosition: villainPositionPreflop,
-        preflopAction: potType,
-        preflopRecommendation: action
-      }
-      
-      // Set all flop states BEFORE changing mode
-      setFlopHeroPosition(ipOrOop)
-      setFlopVillainPosition(villainPositionPreflop)
-      setFlopPreflopPotType(potType)
-      setInheritedContext(contextData)
-      
-      // Clear UI states
-      setCapturedImage('')
-      setAction('')
-      
-      // Change mode and start camera
-      setAiMode('flop')
-      startCamera()
+    // We have a villain - pass context with smart pot type inference
+    const potType = mapPreflopToPotType(action)
+    const ipOrOop = determineIPorOOP(selectedPosition, villainPositionPreflop)
+    
+    console.log('📋 Passing context to Flop:', {
+      heroPosition: ipOrOop,
+      villainPosition: villainPositionPreflop,
+      potType: potType,
+      recommendation: action
+    })
+    
+    const contextData = {
+      fromMode: 'preflop',
+      heroPosition: ipOrOop,
+      villainPosition: villainPositionPreflop,
+      preflopAction: potType,
+      preflopRecommendation: action
     }
+    
+    // Set all flop states BEFORE changing mode
+    setFlopHeroPosition(ipOrOop)
+    setFlopVillainPosition(villainPositionPreflop)
+    setFlopPreflopPotType(potType)
+    setInheritedContext(contextData)
+    
+    // Clear UI states
+    setCapturedImage('')
+    setAction('')
+    
+    // Change mode and start camera
+    setAiMode('flop')
+    startCamera()
   }
 
   // Continue to T/R mode with context from Flop
@@ -613,18 +639,69 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Continue to Flop Button - Always show */}
-              <button
-                onClick={continueToFlop}
-                className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
-              >
-                <span>Continue to Flop</span>
-                <span className="text-2xl">🎴 →</span>
-              </button>
-              {action.toLowerCase().includes('fold') && (
-                <p className="text-center text-sm text-white/70 mt-2">
-                  💡 Continue anyway to see flop analysis (assumes action checks through)
-                </p>
+              {/* Position Selector for Open Raise - OR - Continue Button */}
+              {isOpenRaise ? (
+                <>
+                  {/* 3-Bet Toggle */}
+                  <div className="mb-4 flex justify-center">
+                    <button
+                      onClick={() => setIs3BetToggle(!is3BetToggle)}
+                      className={`py-3 px-6 rounded-xl font-bold text-sm transition-all transform hover:scale-105 shadow-lg ${
+                        is3BetToggle
+                          ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white scale-105 ring-2 ring-white'
+                          : 'bg-gray-700/80 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {is3BetToggle ? '🔥 3-BET MODE (Villain 3-bet, we called)' : '📢 Villain Called Our Open?'}
+                    </button>
+                  </div>
+
+                  {/* Position List */}
+                  <div className="bg-white/5 backdrop-blur-sm p-5 rounded-xl border border-white/20 mb-4">
+                    <h4 className="text-center text-sm font-bold text-white/80 mb-3">
+                      Select Villain Position to Continue to Flop
+                    </h4>
+                    <div className="grid grid-cols-6 gap-2">
+                      {/* Show positions that are after hero's position */}
+                      {['SB', 'BB', 'UTG', 'MP', 'CO', 'BTN']
+                        .filter(pos => {
+                          const positions = ['SB', 'BB', 'UTG', 'MP', 'CO', 'BTN']
+                          const heroIndex = positions.indexOf(selectedPosition)
+                          const posIndex = positions.indexOf(pos)
+                          return posIndex !== heroIndex  // Exclude hero's own position
+                        })
+                        .map((pos) => (
+                          <button
+                            key={pos}
+                            onClick={() => handleOpenRaisePositionClick(pos)}
+                            className="py-3 px-2 rounded-xl font-bold text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white transition-all transform hover:scale-110 shadow-lg"
+                          >
+                            {pos}
+                          </button>
+                        ))}
+                    </div>
+                    <p className="text-center text-xs text-white/70 mt-3">
+                      {is3BetToggle 
+                        ? '🔥 Click a position → Assumes villain 3-bet, we called (3-Bet Pot)'
+                        : '📢 Click a position → Assumes villain called our open (Single Raised Pot)'}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={continueToFlop}
+                    className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                  >
+                    <span>Continue to Flop</span>
+                    <span className="text-2xl">🎴 →</span>
+                  </button>
+                  {action.toLowerCase().includes('fold') && (
+                    <p className="text-center text-sm text-white/70 mt-2">
+                      💡 Continue anyway to see flop analysis (assumes action checks through)
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}
