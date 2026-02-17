@@ -150,7 +150,7 @@ class DeepGTOAnalyzer:
     
     def __init__(self):
         """Initialize Gemini and Claude"""
-        self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
         self.claude_client = anthropic_client
         logger.info("✅ Deep Mode initialized (Gemini + Claude Hybrid)")
     

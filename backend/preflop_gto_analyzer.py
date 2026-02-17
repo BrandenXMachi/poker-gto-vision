@@ -268,7 +268,7 @@ class PreflopGTOAnalyzer:
     
     def __init__(self):
         """Initialize Gemini model"""
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         logger.info("✅ Preflop GTO Analyzer initialized")
     
     def analyze(self, image_data: bytes, position: str, villain_position: str, blinds: str, is_open_raise: bool = False) -> Dict[str, Any]:

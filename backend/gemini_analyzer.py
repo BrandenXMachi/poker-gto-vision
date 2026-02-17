@@ -139,7 +139,7 @@ class GeminiDataExtractor:
     
     def __init__(self):
         """Initialize Gemini model"""
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         logger.info("✅ Gemini 2.0 Flash data extractor initialized")
     
     def _get_position_mapping(self, hero_position: str) -> str:

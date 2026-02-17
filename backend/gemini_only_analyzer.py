@@ -225,7 +225,7 @@ class GeminiOnlyAnalyzer:
     
     def __init__(self):
         """Initialize Gemini model"""
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         logger.info("✅ Gemini-only analyzer initialized (fast mode)")
     
     def _get_position_mapping(self, hero_position: str) -> str:

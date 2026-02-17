@@ -79,7 +79,7 @@ class DeepFlopAnalyzer:
     def __init__(self):
         """Initialize both Gemini models"""
         # Gemini 2.0 Flash for vision (proven to work)
-        self.vision_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.vision_model = genai.GenerativeModel('gemini-2.0-flash')
         
         # Gemini 3.0 Flash for strategic reasoning
         self.strategy_model = genai.GenerativeModel('gemini-3-flash-preview')
