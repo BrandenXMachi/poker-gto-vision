@@ -6,6 +6,8 @@ services:
     buildCommand: "pip install -r backend/requirements.txt"
     startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
+      - key: GEMINI_API_KEY
+        value: AIzaSyCKOjWn54dI8FbcJ9WVoK9sr7o1H7JiEKM
       - key: PYTHON_VERSION
         value: 3.11
     disk:
