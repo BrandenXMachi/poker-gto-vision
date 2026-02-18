@@ -477,14 +477,140 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 text-white flex">
-      <div className="flex-1 px-4 py-6">
+    <main className="min-h-screen text-white flex" style={{background: '#0f0e1a'}}>
+      {/* Ambient background blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="blob w-96 h-96 bg-blue-600" style={{top: '-5%', left: '-5%', animationDelay: '0s'}} />
+        <div className="blob w-80 h-80 bg-purple-600" style={{top: '20%', right: '-5%', animationDelay: '2s'}} />
+        <div className="blob w-64 h-64 bg-emerald-500" style={{bottom: '10%', left: '20%', animationDelay: '4s'}} />
+        <div className="blob w-72 h-72 bg-orange-500" style={{bottom: '-5%', right: '10%', animationDelay: '1s'}} />
+      </div>
+
+      <div className="flex-1 px-4 py-6 relative z-10">
         <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-400 via-cyan-400 to-sky-400 bg-clip-text text-transparent mb-2">
-              🎰 Poker Strategy
-            </h1>
-          </div>
+
+          {/* ── LANDING PAGE (camera not active) ── */}
+          {!isCameraActive && !capturedImage && (
+            <div className="mb-2">
+              {/* Hero Section */}
+              <div className="text-center mb-10 pt-4">
+                {/* Floating card art */}
+                <div className="flex justify-center items-end gap-3 mb-6 h-28 select-none">
+                  <div className="animate-float-slow text-6xl" style={{animationDelay: '0.2s'}}>🂡</div>
+                  <div className="animate-float text-8xl" style={{animationDelay: '0s'}}>🃑</div>
+                  <div className="animate-float-slow text-6xl" style={{animationDelay: '0.8s'}}>🂱</div>
+                  <div className="animate-float text-8xl drop-shadow-2xl" style={{animationDelay: '0.4s'}}>🂺</div>
+                  <div className="animate-float-slow text-6xl" style={{animationDelay: '1.2s'}}>🃁</div>
+                </div>
+
+                <h1 className="text-6xl font-black mb-3 leading-tight">
+                  <span className="bg-gradient-to-r from-yellow-300 via-orange-400 to-red-400 bg-clip-text text-transparent drop-shadow">
+                    Poker Strategy
+                  </span>
+                </h1>
+                <p className="text-xl text-white/70 font-medium mb-2">
+                  AI-powered GTO advice • Point. Capture. Win.
+                </p>
+                <div className="flex justify-center gap-2 flex-wrap mb-8">
+                  <span className="px-3 py-1 rounded-full text-sm font-bold bg-blue-500/20 border border-blue-400/30 text-blue-300">🎯 Preflop GTO</span>
+                  <span className="px-3 py-1 rounded-full text-sm font-bold bg-purple-500/20 border border-purple-400/30 text-purple-300">🎴 Flop Strategy</span>
+                  <span className="px-3 py-1 rounded-full text-sm font-bold bg-emerald-500/20 border border-emerald-400/30 text-emerald-300">📊 Turn/River Math</span>
+                </div>
+              </div>
+
+              {/* Feature Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                {/* Preflop Card */}
+                <div className="clay-card-orange card-shine p-5 text-center hover:scale-105 transition-transform duration-200">
+                  <div className="text-5xl mb-3 animate-float-slow">🎯</div>
+                  <h3 className="text-lg font-black text-orange-300 mb-2">Preflop GTO</h3>
+                  <p className="text-sm text-white/70 leading-relaxed">
+                    Instant open/call/3-bet/fold decisions powered by real GTO range charts
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-1 justify-center">
+                    <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-300 font-bold">AA-22</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-300 font-bold">AKs</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-300 font-bold">6 Positions</span>
+                  </div>
+                </div>
+
+                {/* Flop Card */}
+                <div className="clay-card-purple card-shine p-5 text-center hover:scale-105 transition-transform duration-200">
+                  <div className="text-5xl mb-3 animate-float">🎴</div>
+                  <h3 className="text-lg font-black text-purple-300 mb-2">Flop AI</h3>
+                  <p className="text-sm text-white/70 leading-relaxed">
+                    Gemini reads your cards + board. AI gives optimal bet, check, or fold
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-1 justify-center">
+                    <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 font-bold">IP/OOP</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 font-bold">3-Bet Pots</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 font-bold">Board Texture</span>
+                  </div>
+                </div>
+
+                {/* T/R Card */}
+                <div className="clay-card-green card-shine p-5 text-center hover:scale-105 transition-transform duration-200">
+                  <div className="text-5xl mb-3 animate-float-reverse">📊</div>
+                  <h3 className="text-lg font-black text-emerald-300 mb-2">Turn/River</h3>
+                  <p className="text-sm text-white/70 leading-relaxed">
+                    Pure math: pot odds, equity from outs, EV calculations in real-time
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-1 justify-center">
+                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">Pot Odds</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">Outs</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">+EV/-EV</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* How It Works */}
+              <div className="clay-card p-6 mb-8">
+                <h2 className="text-center text-lg font-black text-white/90 mb-5">⚡ How It Works</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-500/30 border border-blue-400/40 flex items-center justify-center text-2xl font-black text-blue-300 shadow-lg">1</div>
+                    <div className="text-3xl animate-float-slow">📱</div>
+                    <p className="text-sm text-white/70 font-medium">Open on your phone & tap <span className="text-white font-bold">Start Camera</span></p>
+                  </div>
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-500/30 border border-purple-400/40 flex items-center justify-center text-2xl font-black text-purple-300 shadow-lg">2</div>
+                    <div className="text-3xl animate-float">🃏</div>
+                    <p className="text-sm text-white/70 font-medium">Point camera at your poker table & <span className="text-white font-bold">capture</span></p>
+                  </div>
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/30 border border-emerald-400/40 flex items-center justify-center text-2xl font-black text-emerald-300 shadow-lg">3</div>
+                    <div className="text-3xl animate-float-reverse">🏆</div>
+                    <p className="text-sm text-white/70 font-medium">Get instant <span className="text-white font-bold">GTO decision</span> with reasoning</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats bar */}
+              <div className="grid grid-cols-3 gap-3 mb-8">
+                <div className="clay-card-blue p-4 text-center">
+                  <div className="text-3xl font-black text-blue-300">6</div>
+                  <div className="text-xs text-white/60 mt-1">Positions</div>
+                </div>
+                <div className="clay-card-purple p-4 text-center">
+                  <div className="text-3xl font-black text-purple-300">3</div>
+                  <div className="text-xs text-white/60 mt-1">AI Modes</div>
+                </div>
+                <div className="clay-card-green p-4 text-center">
+                  <div className="text-3xl font-black text-emerald-300">∞</div>
+                  <div className="text-xs text-white/60 mt-1">Hands</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Title shown when camera is active */}
+          {(isCameraActive || capturedImage) && (
+            <div className="text-center mb-6">
+              <h1 className="text-4xl font-extrabold bg-gradient-to-r from-yellow-300 via-orange-400 to-red-400 bg-clip-text text-transparent mb-1">
+                🎰 Poker Strategy
+              </h1>
+            </div>
+          )}
           
           {/* Mode Selector - Show when camera is active */}
           {isCameraActive && !capturedImage && (
@@ -1125,7 +1251,7 @@ export default function Home() {
             ) : !isCameraActive ? (
               <button
                 onClick={startCamera}
-                className="px-10 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="clay-btn px-14 py-5 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-300 hover:via-orange-400 hover:to-red-400 text-white font-black text-xl tracking-wide transition-all shadow-2xl hover:scale-110 active:scale-95"
               >
                 📷 Start Camera
               </button>
