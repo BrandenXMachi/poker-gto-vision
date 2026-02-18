@@ -23,6 +23,35 @@ export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
 
+  // Password gate
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+
+  const PASS_HASH = '243144ab0e9df2ce4dc94c6967aab8642e37299bcb4aef11b1e02d1e86fbcf63'
+
+  const hashPassword = async (text: string): Promise<string> => {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(text)
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+  }
+
+  const handlePasswordSubmit = async () => {
+    const hashed = await hashPassword(passwordInput)
+    if (hashed === PASS_HASH) {
+      setIsAuthenticated(true)
+      setShowPasswordModal(false)
+      setPasswordInput('')
+      setPasswordError('')
+      startCamera()
+    } else {
+      setPasswordError('Incorrect password. Access denied.')
+      setPasswordInput('')
+    }
+  }
+
   const [isCameraActive, setIsCameraActive] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string>('')
@@ -1250,15 +1279,60 @@ export default function Home() {
               </button>
             ) : !isCameraActive ? (
               <button
-                onClick={startCamera}
+                onClick={() => {
+                  if (isAuthenticated) {
+                    startCamera()
+                  } else {
+                    setShowPasswordModal(true)
+                  }
+                }}
                 className="clay-btn px-14 py-5 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-300 hover:via-orange-400 hover:to-red-400 text-white font-black text-xl tracking-wide transition-all shadow-2xl hover:scale-110 active:scale-95"
               >
-                📷 Start Camera
+                🔐 Initiate Protocol
               </button>
             ) : null}
           </div>
         </div>
       </div>
+      {/* ── PASSWORD MODAL ── */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)'}}>
+          <div className="clay-card-blue card-shine p-8 w-full max-w-sm text-center">
+            <div className="text-5xl mb-4 animate-float">🔐</div>
+            <h2 className="text-2xl font-black text-white mb-1">Access Required</h2>
+            <p className="text-sm text-white/60 mb-6">Enter the protocol password to continue</p>
+
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={e => { setPasswordInput(e.target.value); setPasswordError('') }}
+              onKeyDown={e => e.key === 'Enter' && handlePasswordSubmit()}
+              placeholder="••••••••"
+              autoFocus
+              className="w-full px-4 py-3 rounded-2xl bg-white/10 border-2 border-white/20 text-white text-center text-xl tracking-widest placeholder-white/30 focus:outline-none focus:border-yellow-400/60 transition-colors mb-3"
+            />
+
+            {passwordError && (
+              <p className="text-red-400 text-sm font-semibold mb-3">⚠️ {passwordError}</p>
+            )}
+
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => { setShowPasswordModal(false); setPasswordInput(''); setPasswordError('') }}
+                className="flex-1 py-3 rounded-2xl font-bold text-white/70 bg-white/10 hover:bg-white/20 border border-white/20 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="flex-1 clay-btn py-3 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 text-white font-black rounded-2xl transition-all hover:scale-105"
+              >
+                Unlock 🚀
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
