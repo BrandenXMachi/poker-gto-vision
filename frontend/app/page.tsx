@@ -101,6 +101,10 @@ export default function Home() {
   
   // Detailed info for navigation to details page
   const [detailedInfo, setDetailedInfo] = useState<DetailedInfo | null>(null)
+  
+  // Flop metrics (fold probability + EFE) for badge display
+  const [flopFoldProbability, setFlopFoldProbability] = useState<string>('')
+  const [flopEfeDollars, setFlopEfeDollars] = useState<string>('')
 
   // Initialize speech synthesis
   useEffect(() => {
@@ -471,6 +475,12 @@ export default function Home() {
           setStreet(data.extracted_data.street || '')
           setBoardDescription(data.extracted_data.board_description || '')
           setHandDescription(data.extracted_data.hand_description || '')
+        }
+        
+        // Extract flop metrics (fold probability + EFE) for badge display
+        if (aiMode === 'flop' && data.metrics) {
+          setFlopFoldProbability(data.metrics.fold_probability || '')
+          setFlopEfeDollars(data.metrics.efe_dollars || '')
         }
         
         // Speak the action for all modes
@@ -901,6 +911,24 @@ export default function Home() {
                   {reasoning || 'Analyzing flop GTO strategy...'}
                 </div>
               </div>
+
+              {/* Flop Metrics Badge Row — Fold Probability + EFE (Option B) */}
+              {(flopFoldProbability || flopEfeDollars) && (
+                <div className="flex gap-3 justify-center mb-4">
+                  {flopFoldProbability && (
+                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+                      <span className="text-xs text-white/60 font-semibold uppercase tracking-wider">Fold Prob</span>
+                      <span className="text-base font-black text-pink-300">{flopFoldProbability}</span>
+                    </div>
+                  )}
+                  {flopEfeDollars && flopEfeDollars !== '$0.00' && (
+                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+                      <span className="text-xs text-white/60 font-semibold uppercase tracking-wider">Fold EV</span>
+                      <span className="text-base font-black text-emerald-300">{flopEfeDollars}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Board and Hand Analysis - Show detailed descriptions */}
               {(boardDescription || handDescription) && (

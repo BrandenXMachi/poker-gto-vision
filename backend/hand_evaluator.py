@@ -80,6 +80,9 @@ class HandEvaluation:
         # Combo draws
         self.is_combo_draw = False  # Flush draw + straight draw
         
+        # Pair subtype
+        self.has_pocket_pair = False
+        
         # Overall classification
         self.strength = "weak"  # "monster", "strong", "medium", "weak", "air"
         

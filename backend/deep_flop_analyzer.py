@@ -1,17 +1,19 @@
 """
-Deep Flop Analyzer - Gemini 3.0 Flash
-Two-stage analysis: Visual extraction → Strategic reasoning
-Flop-only mode with comprehensive GTO analysis
+Deep Flop Analyzer - Stage 1: Gemini 2.0 Flash visual extraction
+                    Stage 2: FlopLogicEngine deterministic GTO decision
+
+Replaces the hybrid Gemini 3.0 strategy stage with pure Python logic.
 """
 
 import os
 import json
 import logging
-import re
 from typing import Dict, Any
 import google.generativeai as genai
 from PIL import Image
 from io import BytesIO
+
+from flop_logic_engine import FlopLogicEngine
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +21,14 @@ logger = logging.getLogger(__name__)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    logger.info("✅ Gemini API key configured")
+    logger.info("✅ Gemini API key configured for Flop Analyzer")
 else:
     logger.warning("⚠️ GEMINI_API_KEY not set")
 
-# Stage 1: Simple visual extraction prompt
+# ─────────────────────────────────────────────────────────────────────────────
+#  STAGE 1: Visual extraction prompt (unchanged — proven to work)
+# ─────────────────────────────────────────────────────────────────────────────
+
 VISUAL_EXTRACTION_PROMPT = """You are a visual data extraction expert for poker tables. Extract ONLY the following information from this GGPoker screenshot:
 
 **YOUR TASK:**
@@ -47,45 +52,33 @@ VISUAL_EXTRACTION_PROMPT = """You are a visual data extraction expert for poker 
 
 Extract ONLY what you can see. Be precise. Return ONLY valid JSON, no markdown, no extra text."""
 
-# Stage 2: Strategic analysis prompt - Simplified for Gemini 3.0
-STRATEGIC_ANALYSIS_PROMPT = """You are a professional poker GTO strategist. Given the following information, analyze the flop situation:
 
-**SITUATION:**
-- Blinds: {blinds}
-- Hero Position: {hero_position} 
-- Villain Position: {villain_position}
-- Preflop: {preflop_pot_type}
-- Hero's Cards: {hero_cards}
-- Board: {board_cards}
-- Pot Size: {pot_size}
-- Villain's Raise: {villain_raise}
-
-**PROVIDE:**
-1. **Board Connection**: How do hero's cards connect with the board? (e.g., "Top pair with King, Queen kicker" or "Flush draw and overcards")
-2. **Optimal Play**: The single best action (FOLD, CHECK, CALL, RAISE X% pot, CHECK-RAISE X% pot)
-
-**OUTPUT (JSON ONLY):**
-{{
-  "board_connection": "Description of how hero's hand connects with the board",
-  "optimal_play": "The recommended action"
-}}
-
-Return ONLY valid JSON."""
+def _parse_dollar_amount(value: str) -> float:
+    """
+    Safely parse a dollar string to float.
+    Handles: "$1.25", "1.25", "0", "$0", "0.00"
+    """
+    if not value or value == "0":
+        return 0.0
+    try:
+        return float(str(value).replace("$", "").strip())
+    except (ValueError, TypeError):
+        return 0.0
 
 
 class DeepFlopAnalyzer:
-    """Deep flop analysis - Hybrid approach: Gemini 2.0 vision + Gemini 3.0 reasoning"""
-    
+    """
+    Flop analysis:
+      Stage 1 — Gemini 2.0 Flash extracts cards, pot, villain raise from image
+      Stage 2 — FlopLogicEngine makes the GTO decision (pure Python, no AI)
+    """
+
     def __init__(self):
-        """Initialize both Gemini models"""
-        # Gemini 2.0 Flash for vision (proven to work)
+        """Initialize Gemini vision model and logic engine."""
         self.vision_model = genai.GenerativeModel('gemini-2.0-flash')
-        
-        # Gemini 3.0 Flash for strategic reasoning
-        self.strategy_model = genai.GenerativeModel('gemini-3-flash-preview')
-        
-        logger.info("✅ Deep Flop Analyzer initialized (Gemini 2.0 vision + Gemini 3.0 strategy)")
-    
+        self.engine = FlopLogicEngine()
+        logger.info("✅ Deep Flop Analyzer initialized (Gemini 2.0 vision + FlopLogicEngine)")
+
     def analyze(
         self,
         image_data: bytes,
@@ -95,20 +88,17 @@ class DeepFlopAnalyzer:
         blinds: str = "0.02/0.05"
     ) -> Dict[str, Any]:
         """
-        Analyze flop situation using two-stage Gemini 3.0 Flash processing
-        
-        Stage 1: Visual extraction (cards, pot, raise)
-        Stage 2: Strategic analysis (equity, EV, optimal play)
-        
+        Analyze a flop situation.
+
         Args:
-            image_data: Raw image bytes
-            hero_position: "IP" or "OOP"
-            villain_position: "UTG", "MP", "CO", "BTN", "SB", "BB"
-            preflop_pot_type: "open_raise", "3bet", "4bet"
-            blinds: Blind levels (e.g., "0.02/0.05")
-            
+            image_data:        Raw image bytes from frontend capture
+            hero_position:     "IP" or "OOP"
+            villain_position:  "UTG", "MP", "CO", "BTN", "SB", "BB"
+            preflop_pot_type:  "open_raise", "3bet", "4bet"
+            blinds:            Blind levels e.g. "0.02/0.05"
+
         Returns:
-            Dictionary with complete analysis
+            Dict compatible with main.py /analyze response format
         """
         if not GEMINI_API_KEY:
             logger.error("❌ GEMINI_API_KEY not configured!")
@@ -116,110 +106,116 @@ class DeepFlopAnalyzer:
                 "success": False,
                 "error": "GEMINI_API_KEY not configured."
             }
-        
+
+        # ── STAGE 1: Visual extraction ────────────────────────────────────────
         try:
-            # STAGE 1: Visual Extraction with Gemini 2.0 Flash (proven)
-            logger.info("👁️ Stage 1: Visual extraction with Gemini 2.0 Flash")
-            
+            logger.info("👁️ Stage 1: Gemini 2.0 Flash visual extraction")
+
             image = Image.open(BytesIO(image_data))
-            
-            response_stage1 = self.vision_model.generate_content([VISUAL_EXTRACTION_PROMPT, image])
-            raw_text = response_stage1.text
-            
-            # Find JSON by locating first { and last }
+            response = self.vision_model.generate_content([VISUAL_EXTRACTION_PROMPT, image])
+            raw_text = response.text
+
+            # Robustly find the JSON object
             first_brace = raw_text.find('{')
-            last_brace = raw_text.rfind('}')
-            
+            last_brace  = raw_text.rfind('}')
+
             if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-                extraction_text = raw_text[first_brace:last_brace+1]
+                extraction_text = raw_text[first_brace:last_brace + 1]
             else:
                 extraction_text = raw_text.strip()
-            
-            logger.info(f"Extracted text for parsing: {extraction_text[:200]}...")
-            extracted_data = json.loads(extraction_text)
-            
-            logger.info(f"✅ Stage 1 complete: {extracted_data}")
-            
-            # Validate extracted data
-            hero_cards = extracted_data.get("hero_cards", [])
-            board_cards = extracted_data.get("board_cards", [])
-            
-            if len(hero_cards) != 2 or len(board_cards) != 3:
-                return {
-                    "success": False,
-                    "error": f"Invalid card extraction: {len(hero_cards)} hero cards, {len(board_cards)} board cards"
-                }
-            
-            # STAGE 2: Strategic Analysis with Gemini 3.0 Flash
-            logger.info("🧠 Stage 2: Strategic analysis with Gemini 3.0 Flash")
-            
-            # Format preflop pot type for display
-            pot_type_display = {
-                "open_raise": "Single Raised Pot",
-                "3bet": "3-Bet Pot",
-                "4bet": "4-Bet Pot"
-            }.get(preflop_pot_type, preflop_pot_type)
-            
-            analysis_prompt = STRATEGIC_ANALYSIS_PROMPT.format(
-                blinds=blinds,
-                hero_position="In Position" if hero_position == "IP" else "Out of Position",
-                villain_position=villain_position,
-                preflop_pot_type=pot_type_display,
-                hero_cards=", ".join(hero_cards),
-                board_cards=", ".join(board_cards),
-                pot_size=extracted_data.get("pot_size", "Unknown"),
-                villain_raise=extracted_data.get("villain_raise_amount", "0")
-            )
-            
-            response_stage2 = self.strategy_model.generate_content(analysis_prompt)
-            raw_text = response_stage2.text
-            
-            # Find JSON by locating first { and last }
-            first_brace = raw_text.find('{')
-            last_brace = raw_text.rfind('}')
-            
-            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-                analysis_text = raw_text[first_brace:last_brace+1]
-            else:
-                analysis_text = raw_text.strip()
-            
-            logger.info(f"Extracted analysis for parsing: {analysis_text[:200]}...")
-            analysis = json.loads(analysis_text)
-            
-            logger.info(f"✅ Stage 2 complete: {analysis.get('optimal_play', 'Unknown')}")
-            
-            # Format final response
-            return {
-                "success": True,
-                "extracted_data": {
-                    "hero_cards": hero_cards,
-                    "board_cards": board_cards,
-                    "pot_size_dollars": extracted_data.get("pot_size", "Unknown"),
-                    "villain_raise": extracted_data.get("villain_raise_amount", "0"),
-                    "street": "flop",
-                    "hero_position": hero_position,
-                    "villain_position": villain_position,
-                    "board_description": analysis.get("board_connection", "Unknown"),
-                    "hand_description": f"{', '.join(hero_cards)}"
-                },
-                "recommendation": {
-                    "action": analysis.get("optimal_play", "Unknown"),
-                    "reasoning": analysis.get("board_connection", "")
-                },
-                "analysis": analysis
-            }
-            
+
+            logger.info(f"Stage 1 raw (truncated): {extraction_text[:200]}")
+            extracted = json.loads(extraction_text)
+
         except json.JSONDecodeError as e:
-            logger.error(f"❌ Failed to parse Gemini response: {e}")
-            logger.error(f"Raw response text: {response_stage2.text if 'response_stage2' in locals() else response_stage1.text}")
+            logger.error(f"❌ Stage 1 JSON parse error: {e}")
             return {
                 "success": False,
-                "error": f"Failed to parse analysis response: {str(e)}"
+                "error": f"Could not parse Gemini extraction: {str(e)}"
             }
-            
         except Exception as e:
-            logger.error(f"❌ Deep flop analysis error: {e}", exc_info=True)
+            logger.error(f"❌ Stage 1 Gemini error: {e}", exc_info=True)
             return {
                 "success": False,
-                "error": str(e)
+                "error": f"Visual extraction failed: {str(e)}"
             }
+
+        # ── Validate extracted data ───────────────────────────────────────────
+        hero_cards  = extracted.get("hero_cards",  [])
+        board_cards = extracted.get("board_cards", [])
+
+        if len(hero_cards) != 2:
+            return {
+                "success": False,
+                "error": f"Expected 2 hero cards, got {len(hero_cards)}. Please retake the photo."
+            }
+
+        if len(board_cards) != 3:
+            return {
+                "success": False,
+                "error": f"Expected 3 flop cards, got {len(board_cards)}. Please retake the photo."
+            }
+
+        # Parse dollar amounts — handle "0", "$0.50", etc.
+        pot_size_str    = extracted.get("pot_size",            "$0")
+        villain_raise_str = extracted.get("villain_raise_amount", "0")
+
+        pot_size      = _parse_dollar_amount(pot_size_str)
+        villain_raise = _parse_dollar_amount(villain_raise_str)
+
+        # Guard against zero pot (Gemini sometimes misses it)
+        if pot_size <= 0:
+            # Estimate pot from blinds
+            try:
+                bb = float(blinds.split('/')[1])
+                pot_size = bb * 7  # Rough estimate: ~7BB post-preflop action
+            except Exception:
+                pot_size = 0.35  # Fallback
+
+        logger.info(
+            f"✅ Stage 1 complete — Hero: {hero_cards}, Board: {board_cards}, "
+            f"Pot: ${pot_size:.2f}, Raise: ${villain_raise:.2f}"
+        )
+
+        # ── STAGE 2: FlopLogicEngine ──────────────────────────────────────────
+        logger.info("🧠 Stage 2: FlopLogicEngine GTO decision")
+
+        engine_result = self.engine.analyze(
+            hero_cards=hero_cards,
+            board_cards=board_cards,
+            pot_size=pot_size,
+            villain_raise=villain_raise,
+            hero_position=hero_position,
+            villain_position=villain_position,
+            preflop_pot_type=preflop_pot_type
+        )
+
+        if not engine_result.get("success"):
+            return {
+                "success": False,
+                "error": engine_result.get("error", "Flop logic engine failed")
+            }
+
+        logger.info(f"✅ Stage 2 complete — Action: {engine_result['action']}")
+
+        # ── Build response compatible with main.py ────────────────────────────
+        return {
+            "success": True,
+            "extracted_data": {
+                "hero_cards":         hero_cards,
+                "board_cards":        board_cards,
+                "pot_size_dollars":   pot_size_str if pot_size_str != "$0" else f"${pot_size:.2f}",
+                "villain_raise":      villain_raise_str,
+                "street":             "flop",
+                "hero_position":      hero_position,
+                "villain_position":   villain_position,
+                "board_description":  engine_result.get("board_description", ""),
+                "hand_description":   engine_result.get("hand_description", ""),
+            },
+            "recommendation": {
+                "action":   engine_result["action"],
+                "reasoning": engine_result["reasoning"],
+            },
+            # Metrics block for optional debug / badge display on frontend
+            "metrics": engine_result.get("metrics", {}),
+        }
