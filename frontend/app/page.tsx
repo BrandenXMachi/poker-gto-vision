@@ -558,7 +558,8 @@ export default function Home() {
               </div>
 
               {/* Feature Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+
                 {/* Preflop Card */}
                 <div className="clay-card-orange card-shine p-5 text-center hover:scale-105 transition-transform duration-200">
                   <div className="text-5xl mb-3 animate-float-slow">🎯</div>
@@ -602,7 +603,25 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* GTO Trainer Link */}
+              <div className="mb-8">
+                <a
+                  href="/gto-trainer"
+                  className="clay-card card-shine p-5 flex items-center justify-between hover:scale-[1.02] transition-transform duration-200 no-underline"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="text-4xl">♠</div>
+                    <div>
+                      <h3 className="text-lg font-black text-white/90">GTO Preflop Trainer</h3>
+                      <p className="text-sm text-white/60">Study full 6-max preflop range charts · RFI, vs Open, 3-Bet & 4-Bet</p>
+                    </div>
+                  </div>
+                  <div className="text-2xl text-white/50">→</div>
+                </a>
+              </div>
+
               {/* How It Works */}
+
               <div className="clay-card p-6 mb-8">
                 <h2 className="text-center text-lg font-black text-white/90 mb-5">⚡ How It Works</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

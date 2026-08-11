@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTO Preflop Trainer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>♠ GTO Preflop Trainer</h1>
+            <p class="subtitle">6-Max · 100bb · 2.5x Open · Heads-Up Pots</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="hero-pos">Hero Position</label>
+                <select id="hero-pos">
+                    <option value="UTG">UTG</option>
+                    <option value="MP">MP</option>
+                    <option value="CO">CO</option>
+                    <option value="BTN">BTN</option>
+                    <option value="SB">SB</option>
+                    <option value="BB">BB</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="villain-pos">Villain Position</label>
+                <select id="villain-pos">
+                    <option value="UTG">UTG</option>
+                    <option value="MP">MP</option>
+                    <option value="CO">CO</option>
+                    <option value="BTN">BTN</option>
+                    <option value="SB">SB</option>
+                    <option value="BB">BB</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="scenario">Scenario</label>
+                <select id="scenario">
+                    <option value="RFI">Unopened (RFI)</option>
+                    <option value="vs_Open">Facing Open</option>
+                    <option value="vs_3B">Facing 3-Bet</option>
+                    <option value="vs_4B">Facing 4-Bet</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2 id="chart-title">BTN Unopened</h2>
+                <div class="legend">
+                    <span class="legend-item"><span class="legend-color raise"></span>Raise</span>
+                    <span class="legend-item"><span class="legend-color call"></span>Call</span>
+                    <span class="legend-item"><span class="legend-color fold"></span>Fold</span>
+                </div>
+            </div>
+            <div id="chart" class="chart"></div>
+        </div>
+
+        <div class="tooltip" id="tooltip"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
