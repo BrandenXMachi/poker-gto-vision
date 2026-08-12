@@ -34,7 +34,17 @@
             <div class="study-screen glass active" id="study-screen-hand">
                 <h2 class="study-title">Select a hand</h2>
                 <p class="study-hint">Click any hand on the grid to study it on its own.</p>
-                <div id="study-grid" class="study-grid"></div>
+                <div class="category-legend">
+                    <span class="legend-chip cat-pair">Pair</span>
+                    <span class="legend-chip cat-suited-ace">Suited Ace</span>
+                    <span class="legend-chip cat-suited-broadway">Suited Broadway</span>
+                    <span class="legend-chip cat-offsuit-broadway">Offsuit Broadway</span>
+                    <span class="legend-chip cat-suited-connector">Suited Connector</span>
+                    <span class="legend-chip cat-suited-gapper">Suited Gapper</span>
+                </div>
+                <div class="study-grid-wrap">
+                    <div id="study-grid" class="study-grid"></div>
+                </div>
             </div>
 
             <!-- Step 1: pick hero position -->
@@ -68,11 +78,6 @@
                 <p class="study-hint" id="study-result-explanation"></p>
                 <div class="result-breakdown" id="study-result-breakdown"></div>
                 <button class="primary-btn" id="study-restart-btn" type="button">&#128260; Study Another Hand</button>
-            </div>
-
-            <div class="study-loading" id="study-loading" hidden>
-                <div class="spinner"></div>
-                <span>Checking charts&hellip;</span>
             </div>
         </section>
 

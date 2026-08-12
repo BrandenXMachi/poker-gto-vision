@@ -49,6 +49,39 @@ const SCENARIO_SUBLABELS = {
 };
 
 // ---------------------------------------------------------------------------
+// Hand categorization (for the hand-select grid coloring)
+// ---------------------------------------------------------------------------
+
+const RANK_IDX = { A: 0, K: 1, Q: 2, J: 3, T: 4, '9': 5, '8': 6, '7': 7, '6': 8, '5': 9, '4': 10, '3': 11, '2': 12 };
+const BROADWAY_SET = new Set(['A', 'K', 'Q', 'J', 'T']);
+
+/**
+ * Classify a hand into one visual category for the hand-select grid:
+ * pair, suited-ace, suited-broadway, offsuit-broadway, suited-connector,
+ * suited-gapper, or other.
+ */
+function categorizeHand(hand) {
+    if (hand.length === 2) return 'pair';
+    const r1 = hand[0];
+    const r2 = hand[1];
+    const suited = hand[2] === 's';
+
+    if (suited && (r1 === 'A' || r2 === 'A')) return 'suited-ace';
+
+    const bothBroadway = BROADWAY_SET.has(r1) && BROADWAY_SET.has(r2);
+    if (suited && bothBroadway) return 'suited-broadway';
+    if (!suited && bothBroadway) return 'offsuit-broadway';
+
+    if (suited) {
+        const gap = Math.abs(RANK_IDX[r1] - RANK_IDX[r2]) - 1;
+        if (gap === 0) return 'suited-connector';
+        if (gap === 1) return 'suited-gapper';
+    }
+
+    return 'other';
+}
+
+// ---------------------------------------------------------------------------
 // Frequency helpers
 // ---------------------------------------------------------------------------
 
@@ -214,8 +247,6 @@ const screenEls = {
     result: document.getElementById('study-screen-result')
 };
 
-const loadingEl = document.getElementById('study-loading');
-
 const crumbHandEl = document.getElementById('crumb-hand');
 const crumbHeroEl = document.getElementById('crumb-hero');
 const crumbScenarioEl = document.getElementById('crumb-scenario');
@@ -232,10 +263,6 @@ function showScreen(key, opts = {}) {
     }
     Object.values(screenEls).forEach(el => el.classList.remove('active'));
     screenEls[key].classList.add('active');
-}
-
-function setLoading(isLoading) {
-    loadingEl.hidden = !isLoading;
 }
 
 function updateBadges() {
@@ -296,9 +323,10 @@ function renderStudyHandGrid() {
     for (let r = 0; r < 13; r++) {
         for (let c = 0; c < 13; c++) {
             const cell = cells.find(g => g.row === r && g.col === c);
+            const category = categorizeHand(cell.hand);
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = `study-cell ${cell.type}`;
+            btn.className = `study-cell cat-${category}`;
             btn.textContent = cell.hand;
             btn.addEventListener('click', () => selectHand(cell.hand));
             container.appendChild(btn);
@@ -336,12 +364,12 @@ function renderHeroButtons() {
 async function selectHero(hero) {
     if (studyBusy) return;
     studyBusy = true;
-    studyHero = hero;
-    studyScenario = null;
-    studyVillain = null;
-    updateBadges();
-    setLoading(true);
     try {
+        studyHero = hero;
+        studyScenario = null;
+        studyVillain = null;
+        updateBadges();
+
         const allFold = await step1AllFold(hero, studyHand);
         if (allFold) {
             showResult({ forcedFold: true, reason: 'never-profitable' });
@@ -351,7 +379,6 @@ async function selectHero(hero) {
         renderScenarioButtons(studyLegalScenarios);
         showScreen('scenario');
     } finally {
-        setLoading(false);
         studyBusy = false;
     }
 }
@@ -376,11 +403,11 @@ function renderScenarioButtons(scenarios) {
 async function selectScenario(scenario) {
     if (studyBusy) return;
     studyBusy = true;
-    studyScenario = scenario;
-    studyVillain = null;
-    updateBadges();
-    setLoading(true);
     try {
+        studyScenario = scenario;
+        studyVillain = null;
+        updateBadges();
+
         const res = await step2AllFold(studyHero, scenario, studyHand);
         if (res.allFold) {
             showResult({
@@ -395,13 +422,14 @@ async function selectScenario(scenario) {
             return;
         }
         if (res.villains.length === 1) {
-            await selectVillain(res.villains[0]);
+            // Only one possible villain for this spot - skip straight to
+            // the result instead of asking a question with one answer.
+            await selectVillainCore(res.villains[0]);
             return;
         }
         renderVillainButtons(res.villains);
         showScreen('villain');
     } finally {
-        setLoading(false);
         studyBusy = false;
     }
 }
@@ -423,17 +451,21 @@ function renderVillainButtons(villains) {
     }
 }
 
+/** Core logic shared by direct clicks and the single-villain auto-skip
+ *  from selectScenario (which already holds the studyBusy lock). */
+async function selectVillainCore(villain) {
+    studyVillain = villain;
+    updateBadges();
+    const chartData = await loadChartFor(studyHero, villain, studyScenario);
+    showResult({ chartData });
+}
+
 async function selectVillain(villain) {
     if (studyBusy) return;
     studyBusy = true;
-    studyVillain = villain;
-    updateBadges();
-    setLoading(true);
     try {
-        const chartData = await loadChartFor(studyHero, villain, studyScenario);
-        showResult({ chartData });
+        await selectVillainCore(villain);
     } finally {
-        setLoading(false);
         studyBusy = false;
     }
 }
