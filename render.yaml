@@ -1,21 +1,9 @@
 services:
-  # Backend FastAPI Service
-  - type: web
-    name: poker-gto-vision-backend
-    runtime: python
-    buildCommand: "pip install -r backend/requirements.txt"
-    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
-    envVars:
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: PYTHON_VERSION
-        value: 3.11
-    disk:
-      name: models
-      mountPath: /opt/render/project/src/backend/models
-      sizeGB: 1
-    
-  # Frontend Next.js Service
+  # GTO Preflop Trainer (serves lelabubu.ca).
+  #
+  # The trainer is a self-contained static app in frontend/public/gto-trainer/,
+  # framed at the site root by a minimal Next.js shell. There is no backend:
+  # the former vision/analysis service has been removed from this deployment.
   - type: web
     name: poker-gto-vision-frontend
     runtime: node
@@ -24,5 +12,3 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 18
-      - key: NEXT_PUBLIC_WS_URL
-        value: wss://poker-gto-vision-backend.onrender.com

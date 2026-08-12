@@ -180,6 +180,31 @@ function parseUPI(upiString) {
     return result;
 }
 
+/**
+ * Charts for later decision nodes (vs_3B / vs_4B / vs_5B) store CONDITIONAL
+ * frequencies: each hand's actions are pre-multiplied by the probability
+ * Hero's hand actually reached that node.
+ *
+ * Example - K8o on the BTN facing a 3-bet is stored as fold:0.700, because
+ * BTN only opens K8o 70% of the time. The remaining 30% isn't some other
+ * action; it's the times BTN never opened and this decision never happened.
+ * The answer a player needs is "given that I AM here, what do I do?" - which
+ * is Fold 100%.
+ *
+ * This rescales a hand's actions so they sum to 1.0, and also reports the
+ * raw sum as `reach` (how often this spot occurs for this hand at all).
+ */
+function normalizeHandFreqs(handData) {
+    const raise = handData.raise || 0;
+    const call = handData.call || 0;
+    const fold = handData.fold || 0;
+    const reach = raise + call + fold;
+    if (reach <= 0.0001) {
+        return { raise: 0, call: 0, fold: 0, reach: 0 };
+    }
+    return { raise: raise / reach, call: call / reach, fold: fold / reach, reach };
+}
+
 // ---------------------------------------------------------------------------
 // Chart rendering
 // ---------------------------------------------------------------------------
@@ -340,8 +365,13 @@ async function renderChart() {
                 continue;
             }
 
-            const handData = handFreqs[cell.hand] || { raise: 0, call: 0, fold: 0 };
-            const { color, raise, call, fold } = getActionColors(handData);
+            const rawData = handFreqs[cell.hand] || { raise: 0, call: 0, fold: 0 };
+            const { raise, call, fold, reach } = normalizeHandFreqs(rawData);
+            // Hands that never reach this node get a neutral, "not applicable"
+            // look rather than being mis-coloured as a faint fold.
+            const color = reach <= 0.0001
+                ? 'rgba(255, 255, 255, 0.05)'
+                : getActionColors({ raise, call, fold }).color;
 
             const cellEl = document.createElement('div');
             cellEl.className = 'cell';
@@ -352,7 +382,7 @@ async function renderChart() {
             cellEl.dataset.call = call.toFixed(3);
             cellEl.dataset.fold = fold.toFixed(3);
 
-            cellEl.addEventListener('mouseenter', (e) => showTooltip(e, cell.hand, raise, call, fold));
+            cellEl.addEventListener('mouseenter', (e) => showTooltip(e, cell.hand, raise, call, fold, reach));
             cellEl.addEventListener('mousemove', (e) => moveTooltip(e));
             cellEl.addEventListener('mouseleave', hideTooltip);
 
@@ -378,13 +408,31 @@ function createEmptyCell() {
 // Tooltip
 // ---------------------------------------------------------------------------
 
-function showTooltip(e, hand, raise, call, fold) {
+function showTooltip(e, hand, raise, call, fold, reach = 1) {
     const tooltip = tooltipEl;
+
+    if (reach <= 0.0001) {
+        tooltip.innerHTML = `
+            <div class="hand-name">${hand}</div>
+            <div class="tooltip-note">You never reach this spot with ${hand} - it isn't in the range that gets here.</div>
+        `;
+        tooltip.style.display = 'block';
+        moveTooltip(e);
+        return;
+    }
+
+    // When a hand only sometimes reaches this node, show that as context so
+    // the (correctly normalised) percentages below can't be misread.
+    const reachNote = reach < 0.995
+        ? `<div class="tooltip-note">Reaches this spot ${(reach * 100).toFixed(0)}% of the time. Below is what to do when you're here.</div>`
+        : '';
+
     tooltip.innerHTML = `
         <div class="hand-name">${hand}</div>
         <div class="action-row"><span class="action-name">Raise</span><span class="action-pct raise">${(raise * 100).toFixed(1)}%</span></div>
         <div class="action-row"><span class="action-name">Call</span><span class="action-pct call">${(call * 100).toFixed(1)}%</span></div>
         <div class="action-row"><span class="action-name">Fold</span><span class="action-pct fold">${(fold * 100).toFixed(1)}%</span></div>
+        ${reachNote}
     `;
     tooltip.style.display = 'block';
     moveTooltip(e);

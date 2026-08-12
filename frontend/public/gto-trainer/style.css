@@ -417,6 +417,30 @@ body {
 /* Dice roll assist                                                    */
 /* ---------------------------------------------------------------- */
 
+/* Context line explaining how often a hand actually reaches this spot,
+   shown when a chart node stores conditional (partial-weight) frequencies. */
+.reach-note {
+    margin: -0.35rem 0 0.9rem;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: #cbd5e1;
+    background: rgba(96, 165, 250, 0.08);
+    border-left: 3px solid rgba(96, 165, 250, 0.55);
+    border-radius: 6px;
+}
+
+.tooltip-note {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    max-width: 220px;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    color: #cbd5e1;
+    white-space: normal;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 .dice-widget {
     margin: 20px auto 0;
     max-width: 480px;

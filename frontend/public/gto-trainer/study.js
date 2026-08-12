@@ -476,6 +476,7 @@ async function selectVillain(villain) {
 
 const resultTitleEl = document.getElementById('study-result-title');
 const resultExplanationEl = document.getElementById('study-result-explanation');
+const resultReachNoteEl = document.getElementById('study-result-reach-note');
 const resultBreakdownEl = document.getElementById('study-result-breakdown');
 
 // ---------------------------------------------------------------------------
@@ -585,6 +586,7 @@ function showResult({ forcedFold, reason, chartData } = {}) {
 
     let rows = [];
     let explanation = '';
+    let reachNote = '';
 
     if (forcedFold) {
         rows = [{ name: 'Fold', pct: 1, key: 'fold' }];
@@ -605,14 +607,44 @@ function showResult({ forcedFold, reason, chartData } = {}) {
             const freq = range[studyHand] || 0;
             rows.push({ name: actionObj.name, pct: freq, key: classifyAction(actionObj.name) });
         }
-        explanation = `${studyHand} as ${studyHero}` +
-            (studyScenario === 'RFI' ? ' opening unopposed:' : ` ${SCENARIO_LABELS[studyScenario].toLowerCase()} from ${studyVillain}:`);
+
+        // Charts for later nodes (vs 3-bet / 4-bet / 5-bet) store CONDITIONAL
+        // frequencies, pre-multiplied by how often this hand actually reached
+        // the node. K8o on the BTN facing a 3-bet is stored as fold:0.700
+        // because BTN only opens K8o 70% of the time - the missing 30% is not
+        // another action, it's the times the spot never happened. Rescale so
+        // the numbers answer the real question: "given that I AM here, what
+        // do I do?" This also keeps the dice roll correctly calibrated.
+        const reach = rows.reduce((sum, r) => sum + r.pct, 0);
+
+        if (reach <= 0.0001) {
+            rows = [{ name: 'Fold', pct: 1, key: 'fold' }];
+            explanation = `Hero never reaches this spot with ${studyHand} \u2014 it isn\u2019t in the ` +
+                `range that gets here. Effective decision: Fold.`;
+        } else {
+            if (Math.abs(reach - 1) > 0.005) {
+                rows = rows.map(r => ({ ...r, pct: r.pct / reach }));
+                reachNote = `You only reach this spot with ${studyHand} about ` +
+                    `${(reach * 100).toFixed(0)}% of the time \u2014 the rest of the time Hero ` +
+                    `folded earlier. The breakdown below is what to do when you are here.`;
+            }
+            explanation = `${studyHand} as ${studyHero}` +
+                (studyScenario === 'RFI' ? ' opening unopposed:' : ` ${SCENARIO_LABELS[studyScenario].toLowerCase()} from ${studyVillain}:`);
+        }
     } else {
         rows = [{ name: 'Fold', pct: 1, key: 'fold' }];
         explanation = 'No chart data was found for this exact spot \u2014 defaulting to Fold.';
     }
 
     resultExplanationEl.textContent = explanation;
+
+    if (reachNote) {
+        resultReachNoteEl.textContent = reachNote;
+        resultReachNoteEl.hidden = false;
+    } else {
+        resultReachNoteEl.textContent = '';
+        resultReachNoteEl.hidden = true;
+    }
 
     // Sort rows by descending frequency for a cleaner read.
     rows.sort((a, b) => b.pct - a.pct);
