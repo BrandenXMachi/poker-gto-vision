@@ -237,11 +237,11 @@ function getActionColors(handData) {
 
     let color;
     if (dominant === 'raise') {
-        color = `rgba(76, 175, 80, ${0.3 + intensity * 0.7})`;
+        color = `rgba(52, 211, 153, ${0.3 + intensity * 0.7})`;
     } else if (dominant === 'call') {
-        color = `rgba(33, 150, 243, ${0.3 + intensity * 0.7})`;
+        color = `rgba(96, 165, 250, ${0.3 + intensity * 0.7})`;
     } else {
-        color = `rgba(244, 67, 54, ${0.3 + intensity * 0.7})`;
+        color = `rgba(251, 113, 133, ${0.3 + intensity * 0.7})`;
     }
 
     return { color, raise, call, fold, dominant };

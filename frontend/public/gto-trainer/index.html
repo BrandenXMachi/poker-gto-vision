@@ -7,63 +7,130 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>♠ GTO Preflop Trainer</h1>
-            <p class="subtitle">6-Max · 100bb · 2.5x Open · Heads-Up Pots</p>
+    <div class="bg-glow"></div>
+
+    <div class="app-shell">
+        <header class="app-header">
+            <h1>&#9824; GTO Preflop Trainer</h1>
+            <p class="subtitle">6-Max &middot; 100bb &middot; 2.5x Open &middot; Heads-Up Pots</p>
         </header>
 
-        <div class="controls">
-            <div class="control-group">
-                <label for="hero-pos">Hero Position</label>
-                <select id="hero-pos">
-                    <option value="UTG">UTG</option>
-                    <option value="MP">MP</option>
-                    <option value="CO">CO</option>
-                    <option value="BTN">BTN</option>
-                    <option value="SB">SB</option>
-                    <option value="BB">BB</option>
-                </select>
+        <nav class="tabs glass">
+            <button id="tab-study" class="tab-btn active" type="button">&#127919; Study a Hand</button>
+            <button id="tab-chart" class="tab-btn" type="button">&#128202; Full Chart</button>
+        </nav>
+
+        <!-- ======================= STUDY A HAND VIEW ======================= -->
+        <section id="view-study" class="view active">
+
+            <div class="study-breadcrumb" id="study-breadcrumb">
+                <span class="crumb crumb-hand" id="crumb-hand" hidden></span>
+                <span class="crumb crumb-hero" id="crumb-hero" hidden></span>
+                <span class="crumb crumb-scenario" id="crumb-scenario" hidden></span>
+                <span class="crumb crumb-villain" id="crumb-villain" hidden></span>
             </div>
 
-            <div class="control-group">
-                <label for="villain-pos">Villain Position</label>
-                <select id="villain-pos">
-                    <option value="UTG">UTG</option>
-                    <option value="MP">MP</option>
-                    <option value="CO">CO</option>
-                    <option value="BTN">BTN</option>
-                    <option value="SB">SB</option>
-                    <option value="BB">BB</option>
-                </select>
+            <!-- Step 0: pick a hand -->
+            <div class="study-screen glass active" id="study-screen-hand">
+                <h2 class="study-title">Select a hand</h2>
+                <p class="study-hint">Click any hand on the grid to study it on its own.</p>
+                <div id="study-grid" class="study-grid"></div>
             </div>
 
-            <div class="control-group">
-                <label for="scenario">Scenario</label>
-                <select id="scenario">
-                    <option value="RFI">Unopened (RFI)</option>
-                    <option value="vs_Open">Facing Open</option>
-                    <option value="vs_3B">Facing 3-Bet</option>
-                    <option value="vs_4B">Facing 4-Bet</option>
-                </select>
+            <!-- Step 1: pick hero position -->
+            <div class="study-screen glass" id="study-screen-hero">
+                <button class="back-btn" data-back type="button">&larr; Back</button>
+                <h2 class="study-title">Where is Hero?</h2>
+                <p class="study-hint">Select Hero&rsquo;s position at the table.</p>
+                <div class="pos-grid" id="study-hero-buttons"></div>
             </div>
-        </div>
 
-        <div class="chart-container">
-            <div class="chart-header">
-                <h2 id="chart-title">BTN Unopened</h2>
-                <div class="legend">
-                    <span class="legend-item"><span class="legend-color raise"></span>Raise</span>
-                    <span class="legend-item"><span class="legend-color call"></span>Call</span>
-                    <span class="legend-item"><span class="legend-color fold"></span>Fold</span>
+            <!-- Step 2: pick scenario -->
+            <div class="study-screen glass" id="study-screen-scenario">
+                <button class="back-btn" data-back type="button">&larr; Back</button>
+                <h2 class="study-title">What&rsquo;s the situation?</h2>
+                <p class="study-hint">Select the betting scenario Hero is facing.</p>
+                <div class="scenario-grid" id="study-scenario-buttons"></div>
+            </div>
+
+            <!-- Step 3: pick villain position -->
+            <div class="study-screen glass" id="study-screen-villain">
+                <button class="back-btn" data-back type="button">&larr; Back</button>
+                <h2 class="study-title">Who is Villain?</h2>
+                <p class="study-hint">Select the opponent&rsquo;s position in this hand.</p>
+                <div class="pos-grid" id="study-villain-buttons"></div>
+            </div>
+
+            <!-- Result -->
+            <div class="study-screen glass" id="study-screen-result">
+                <button class="back-btn" data-back type="button">&larr; Back</button>
+                <h2 class="study-title" id="study-result-title">Result</h2>
+                <p class="study-hint" id="study-result-explanation"></p>
+                <div class="result-breakdown" id="study-result-breakdown"></div>
+                <button class="primary-btn" id="study-restart-btn" type="button">&#128260; Study Another Hand</button>
+            </div>
+
+            <div class="study-loading" id="study-loading" hidden>
+                <div class="spinner"></div>
+                <span>Checking charts&hellip;</span>
+            </div>
+        </section>
+
+        <!-- ======================= FULL CHART VIEW (existing) ======================= -->
+        <section id="view-chart" class="view">
+            <div class="controls glass">
+                <div class="control-group">
+                    <label for="hero-pos">Hero Position</label>
+                    <select id="hero-pos">
+                        <option value="UTG">UTG</option>
+                        <option value="MP">MP</option>
+                        <option value="CO">CO</option>
+                        <option value="BTN">BTN</option>
+                        <option value="SB">SB</option>
+                        <option value="BB">BB</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="villain-pos">Villain Position</label>
+                    <select id="villain-pos">
+                        <option value="UTG">UTG</option>
+                        <option value="MP">MP</option>
+                        <option value="CO">CO</option>
+                        <option value="BTN">BTN</option>
+                        <option value="SB">SB</option>
+                        <option value="BB">BB</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="scenario">Scenario</label>
+                    <select id="scenario">
+                        <option value="RFI">Unopened (RFI)</option>
+                        <option value="vs_Open">Facing Open</option>
+                        <option value="vs_3B">Facing 3-Bet</option>
+                        <option value="vs_4B">Facing 4-Bet</option>
+                    </select>
                 </div>
             </div>
-            <div id="chart" class="chart"></div>
-        </div>
+
+            <div class="chart-container glass">
+                <div class="chart-header">
+                    <h2 id="chart-title">BTN Unopened</h2>
+                    <div class="legend">
+                        <span class="legend-item"><span class="legend-color raise"></span>Raise</span>
+                        <span class="legend-item"><span class="legend-color call"></span>Call</span>
+                        <span class="legend-item"><span class="legend-color fold"></span>Fold</span>
+                    </div>
+                </div>
+                <div id="chart" class="chart"></div>
+            </div>
+        </section>
 
         <div class="tooltip" id="tooltip"></div>
     </div>
 
     <script src="app.js"></script>
+    <script src="study.js"></script>
 </body>
 </html>
