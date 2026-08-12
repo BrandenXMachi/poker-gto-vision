@@ -478,8 +478,108 @@ const resultTitleEl = document.getElementById('study-result-title');
 const resultExplanationEl = document.getElementById('study-result-explanation');
 const resultBreakdownEl = document.getElementById('study-result-breakdown');
 
+// ---------------------------------------------------------------------------
+// Dice roll assist
+// ---------------------------------------------------------------------------
+
+const diceWidgetEl = document.getElementById('dice-widget');
+const diceTrackEl = document.getElementById('dice-track');
+const diceMarkerEl = document.getElementById('dice-marker');
+const diceBannerEl = document.getElementById('dice-banner');
+const diceRollBtn = document.getElementById('dice-roll-btn');
+
+let currentRollRows = null;
+
+function buildDiceTrack(rows) {
+    // Keep the marker element, drop any previously-built segments.
+    diceTrackEl.querySelectorAll('.dice-segment').forEach(el => el.remove());
+    for (const row of rows) {
+        const seg = document.createElement('div');
+        seg.className = `dice-segment ${row.key}`;
+        seg.style.width = `${(row.pct * 100).toFixed(3)}%`;
+        diceTrackEl.appendChild(seg);
+    }
+}
+
+function resetDiceWidget(rows) {
+    currentRollRows = rows;
+    buildDiceTrack(rows);
+    diceTrackEl.querySelectorAll('.dice-segment').forEach(el => el.classList.remove('landed'));
+    resultBreakdownEl.querySelectorAll('.result-row').forEach(el => el.classList.remove('landed'));
+    diceBannerEl.hidden = true;
+    diceMarkerEl.classList.add('no-transition');
+    diceMarkerEl.classList.remove('spinning', 'landing');
+    diceMarkerEl.style.left = '0%';
+    // Force a reflow so the next transition starts clean.
+    void diceMarkerEl.offsetWidth;
+    diceMarkerEl.classList.remove('no-transition');
+    diceRollBtn.textContent = '\u{1F3B2} Roll the Dice';
+    diceRollBtn.disabled = false;
+}
+
+function rollDice() {
+    if (!currentRollRows || !currentRollRows.length || diceRollBtn.disabled) return;
+
+    diceBannerEl.hidden = true;
+    diceTrackEl.querySelectorAll('.dice-segment').forEach(el => el.classList.remove('landed'));
+    resultBreakdownEl.querySelectorAll('.result-row').forEach(el => el.classList.remove('landed'));
+    diceRollBtn.disabled = true;
+
+    const roll = Math.random();
+    let cumulative = 0;
+    let winnerIdx = currentRollRows.length - 1;
+    let winnerStart = 0;
+    let winnerEnd = 1;
+    for (let i = 0; i < currentRollRows.length; i++) {
+        const start = cumulative;
+        cumulative += currentRollRows[i].pct;
+        if (roll < cumulative || i === currentRollRows.length - 1) {
+            winnerIdx = i;
+            winnerStart = start;
+            winnerEnd = cumulative;
+            break;
+        }
+    }
+    // Land somewhere inside the winning segment (not dead-center every time).
+    const landFrac = winnerStart + (winnerEnd - winnerStart) * (0.15 + Math.random() * 0.7);
+
+    // Snap back to the start instantly (no visible transition), then animate
+    // forward to the landing point on the next frame.
+    diceMarkerEl.classList.add('no-transition');
+    diceMarkerEl.classList.remove('landing');
+    diceMarkerEl.style.left = '0%';
+    void diceMarkerEl.offsetWidth;
+    diceMarkerEl.classList.remove('no-transition');
+    diceMarkerEl.classList.add('spinning');
+
+    requestAnimationFrame(() => {
+        diceMarkerEl.style.left = `${Math.min(99.5, Math.max(0.5, landFrac * 100)).toFixed(2)}%`;
+    });
+
+    setTimeout(() => {
+        diceMarkerEl.classList.remove('spinning');
+        diceMarkerEl.classList.add('landing');
+
+        const segEls = diceTrackEl.querySelectorAll('.dice-segment');
+        if (segEls[winnerIdx]) segEls[winnerIdx].classList.add('landed');
+        const rowEls = resultBreakdownEl.querySelectorAll('.result-row');
+        if (rowEls[winnerIdx]) rowEls[winnerIdx].classList.add('landed');
+
+        const winner = currentRollRows[winnerIdx];
+        diceBannerEl.textContent = `\u{1F3B2} Landed on: ${winner.name}`;
+        diceBannerEl.className = `dice-banner ${winner.key}`;
+        diceBannerEl.hidden = false;
+
+        diceRollBtn.textContent = '\u{1F3B2} Roll Again';
+        diceRollBtn.disabled = false;
+    }, 560);
+}
+
+diceRollBtn.addEventListener('click', rollDice);
+
 function showResult({ forcedFold, reason, chartData } = {}) {
     updateBadges();
+
     resultTitleEl.textContent = `${studyHand}`;
     resultBreakdownEl.innerHTML = '';
 
@@ -526,6 +626,20 @@ function showResult({ forcedFold, reason, chartData } = {}) {
             <span class="result-pct">${(row.pct * 100).toFixed(1)}%</span>
         `;
         resultBreakdownEl.appendChild(rowEl);
+    }
+
+    // The dice roll assist only makes sense for a real chart lookup with
+    // more than one possible action - a forced/fallback 100% Fold has
+    // nothing interesting to roll for.
+    const diceEnabled = !!chartData && rows.length > 1;
+    if (diceEnabled) {
+        diceWidgetEl.hidden = false;
+        diceRollBtn.hidden = false;
+        resetDiceWidget(rows);
+    } else {
+        diceWidgetEl.hidden = true;
+        diceRollBtn.hidden = true;
+        currentRollRows = null;
     }
 
     showScreen('result');

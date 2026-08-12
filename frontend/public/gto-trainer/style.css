@@ -414,6 +414,126 @@ body {
 }
 
 /* ---------------------------------------------------------------- */
+/* Dice roll assist                                                    */
+/* ---------------------------------------------------------------- */
+
+.dice-widget {
+    margin: 20px auto 0;
+    max-width: 480px;
+    position: relative;
+}
+
+.dice-widget[hidden] {
+    display: none;
+}
+
+.dice-track {
+    position: relative;
+    display: flex;
+    height: 30px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.dice-segment {
+    height: 100%;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.dice-segment.raise { background: var(--raise); }
+.dice-segment.call { background: var(--call); }
+.dice-segment.fold { background: var(--fold); }
+
+.dice-segment.landed {
+    opacity: 1;
+    animation: dicePulse 0.6s ease;
+}
+
+.dice-segment.raise.landed { box-shadow: 0 0 18px rgba(52, 211, 153, 0.9) inset; }
+.dice-segment.call.landed { box-shadow: 0 0 18px rgba(96, 165, 250, 0.9) inset; }
+.dice-segment.fold.landed { box-shadow: 0 0 18px rgba(251, 113, 133, 0.9) inset; }
+
+@keyframes dicePulse {
+    0% { filter: brightness(1); }
+    40% { filter: brightness(1.7); }
+    100% { filter: brightness(1); }
+}
+
+.dice-marker {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    transform: translate(-50%, -50%);
+    font-size: 1.35em;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.65));
+    transition: left 0.55s cubic-bezier(0.22, 1.6, 0.36, 1);
+    z-index: 3;
+    pointer-events: none;
+}
+
+.dice-marker.no-transition {
+    transition: none;
+}
+
+.dice-marker.spinning {
+    animation: diceSpin 0.55s linear;
+}
+
+@keyframes diceSpin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(720deg); }
+}
+
+.dice-marker.landing {
+    animation: diceBounce 0.32s ease;
+}
+
+@keyframes diceBounce {
+    0% { transform: translate(-50%, -50%) scale(1.6); }
+    60% { transform: translate(-50%, -50%) scale(0.85); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.dice-banner {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 1.05em;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
+.dice-banner[hidden] {
+    display: none;
+}
+
+.dice-banner.raise { color: var(--raise); }
+.dice-banner.call { color: var(--call); }
+.dice-banner.fold { color: var(--fold); }
+
+.dice-btn[hidden] {
+    display: none;
+}
+
+.dice-btn {
+    margin-top: 16px;
+    background: linear-gradient(135deg, #60a5fa, #34d399);
+}
+
+.result-row.landed {
+    animation: rowGlow 0.6s ease;
+}
+
+@keyframes rowGlow {
+    0% { filter: brightness(1); }
+    40% { filter: brightness(1.6); }
+    100% { filter: brightness(1); }
+}
+
+/* ---------------------------------------------------------------- */
 /* Full chart view (existing, restyled)                               */
 /* ---------------------------------------------------------------- */
 
