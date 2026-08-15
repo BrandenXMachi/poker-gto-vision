@@ -776,3 +776,16 @@ body {
         font-size: 0.75em;
     }
 }
+
+/* Explains an action that is absent from the source solve (e.g. cold-calling
+   a 3-bet, which was never a legal action in the tree these charts came from). */
+.result-tree-note {
+    margin: 14px 0 0;
+    padding: 10px 14px;
+    border-left: 3px solid rgba(255, 255, 255, 0.28);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
