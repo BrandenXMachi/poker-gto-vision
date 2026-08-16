@@ -18,6 +18,7 @@
         <nav class="tabs glass">
             <button id="tab-study" class="tab-btn active" type="button">&#127919; Study a Hand</button>
             <button id="tab-chart" class="tab-btn" type="button">&#128202; Full Chart</button>
+            <button id="tab-postflop" class="tab-btn" type="button">&#127826; Postflop Playbook</button>
         </nav>
 
         <!-- ======================= STUDY A HAND VIEW ======================= -->
@@ -171,6 +172,89 @@
             </div>
         </section>
 
+        <!-- ======================= POSTFLOP PLAYBOOK VIEW ======================= -->
+        <section id="view-postflop" class="view">
+
+            <div class="study-breadcrumb" id="pf-breadcrumb">
+                <span class="crumb crumb-hero" id="pf-crumb-position" hidden></span>
+                <span class="crumb crumb-scenario" id="pf-crumb-role" hidden></span>
+                <span class="crumb crumb-villain" id="pf-crumb-texture" hidden></span>
+                <span class="crumb crumb-hand" id="pf-crumb-category" hidden></span>
+            </div>
+
+            <!-- Step 1: position -->
+            <div class="study-screen glass active" id="pf-screen-position">
+                <h2 class="study-title">Postflop Playbook</h2>
+                <p class="pf-provenance" id="pf-provenance-note"></p>
+                <p class="study-hint">Four questions about the spot, then the line to run.</p>
+                <h3 class="pf-step-title">Where are you?</h3>
+                <div class="pos-grid" id="pf-position-buttons"></div>
+                <button class="pf-link-btn" id="pf-browse-btn" type="button">Browse all ten lines &rarr;</button>
+            </div>
+
+            <!-- Step 2: preflop role -->
+            <div class="study-screen glass" id="pf-screen-role">
+                <button class="back-btn" data-pf-back type="button">&larr; Back</button>
+                <h2 class="study-title">Who has the betting lead?</h2>
+                <p class="study-hint">
+                    Continuation-bet lines and check-raise lines are different spots
+                    entirely, so this has to be asked before anything else.
+                </p>
+                <div class="pos-grid" id="pf-role-buttons"></div>
+            </div>
+
+            <!-- Step 3: board texture -->
+            <div class="study-screen glass" id="pf-screen-texture">
+                <button class="back-btn" data-pf-back type="button">&larr; Back</button>
+                <h2 class="study-title">What does the flop look like?</h2>
+                <p class="study-hint">Match your board to the closest of these three.</p>
+                <div class="pos-grid" id="pf-texture-buttons"></div>
+            </div>
+
+            <!-- Step 4: hand category -->
+            <div class="study-screen glass" id="pf-screen-category">
+                <button class="back-btn" data-pf-back type="button">&larr; Back</button>
+                <h2 class="study-title">What are you holding?</h2>
+                <p class="study-hint">Strength buckets, not exact hands.</p>
+                <div class="pos-grid" id="pf-category-buttons"></div>
+            </div>
+
+            <!-- Step 5: branch, only when several lines fit the same spot -->
+            <div class="study-screen glass" id="pf-screen-branch">
+                <button class="back-btn" data-pf-back type="button">&larr; Back</button>
+                <h2 class="study-title">Which happened?</h2>
+                <p class="study-hint">
+                    More than one line covers this spot. What villain did decides
+                    which one you are in.
+                </p>
+                <div class="pos-grid" id="pf-branch-buttons"></div>
+            </div>
+
+            <!-- Result -->
+            <div class="study-screen glass" id="pf-screen-result">
+                <button class="back-btn" data-pf-back type="button">&larr; Back</button>
+                <div class="pf-result-head">
+                    <h2 class="study-title" id="pf-result-title">Line</h2>
+                    <span class="pf-badge" id="pf-result-badge"></span>
+                </div>
+                <p class="study-hint" id="pf-result-idea"></p>
+                <div class="pf-streets" id="pf-result-streets"></div>
+                <div class="pf-notes" id="pf-result-notes"></div>
+                <button class="primary-btn" id="pf-restart-btn" type="button">&#128260; Start Over</button>
+            </div>
+
+            <!-- Browse all ten -->
+            <div class="study-screen glass" id="pf-screen-browse">
+                <button class="back-btn" data-pf-back type="button">&larr; Back</button>
+                <h2 class="study-title">All ten lines</h2>
+                <p class="study-hint">
+                    The full framework at a glance, for once the funnel is no longer
+                    needed.
+                </p>
+                <div class="pf-browse" id="pf-browse-list"></div>
+            </div>
+        </section>
+
         <div class="tooltip" id="tooltip"></div>
     </div>
 
@@ -180,5 +264,8 @@
      patches helpers defined in app.js and study.js. -->
 <script src="heuristic-ranges.js"></script>
 <script src="multiway.js"></script>
+<!-- Postflop Playbook: heuristic framework, independent of the chart data. -->
+<script src="postflop-lines.js"></script>
+<script src="postflop.js"></script>
 </body>
 </html>

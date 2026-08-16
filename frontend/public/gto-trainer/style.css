@@ -1007,3 +1007,235 @@ body {
     border: 1px solid rgba(232, 181, 92, 0.5);
 }
 
+
+
+/* ---------------------------------------------------------------------------
+   POSTFLOP PLAYBOOK
+   ---------------------------------------------------------------------------
+   Visually related to the preflop modes but never identical: this mode shows
+   heuristic content, and the amber accents are the same caution colour used
+   for ESTIMATED preflop lines. Solver output stays green/neutral throughout
+   the app; anything amber is a judgement call.
+   --------------------------------------------------------------------------- */
+
+/* Three tabs no longer fit comfortably on narrow screens at the old size. */
+.tabs {
+    flex-wrap: wrap;
+}
+
+.pf-provenance {
+    margin: 0 0 1rem;
+    padding: 0.7rem 0.9rem;
+    border-left: 3px solid rgba(232, 181, 92, 0.7);
+    background: rgba(232, 181, 92, 0.08);
+    border-radius: 0 6px 6px 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #e0cfae;
+}
+
+.pf-step-title {
+    margin: 1.4rem 0 0.8rem;
+    font-size: 1rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.pf-link-btn {
+    display: block;
+    margin: 1.4rem auto 0;
+    padding: 0.4rem 0.2rem;
+    background: none;
+    border: none;
+    color: #8fb8e8;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.pf-link-btn:hover { color: #b9d5f5; }
+
+/* --- result header + badges ------------------------------------------------ */
+
+.pf-result-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.pf-result-head .study-title { margin: 0; }
+
+.pf-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 0.18rem 0.45rem;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.pf-badge-value {
+    color: #7fd1a8;
+    background: rgba(127, 209, 168, 0.12);
+    border: 1px solid rgba(127, 209, 168, 0.35);
+}
+
+.pf-badge-bluff {
+    color: #8fb8e8;
+    background: rgba(143, 184, 232, 0.12);
+    border: 1px solid rgba(143, 184, 232, 0.35);
+}
+
+.pf-badge-default,
+.pf-badge-risk {
+    color: #e8b55c;
+    background: rgba(232, 181, 92, 0.12);
+    border: 1px solid rgba(232, 181, 92, 0.5);
+}
+
+/* --- the three-street path -------------------------------------------------
+   The sizing pattern ACROSS streets is the actual content of these lines, so
+   the streets are rendered as a vertical path with a connecting rail rather
+   than as three paragraphs.
+   --------------------------------------------------------------------------- */
+
+.pf-streets {
+    margin: 1.4rem 0 0.5rem;
+    text-align: left;
+}
+
+.pf-street {
+    position: relative;
+    padding: 0.75rem 0 0.75rem 5.4rem;
+    border-left: 2px solid rgba(255, 255, 255, 0.12);
+    margin-left: 0.4rem;
+}
+
+.pf-street:last-child { border-left-color: transparent; }
+
+.pf-street-name {
+    position: absolute;
+    left: 0.8rem;
+    top: 0.72rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.65;
+}
+
+.pf-street::before {
+    content: '';
+    position: absolute;
+    left: -0.31rem;
+    top: 0.95rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #8fb8e8;
+}
+
+.pf-street-action {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.pf-action-verb {
+    font-size: 1.02rem;
+    font-weight: 600;
+}
+
+.pf-action-size {
+    font-size: 0.8rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    opacity: 0.9;
+}
+
+.pf-street-why {
+    margin-top: 0.28rem;
+    font-size: 0.83rem;
+    line-height: 1.5;
+    opacity: 0.72;
+}
+
+/* --- notes ----------------------------------------------------------------- */
+
+.pf-notes { margin-top: 0.6rem; }
+
+.pf-note-default,
+.pf-note-risk {
+    border-left: 3px solid rgba(232, 181, 92, 0.7);
+    background: rgba(232, 181, 92, 0.08);
+    padding-left: 0.75rem;
+}
+
+.pf-note-mistake {
+    border-left: 3px solid rgba(226, 122, 122, 0.7);
+    background: rgba(226, 122, 122, 0.08);
+    padding-left: 0.75rem;
+}
+
+/* --- browse view ----------------------------------------------------------- */
+
+.pf-browse { text-align: left; }
+
+.pf-browse-heading {
+    margin: 1.4rem 0 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.6;
+}
+
+.pf-browse-card {
+    padding: 0.8rem 0.9rem;
+    margin-bottom: 0.6rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pf-browse-head {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.pf-browse-id {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.12rem 0.38rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.09);
+    opacity: 0.85;
+}
+
+.pf-browse-name { font-weight: 600; }
+
+.pf-browse-match {
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    opacity: 0.6;
+}
+
+.pf-browse-path {
+    margin-top: 0.45rem;
+    font-size: 0.82rem;
+    opacity: 0.88;
+}
+
+@media (max-width: 520px) {
+    .pf-street { padding-left: 0; padding-top: 1.6rem; }
+    .pf-street-name { left: 0.8rem; top: 0.35rem; }
+}
+
