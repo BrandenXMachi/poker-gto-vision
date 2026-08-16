@@ -789,3 +789,181 @@ body {
     font-size: 0.86rem;
     line-height: 1.5;
 }
+
+/* ---------------------------------------------------------------- */
+/* Title treatment                                                    */
+/* Appended intentionally: these rules override the earlier           */
+/* .app-header h1 block via source order, no edit-in-place needed.    */
+/* ---------------------------------------------------------------- */
+
+.app-header h1 {
+    font-size: 2.1em;
+    font-weight: 800;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    background: linear-gradient(180deg, #f0fbff 0%, #7df9ff 42%, #22d3ee 62%, #a855f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    /* text-shadow cannot render through transparent text, so the neon
+       bloom has to come from a filter on the element itself. */
+    filter: drop-shadow(0 0 5px rgba(34, 211, 238, 0.45))
+            drop-shadow(0 0 20px rgba(168, 85, 247, 0.3));
+    margin-bottom: 10px;
+    position: relative;
+    display: inline-block;
+}
+
+/* Thin neon rule under the title. */
+.app-header h1::after {
+    content: '';
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: -4px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #22d3ee 30%, #a855f7 70%, transparent);
+    opacity: 0.75;
+}
+
+@keyframes title-flicker {
+    0%, 100%   { opacity: 1; }
+    97%        { opacity: 1; }
+    97.6%      { opacity: 0.72; }
+    98.2%      { opacity: 1; }
+    98.8%      { opacity: 0.85; }
+    99.4%      { opacity: 1; }
+}
+
+.app-header h1 {
+    animation: title-flicker 9s linear infinite;
+}
+
+/* Anyone who has asked the OS to stop moving things gets a static title. */
+@media (prefers-reduced-motion: reduce) {
+    .app-header h1 { animation: none; }
+}
+
+.subtitle {
+    letter-spacing: 1.6px;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    color: #7c8aa3;
+}
+
+/* ---------------------------------------------------------------- */
+/* Seating reference on the hero-select screen                        */
+/* ---------------------------------------------------------------- */
+
+.table-map {
+    position: relative;
+    width: 100%;
+    max-width: 330px;
+    aspect-ratio: 1.55 / 1;
+    margin: 18px auto 10px;
+}
+
+.table-felt {
+    position: absolute;
+    inset: 14% 13%;
+    border-radius: 50%;
+    background:
+        radial-gradient(ellipse at 50% 38%, rgba(52, 211, 153, 0.13), transparent 70%),
+        var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.table-felt-label {
+    font-size: 0.62em;
+    letter-spacing: 3px;
+    color: rgba(148, 163, 184, 0.5);
+    font-weight: 700;
+}
+
+.seat {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 10px;
+    background: var(--glass-bg-strong);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    backdrop-filter: blur(4px);
+    white-space: nowrap;
+}
+
+.seat-name {
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--text);
+}
+
+.seat-blind {
+    font-size: 0.58em;
+    color: var(--call);
+    letter-spacing: 0.4px;
+}
+
+/* Clockwise, matching the order of preflop action. */
+.seat-utg { left: 26%; top: 8%; }
+.seat-mp  { left: 74%; top: 8%; }
+.seat-co  { left: 95%; top: 50%; }
+.seat-btn { left: 74%; top: 92%; }
+.seat-sb  { left: 26%; top: 92%; }
+.seat-bb  { left: 5%;  top: 50%; }
+
+/* The blinds are what the diagram is really for, so mark them. */
+.seat-sb, .seat-bb {
+    border-color: rgba(96, 165, 250, 0.4);
+    box-shadow: 0 0 12px rgba(96, 165, 250, 0.12);
+}
+
+.dealer-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #0b0c14;
+    font-size: 0.55em;
+    font-weight: 800;
+}
+
+.table-map-caption {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.74em;
+    line-height: 1.5;
+    margin: 0 auto 16px;
+    max-width: 330px;
+}
+
+@media (max-width: 420px) {
+    .table-map { max-width: 270px; }
+    .seat { padding: 4px 7px; }
+    .seat-name { font-size: 0.66em; }
+    .seat-co { left: 93%; }
+    .seat-bb { left: 7%; }
+}
+
+/* ---------------------------------------------------------------- */
+/* Multiway notes                                                     */
+/* ---------------------------------------------------------------- */
+
+#multiway-picker-note {
+    margin-bottom: 14px;
+}
+
+#multiway-tree-note p + p {
+    margin-top: 8px;
+}

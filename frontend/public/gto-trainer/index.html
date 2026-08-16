@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -52,6 +52,35 @@
                 <button class="back-btn" data-back type="button">&larr; Back</button>
                 <h2 class="study-title">Where is Hero?</h2>
                 <p class="study-hint">Select Hero&rsquo;s position at the table.</p>
+
+                <!-- Seating reference. Purely illustrative: the seats are laid
+                     out clockwise so the blinds' relationship to the button is
+                     visible while choosing. -->
+                <div class="table-map" aria-hidden="true">
+                    <div class="table-felt">
+                        <span class="table-felt-label">6-MAX</span>
+                    </div>
+                    <div class="seat seat-utg"><span class="seat-name">UTG</span></div>
+                    <div class="seat seat-mp"><span class="seat-name">MP</span></div>
+                    <div class="seat seat-co"><span class="seat-name">CO</span></div>
+                    <div class="seat seat-btn">
+                        <span class="seat-name">BTN</span>
+                        <span class="dealer-chip">D</span>
+                    </div>
+                    <div class="seat seat-sb">
+                        <span class="seat-name">SB</span>
+                        <span class="seat-blind">0.5bb</span>
+                    </div>
+                    <div class="seat seat-bb">
+                        <span class="seat-name">BB</span>
+                        <span class="seat-blind">1bb</span>
+                    </div>
+                </div>
+                <p class="table-map-caption">
+                    Preflop action starts left of the big blind &mdash; UTG acts
+                    first, the blinds act last.
+                </p>
+
                 <div class="pos-grid" id="study-hero-buttons"></div>
             </div>
 
@@ -145,8 +174,8 @@
         <div class="tooltip" id="tooltip"></div>
     </div>
 
-    <script src="app.js"></script>
-    <script src="study.js"></script>
+<script src="app.js"></script>
+<script src="study.js"></script>
 <!-- Adds the multiway spots (squeeze / cold 3-bet). Must load last: it
      patches helpers defined in app.js and study.js. -->
 <script src="multiway.js"></script>

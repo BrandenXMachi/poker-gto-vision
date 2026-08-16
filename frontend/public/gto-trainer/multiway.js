@@ -76,6 +76,28 @@
         'This chart offers raise or fold only - the source solve provides no ' +
         'calling frequency for this spot, so none is shown.';
 
+    // The solve only ever modelled the BTN as the cold-caller of an open:
+    // upstream contains exactly 6 nodes of the shape OPENER_2.5bb_CALLER_Call_HERO
+    // and the caller is BTN in all 6. A player whose actual caller sat in a
+    // different seat has no exact chart, so say what to substitute and which
+    // way the substitution errs.
+    const SQUEEZE_SCOPE_NOTE =
+        'This solve only models the BTN as the cold-caller. If your caller sat ' +
+        'elsewhere, this is the closest chart, not an exact one - and an earlier ' +
+        'caller (with more players still behind you) both calls tighter and ' +
+        'leaves more hands left to act, so squeeze somewhat less than shown.';
+
+    // Shown above the line list, before a choice is made.
+    const PICKER_NOTES = {
+        vs_OpenCall:
+            'This solve only modelled the BTN as the cold-caller. If your caller ' +
+            'was in another seat, pick the line with the same OPENER - the ' +
+            "opener's range matters far more than the caller's seat.",
+        vs_3B_Cold:
+            'Only these exact lines were solved. If your seats are not listed, ' +
+            'pick the line with the same OPENER and the closest 3-bettor.'
+    };
+
     function actionNamesOf(chartData) {
         try {
             const r = chartData && chartData.strategy && chartData.strategy.upi_ranges;
@@ -112,8 +134,8 @@
     // are mutations rather than rebindings, so they are legal.
     // -----------------------------------------------------------------------
 
-    SCENARIO_LABELS.vs_OpenCall = 'Facing an Open + a Caller';
-    SCENARIO_SUBLABELS.vs_OpenCall = 'A raise and a cold-call in front of Hero';
+    SCENARIO_LABELS.vs_OpenCall = 'Facing an Open + a BTN Caller';
+    SCENARIO_SUBLABELS.vs_OpenCall = 'A raise and a BTN cold-call in front of Hero';
     SCENARIO_LABELS.vs_3B_Cold = 'Facing a 3-Bet (Not Yours)';
     SCENARIO_SUBLABELS.vs_3B_Cold = 'Someone opened, someone else 3-bet, Hero has not acted';
 
@@ -168,9 +190,29 @@
     // Presentation
     // -----------------------------------------------------------------------
 
+    // A short scope note above the line list, so the coverage limit is visible
+    // BEFORE a choice is made rather than only after clicking through.
+    let pickerNoteEl = null;
+    function ensurePickerNoteEl() {
+        if (pickerNoteEl) return pickerNoteEl;
+        const container = document.getElementById('study-villain-buttons');
+        if (!container || !container.parentNode) return null;
+        pickerNoteEl = document.createElement('p');
+        pickerNoteEl.id = 'multiway-picker-note';
+        pickerNoteEl.className = 'result-tree-note';
+        pickerNoteEl.hidden = true;
+        container.parentNode.insertBefore(pickerNoteEl, container);
+        return pickerNoteEl;
+    }
+
     const origRenderVillainButtons = renderVillainButtons;
     renderVillainButtons = function (villains) {
-        if (!isMultiway(studyScenario)) return origRenderVillainButtons(villains);
+        const note = ensurePickerNoteEl();
+
+        if (!isMultiway(studyScenario)) {
+            if (note) note.hidden = true;
+            return origRenderVillainButtons(villains);
+        }
 
         const container = document.getElementById('study-villain-buttons');
         if (!container) return origRenderVillainButtons(villains);
@@ -182,6 +224,11 @@
             btn.textContent = describeLine(lineId);
             btn.addEventListener('click', () => selectVillain(lineId));
             container.appendChild(btn);
+        }
+
+        if (note) {
+            note.textContent = PICKER_NOTES[studyScenario] || '';
+            note.hidden = !note.textContent;
         }
     };
 
@@ -197,17 +244,28 @@
         } catch (e) { /* breadcrumb is cosmetic - never let it break navigation */ }
     };
 
-    // Explain the missing Call on cold-3bet results.
+    // Caveats attached to a multiway result: a missing action, a coverage
+    // limit, or both. Rendered as a stack so several can apply at once.
     let noteEl = null;
     function ensureNoteEl() {
         if (noteEl) return noteEl;
         if (typeof resultBreakdownEl === 'undefined' || !resultBreakdownEl) return null;
-        noteEl = document.createElement('p');
+        noteEl = document.createElement('div');
         noteEl.id = 'multiway-tree-note';
-        noteEl.className = 'result-tree-note';
         noteEl.hidden = true;
         resultBreakdownEl.insertAdjacentElement('afterend', noteEl);
         return noteEl;
+    }
+
+    function renderNotes(el, notes) {
+        el.innerHTML = '';
+        for (const text of notes) {
+            const p = document.createElement('p');
+            p.className = 'result-tree-note';
+            p.textContent = text;      // static strings only, never user input
+            el.appendChild(p);
+        }
+        el.hidden = notes.length === 0;
     }
 
     const origShowResult = showResult;
@@ -219,16 +277,22 @@
 
             const forced = opts && opts.forcedFold;
             const acts = actionNamesOf(opts && opts.chartData);
-            // Drive this off the chart that actually loaded rather than off the
-            // scenario name: the SB squeeze charts are raise-or-fold too, so
-            // keying on 'vs_3B_Cold' alone would leave those unexplained.
-            const hasCall = acts ? acts.some((a) => /call/i.test(a)) : true;
-            const show = isMultiway(studyScenario) && !forced && acts && !hasCall;
+            const notes = [];
 
-            if (show) {
-                el.textContent = studyScenario === 'vs_3B_Cold' ? COLD_3B_NOTE : NO_CALL_NOTE;
+            if (isMultiway(studyScenario) && !forced && acts) {
+                // Drive the missing-action note off the chart that actually
+                // loaded rather than off the scenario name: the SB squeeze
+                // charts are raise-or-fold too, so keying on 'vs_3B_Cold'
+                // alone would leave those unexplained.
+                if (!acts.some((a) => /call/i.test(a))) {
+                    notes.push(studyScenario === 'vs_3B_Cold' ? COLD_3B_NOTE : NO_CALL_NOTE);
+                }
+                // The coverage caveat applies to every squeeze chart, including
+                // the BB ones that do offer a Call.
+                if (studyScenario === 'vs_OpenCall') notes.push(SQUEEZE_SCOPE_NOTE);
             }
-            el.hidden = !show;
+
+            renderNotes(el, notes);
         } catch (e) { /* the note is advisory - never let it break the result */ }
     };
 })();
