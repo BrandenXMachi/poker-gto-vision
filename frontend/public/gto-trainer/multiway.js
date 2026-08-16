@@ -34,10 +34,24 @@
     // The spots. Every entry is a chart filename stem that exists on disk.
     // -----------------------------------------------------------------------
 
-    // Hero is in a blind, someone opened, BTN flat-called. Hero may squeeze.
+    // Token meaning "no solved chart for this traffic - use the estimated
+    // range from heuristic-ranges.js".
+    const EST = 'estimated';
+
+    // Hero faces an open plus a cold-call. The solve only ever modelled the
+    // BTN as that caller, and only with Hero in a blind, so these six charts
+    // are the whole of the solved coverage. Every other legal (opener, caller)
+    // pair falls to EST - which is why CO and BTN get only that entry.
+    //
+    // The alternative was to enumerate all 20 legal pairs, but the 14 with no
+    // chart would each return the identical estimated range for their seat, so
+    // ten indistinguishable BB buttons would mislead more than one honest
+    // catch-all does.
     const SQUEEZE_LINES = {
-        SB: ['UTG_2.5bb_BTN_Call_SB', 'MP_2.5bb_BTN_Call_SB', 'CO_2.5bb_BTN_Call_SB'],
-        BB: ['UTG_2.5bb_BTN_Call_BB', 'MP_2.5bb_BTN_Call_BB', 'CO_2.5bb_BTN_Call_BB']
+        CO: [EST],
+        BTN: [EST],
+        SB: ['UTG_2.5bb_BTN_Call_SB', 'MP_2.5bb_BTN_Call_SB', 'CO_2.5bb_BTN_Call_SB', EST],
+        BB: ['UTG_2.5bb_BTN_Call_BB', 'MP_2.5bb_BTN_Call_BB', 'CO_2.5bb_BTN_Call_BB', EST]
     };
 
     // Someone opened, someone else 3-bet, and Hero has not acted yet.
@@ -76,23 +90,35 @@
         'This chart offers raise or fold only - the source solve provides no ' +
         'calling frequency for this spot, so none is shown.';
 
-    // The solve only ever modelled the BTN as the cold-caller of an open:
-    // upstream contains exactly 6 nodes of the shape OPENER_2.5bb_CALLER_Call_HERO
-    // and the caller is BTN in all 6. A player whose actual caller sat in a
-    // different seat has no exact chart, so say what to substitute and which
-    // way the substitution errs.
+    // Attached to solved squeeze results: the six charts all have a BTN caller.
     const SQUEEZE_SCOPE_NOTE =
         'This solve only models the BTN as the cold-caller. If your caller sat ' +
         'elsewhere, this is the closest chart, not an exact one - and an earlier ' +
         'caller (with more players still behind you) both calls tighter and ' +
         'leaves more hands left to act, so squeeze somewhat less than shown.';
 
+    // Attached to every estimated result. First line states the tier; the
+    // second states the limitation most likely to mislead - one range per seat
+    // standing in for every opener, when the solved charts show the opener
+    // moves the answer a long way (BB raises 6.3% vs UTG, 10.1% vs CO).
+    const HEURISTIC_NOTE =
+        'These numbers are NOT solver output. The source solve has no chart for ' +
+        'this seat facing an open plus a caller, so this is a hand-specified ' +
+        'estimate, calibrated against the six solved open-plus-caller charts.';
+
+    const OPENER_AGNOSTIC_NOTE =
+        'This estimate reads the same whoever opened, which the solved charts ' +
+        'say is a simplification - tighten it against an early opener, widen it ' +
+        'against a late one. Each hand does one thing where a real chart would ' +
+        'mix, so there is nothing to randomise and the dice roll is hidden.';
+
     // Shown above the line list, before a choice is made.
     const PICKER_NOTES = {
         vs_OpenCall:
-            'This solve only modelled the BTN as the cold-caller. If your caller ' +
-            'was in another seat, pick the line with the same OPENER - the ' +
-            "opener's range matters far more than the caller's seat.",
+            'Lines marked SOLVED come from the solver and cover a BTN caller ' +
+            'only. If your traffic is not listed, the ESTIMATED entry covers ' +
+            'it - or pick a solved line with the same OPENER, whose range ' +
+            "matters more than the caller's seat.",
         vs_3B_Cold:
             'Only these exact lines were solved. If your seats are not listed, ' +
             'pick the line with the same OPENER and the closest 3-bettor.'
@@ -120,6 +146,7 @@
     //   UTG_2.5bb_MP_8.5bb_BTN   -> "UTG opens 2.5bb, MP 3-bets 8.5bb"
     // -----------------------------------------------------------------------
     function describeLine(lineId) {
+        if (lineId === EST) return 'Any other opener / caller';
         if (typeof lineId !== 'string') return String(lineId);
         const t = lineId.split('_');
         if (t.length < 5) return lineId;
@@ -134,8 +161,8 @@
     // are mutations rather than rebindings, so they are legal.
     // -----------------------------------------------------------------------
 
-    SCENARIO_LABELS.vs_OpenCall = 'Facing an Open + a BTN Caller';
-    SCENARIO_SUBLABELS.vs_OpenCall = 'A raise and a BTN cold-call in front of Hero';
+    SCENARIO_LABELS.vs_OpenCall = 'Facing an Open + a Caller';
+    SCENARIO_SUBLABELS.vs_OpenCall = 'A raise and a cold-call in front of Hero';
     SCENARIO_LABELS.vs_3B_Cold = 'Facing a 3-Bet (Not Yours)';
     SCENARIO_SUBLABELS.vs_3B_Cold = 'Someone opened, someone else 3-bet, Hero has not acted';
 
@@ -160,9 +187,25 @@
         if (isMultiway(scenario)) {
             if (!hero || !villain) return null;
             if (linesFor(hero, scenario).indexOf(villain) === -1) return null;
+            // The estimated line has no file behind it; loadChartFor below
+            // intercepts before this is ever consulted for it.
+            if (villain === EST) return null;
             return `data/${MW[scenario].dir}/${hero}/${villain}.json`;
         }
         return origFindChartPath(hero, villain, scenario);
+    };
+
+    // The estimated line is synthesised rather than fetched. It comes back
+    // shaped exactly like a solved chart, so every downstream consumer -
+    // computeFreqsForHand, showResult, the breakdown rows - needs no special
+    // case; only the badge and the notes key off __heuristic.
+    const origLoadChartFor = loadChartFor;
+    loadChartFor = async function (hero, villain, scenario) {
+        if (isMultiway(scenario) && villain === EST) {
+            if (typeof buildHeuristicChart !== 'function') return null;
+            return buildHeuristicChart(hero);
+        }
+        return origLoadChartFor(hero, villain, scenario);
     };
 
     const origIsScenarioLegalForHero = isScenarioLegalForHero;
@@ -221,7 +264,18 @@
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'choice-btn';
-            btn.textContent = describeLine(lineId);
+            // Tier is visible before the click, not discovered after it.
+            const label = document.createElement('span');
+            label.textContent = describeLine(lineId);
+            btn.appendChild(label);
+
+            const badge = document.createElement('span');
+            badge.className = lineId === EST
+                ? 'mw-badge mw-badge-est'
+                : 'mw-badge mw-badge-solved';
+            badge.textContent = lineId === EST ? 'ESTIMATED' : 'SOLVED';
+            btn.appendChild(badge);
+
             btn.addEventListener('click', () => selectVillain(lineId));
             container.appendChild(btn);
         }
@@ -279,17 +333,33 @@
             const acts = actionNamesOf(opts && opts.chartData);
             const notes = [];
 
+            const heuristic = !!(opts && opts.chartData && opts.chartData.__heuristic);
+
             if (isMultiway(studyScenario) && !forced && acts) {
-                // Drive the missing-action note off the chart that actually
-                // loaded rather than off the scenario name: the SB squeeze
-                // charts are raise-or-fold too, so keying on 'vs_3B_Cold'
-                // alone would leave those unexplained.
-                if (!acts.some((a) => /call/i.test(a))) {
-                    notes.push(studyScenario === 'vs_3B_Cold' ? COLD_3B_NOTE : NO_CALL_NOTE);
+                if (heuristic) {
+                    // Never claim the solve is silent here - it was never
+                    // consulted. These two notes replace the solved-chart
+                    // caveats entirely rather than stacking with them.
+                    notes.push(HEURISTIC_NOTE, OPENER_AGNOSTIC_NOTE);
+                } else {
+                    // Drive the missing-action note off the chart that actually
+                    // loaded rather than off the scenario name: the SB squeeze
+                    // charts are raise-or-fold too, so keying on 'vs_3B_Cold'
+                    // alone would leave those unexplained.
+                    if (!acts.some((a) => /call/i.test(a))) {
+                        notes.push(studyScenario === 'vs_3B_Cold' ? COLD_3B_NOTE : NO_CALL_NOTE);
+                    }
+                    // The coverage caveat applies to every squeeze chart,
+                    // including the BB ones that do offer a Call.
+                    if (studyScenario === 'vs_OpenCall') notes.push(SQUEEZE_SCOPE_NOTE);
                 }
-                // The coverage caveat applies to every squeeze chart, including
-                // the BB ones that do offer a Call.
-                if (studyScenario === 'vs_OpenCall') notes.push(SQUEEZE_SCOPE_NOTE);
+            }
+
+            // Pure ranges have nothing to randomise: a die that always lands
+            // on the same face would imply a precision these ranges lack.
+            if (typeof diceWidgetEl !== 'undefined' && diceWidgetEl && heuristic) {
+                diceWidgetEl.hidden = true;
+                if (typeof diceRollBtn !== 'undefined' && diceRollBtn) diceRollBtn.hidden = true;
             }
 
             renderNotes(el, notes);

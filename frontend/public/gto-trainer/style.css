@@ -967,3 +967,43 @@ body {
 #multiway-tree-note p + p {
     margin-top: 8px;
 }
+
+
+/* ---------------------------------------------------------------------------
+   Provenance badges on the line picker.
+
+   These exist so the two tiers can never be mistaken for one another at a
+   glance: SOLVED is quiet and green, ESTIMATED is amber and outlined so it
+   reads as a caution rather than as decoration.
+   --------------------------------------------------------------------------- */
+
+#study-villain-buttons .choice-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    text-align: left;
+}
+
+.mw-badge {
+    flex: 0 0 auto;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 0.16rem 0.42rem;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.mw-badge-solved {
+    color: #7fd1a8;
+    background: rgba(127, 209, 168, 0.12);
+    border: 1px solid rgba(127, 209, 168, 0.35);
+}
+
+.mw-badge-est {
+    color: #e8b55c;
+    background: rgba(232, 181, 92, 0.12);
+    border: 1px solid rgba(232, 181, 92, 0.5);
+}
+
