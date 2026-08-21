@@ -20,7 +20,7 @@ export const SALT = 'lelabubu-gto-v1'
 
 /** sha256('<password>' + SALT) */
 const DEFAULT_HASH =
-  '7de45996143b4417284bfebd69f37a282effb4938376155e961d545afde258ce'
+  '4100cc6c18389514a35481bb514b5953d856e28f6dd07ccb0e4ed054e1fb1a6e'
 
 export function expectedToken(): string {
   return process.env.SITE_PASSWORD_HASH || DEFAULT_HASH
