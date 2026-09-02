@@ -212,30 +212,32 @@
                 <div class="pos-grid" id="pf-texture-buttons"></div>
             </div>
 
-            <!-- Step 4: hand category -->
-            <div class="study-screen glass" id="pf-screen-category">
+            <!-- Step 4: made hand -->
+            <div class="study-screen glass" id="pf-screen-madehand">
                 <button class="back-btn" data-pf-back type="button">&larr; Back</button>
-                <h2 class="study-title">What are you holding?</h2>
-                <p class="study-hint">Strength buckets, not exact hands.</p>
-                <div class="pos-grid" id="pf-category-buttons"></div>
+                <h2 class="study-title">What have you made?</h2>
+                <p class="study-hint">Your exact two cards against this board - only you know this,
+                    so the app never has to guess it.</p>
+                <div class="pos-grid" id="pf-madehand-buttons"></div>
             </div>
 
-            <!-- Board entry: only reached via "Continue to Postflop" from
-                 Study Mode. Texture and hand category are computed from
-                 this instead of being asked as separate questions. -->
-            <div class="study-screen glass" id="pf-screen-board">
+            <!-- Step 5: flush draw -->
+            <div class="study-screen glass" id="pf-screen-flushdraw">
                 <button class="back-btn" data-pf-back type="button">&larr; Back</button>
-                <h2 class="study-title">What&rsquo;s the flop?</h2>
-                <p class="study-hint" id="pf-board-context"></p>
-                <p class="study-hint">Enter three cards, e.g. "Jh Ts 6c". Board texture and your
-                    hand&rsquo;s category are worked out from this automatically.</p>
-                <input type="text" id="pf-board-input" class="pf-board-input"
-                       placeholder="Jh Ts 6c" autocomplete="off">
-                <p class="pf-note-risk" id="pf-board-error" hidden></p>
-                <button class="primary-btn" id="pf-board-submit-btn" type="button">See the line &rarr;</button>
+                <h2 class="study-title">Any flush draw?</h2>
+                <p class="study-hint">Pick the strongest that applies.</p>
+                <div class="pos-grid" id="pf-flushdraw-buttons"></div>
             </div>
 
-            <!-- Step 5: branch, only when several lines fit the same spot -->
+            <!-- Step 6: straight draw -->
+            <div class="study-screen glass" id="pf-screen-straightdraw">
+                <button class="back-btn" data-pf-back type="button">&larr; Back</button>
+                <h2 class="study-title">Any straight draw?</h2>
+                <p class="study-hint">Pick the strongest that applies.</p>
+                <div class="pos-grid" id="pf-straightdraw-buttons"></div>
+            </div>
+
+            <!-- Step 7: branch, only when several lines fit the same spot -->
             <div class="study-screen glass" id="pf-screen-branch">
                 <button class="back-btn" data-pf-back type="button">&larr; Back</button>
                 <h2 class="study-title">Which happened?</h2>

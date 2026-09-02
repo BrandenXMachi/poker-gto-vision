@@ -102,6 +102,70 @@ const PF_CATEGORIES = [
     }
 ];
 
+// ---------------------------------------------------------------------------
+// Made-hand / draw filters - what the user reports about THEIR two exact
+// cards, which only they actually know (Study Mode hands only carry ranks
+// and relative suitedness, never which suit). Replaces asking for a single
+// "what are you holding" category bucket with three direct, unambiguous
+// questions, then derives the category deterministically - no board is
+// parsed and no suit-matching is ever guessed.
+// ---------------------------------------------------------------------------
+
+const PF_MADE_HAND = [
+    { id: 'none', label: 'No pair', sub: 'Ace-high or worse, unpaired to the board' },
+    { id: 'under', label: 'Underpair', sub: 'A pocket pair below the board' },
+    { id: 'weak', label: 'Second pair or worse', sub: 'Paired a card that is not the top of the board' },
+    { id: 'toppair', label: 'Weak top pair', sub: 'Top pair, but a marginal kicker' },
+    { id: 'strongtop', label: 'Top pair good kicker or overpair', sub: 'Top pair with a strong kicker, or a pocket pair above the board' },
+    { id: 'twopair', label: 'Two pair', sub: '' },
+    { id: 'trips', label: 'Trips or a set', sub: '' },
+    { id: 'straight', label: 'Straight', sub: '' },
+    { id: 'flush', label: 'Flush', sub: '' },
+    { id: 'fullhouseplus', label: 'Full house or better', sub: 'Full house, quads, straight flush' }
+];
+
+const PF_FLUSH_DRAW = [
+    { id: 'none', label: 'No flush draw', sub: '' },
+    { id: 'backdoor', label: 'Backdoor flush draw', sub: 'Two of your suit out, need running cards' },
+    { id: 'flushdraw', label: 'Flush draw', sub: 'Four cards to a flush, not the nut suit' },
+    { id: 'nutflushdraw', label: 'Nut flush draw', sub: 'Four cards to the flush with the ace of that suit' }
+];
+
+const PF_STRAIGHT_DRAW = [
+    { id: 'none', label: 'No straight draw', sub: '' },
+    { id: 'gutshot', label: 'Gutshot', sub: 'One card fills the straight' },
+    { id: 'openended', label: 'Open-ended', sub: 'Either of two ranks fills the straight' },
+    { id: 'doublegut', label: 'Double gutshot', sub: 'Two different gaps, effectively open-ended equity' }
+];
+
+/**
+ * Derive the same 1-4 PF_CATEGORIES bucket the old single "what are you
+ * holding" question used to produce, from the three direct answers above.
+ * Precedence, in order:
+ *   1. A made hand of top-pair-good-kicker or better is always Category 1,
+ *      regardless of any draw riding along with it - it doesn't need help.
+ *   2. A Category-2-strength made hand (underpair / weak top pair / second
+ *      pair or worse) PLUS a qualifying strong draw (flush draw, nut flush
+ *      draw, open-ended or double-gutshot) is promoted to Category 1: a
+ *      pair with real redraw equity plays like a value hand that can also
+ *      improve, not like a showdown-only medium hand.
+ *   3. That same made-hand tier with no qualifying draw (or only a
+ *      backdoor/gutshot) stays Category 2.
+ *   4. No pair at all, with a qualifying strong draw, is Category 3.
+ *   5. No pair and nothing but a backdoor/gutshot (or nothing) is Category 4.
+ */
+function deriveCategory(madeHand, flushDraw, straightDraw) {
+    const STRONG_MADE = new Set(['strongtop', 'twopair', 'trips', 'straight', 'flush', 'fullhouseplus']);
+    const MEDIUM_MADE = new Set(['under', 'weak', 'toppair']);
+    const STRONG_DRAW = flushDraw === 'flushdraw' || flushDraw === 'nutflushdraw' ||
+                         straightDraw === 'openended' || straightDraw === 'doublegut';
+
+    if (STRONG_MADE.has(madeHand)) return 1;
+    if (MEDIUM_MADE.has(madeHand)) return STRONG_DRAW ? 1 : 2;
+    // madeHand === 'none' from here on.
+    return STRONG_DRAW ? 3 : 4;
+}
+
 // Shown once, up front. Both limits are real and neither is recoverable by
 // picking a different line, so they belong before the funnel rather than
 // buried in a result.

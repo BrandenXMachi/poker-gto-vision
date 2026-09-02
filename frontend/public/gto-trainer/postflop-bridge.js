@@ -1,13 +1,24 @@
 // GTO Preflop Trainer - Study Mode -> Postflop Playbook bridge
 //
 // Turns a completed Study-a-Hand result (hand, hero, villain, scenario,
-// winning action) into a Postflop Playbook cell, asking only for what
-// preflop history genuinely cannot supply: the flop itself. Everything
-// else - IP/OOP, aggressor/caller role, pot type, and (once the board is
-// known) board texture and hand category - is derived, not asked.
+// winning action) into a Postflop Playbook cell, deriving only what
+// preflop history genuinely determines: IP/OOP, aggressor/caller role and
+// pot type. Board texture and hand strength are NOT derived here - they
+// depend on the flop and Hero's exact two cards (which suit, not just
+// suited-or-not), which only the user actually knows. Those stay direct
+// questions in postflop.js, same as the standalone flow, just landed on
+// immediately after Position/Role are skipped.
 //
-// Must load after app.js (POS_ORDER), study.js (SCENARIOS) and
-// postflop-lines.js (PF_TEXTURES/PF_CATEGORIES ids this maps onto).
+// An earlier version of this file also tried to compute board texture and
+// hand category from a manually-typed flop. It was removed: Study Mode
+// hands only carry ranks and relative suitedness, never which suit, so
+// flush-draw detection on a two-toned board had to guess whether Hero's
+// suited card matched the paired suit - a silent, undisclosed assumption
+// that could misclassify the hand. Asking the user directly (made hand /
+// flush draw / straight draw - see PF_MADE_HAND etc. in postflop-lines.js)
+// is both simpler and correct, since it needs no board parsing at all.
+//
+// Must load after app.js (POS_ORDER) and study.js (SCENARIOS).
 
 // ---------------------------------------------------------------------------
 // IP / OOP
@@ -70,98 +81,10 @@ function studyResultHasPostflop(scenario, actionKey) {
 }
 
 // ---------------------------------------------------------------------------
-// Board texture + hand category, computed from the entered flop
-// ---------------------------------------------------------------------------
-
-const BRIDGE_RANK_VALUE = {
-    A: 14, K: 13, Q: 12, J: 11, T: 10, '9': 9, '8': 8, '7': 7,
-    '6': 6, '5': 5, '4': 4, '3': 3, '2': 2
-};
-
-/** Parse a board string like "Jh Ts 6c" or "JhTs6c" into [{rank,suit,value}]. */
-function parseBoard(str) {
-    const cleaned = str.replace(/\s+/g, '').toUpperCase();
-    const cards = [];
-    for (let i = 0; i < cleaned.length; i += 2) {
-        const rank = cleaned[i];
-        const suit = cleaned[i + 1];
-        if (!(rank in BRIDGE_RANK_VALUE) || !'SHDC'.includes(suit)) return null;
-        cards.push({ rank, suit, value: BRIDGE_RANK_VALUE[rank] });
-    }
-    return cards.length === 3 ? cards : null;
-}
-
-/** Classify a 3-card flop into one of PF_TEXTURES' ids: wet / dry / ultradry. */
-function classifyBoardTexture(board) {
-    const suits = board.map((c) => c.suit);
-    const suitCounts = {};
-    for (const s of suits) suitCounts[s] = (suitCounts[s] || 0) + 1;
-    const flushDrawPossible = Math.max(...Object.values(suitCounts)) >= 2;
-
-    const values = board.map((c) => c.value).sort((a, b) => a - b);
-    // "Connected" here means close enough for straights/gutters to matter
-    // (one-gappers or tighter) - a wider gap like 8-5-2 has no realistic
-    // straight-draw texture even though it technically spans <=4.
-    const connected = (values[1] - values[0] <= 2) || (values[2] - values[1] <= 2);
-    const highCard = values[2];
-    const hasBroadway = highCard >= 11;
-
-    if ((flushDrawPossible || connected) && highCard >= 8) return 'wet';
-    if (!flushDrawPossible && !connected && !hasBroadway) return 'ultradry';
-    return 'dry';
-}
-
-/**
- * Classify Hero's hand against the board into one of PF_CATEGORIES' ids
- * (1 nut value, 2 medium value, 3 semi-bluff draw, 4 air). `hand` is a
- * Study Mode hand string like "AKo", "77", "JTs" - it names ranks and
- * suitedness but not exact suits, so a flush draw is only credited when the
- * hand is suited AND the board has two-of-a-suit (the friendlier case is
- * assumed rather than a guaranteed one - stated in the UI note).
- */
-function classifyHandCategory(hand, board) {
-    const isPair = hand.length === 2;
-    const r1 = hand[0], r2 = isPair ? hand[0] : hand[1];
-    const suited = !isPair && hand[2] === 's';
-    const v1 = BRIDGE_RANK_VALUE[r1];
-    const v2 = BRIDGE_RANK_VALUE[r2];
-
-    const boardValues = board.map((c) => c.value);
-    const boardSet = new Set(boardValues);
-    const topBoard = Math.max(...boardValues);
-
-    const suitCounts = {};
-    for (const c of board) suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1;
-    const boardTwoToned = Math.max(...Object.values(suitCounts)) >= 2;
-
-    if (isPair) {
-        if (v1 > topBoard) return 1;       // overpair
-        if (boardSet.has(v1)) return 1;    // set
-        if (v1 >= topBoard - 2) return 2;  // underpair close enough to showdown
-        return 4;                          // small pair well under the board
-    }
-
-    const madePairRanks = [v1, v2].filter((v) => boardSet.has(v));
-    if (madePairRanks.length) {
-        const madeTop = Math.max(...madePairRanks);
-        return madeTop >= topBoard ? 1 : 2; // top pair vs a lower/second pair
-    }
-
-    // No pair yet: strong draw?
-    const sorted = [v1, v2, ...boardValues].sort((a, b) => a - b);
-    let hasStraightDraw = false;
-    for (let i = 0; i + 3 < sorted.length; i++) {
-        if (sorted[i + 3] - sorted[i] <= 4) { hasStraightDraw = true; break; }
-    }
-    const hasFlushDraw = suited && boardTwoToned;
-    if (hasFlushDraw || hasStraightDraw) return 3;
-
-    return 4; // air
-}
-
-// ---------------------------------------------------------------------------
-// Entry point: build the postflop cell a completed Study result implies,
-// minus the board (which the caller collects next and merges in).
+// Entry point: build the postflop cell a completed Study result implies.
+// Texture, made hand and draws are collected as direct questions next -
+// see postflop.js's startPostflopFromBridge, which lands the user on the
+// texture screen once this context is built.
 // ---------------------------------------------------------------------------
 
 const POT_TYPE_LABELS = {
@@ -175,7 +98,7 @@ const POT_TYPE_LABELS = {
  * money is already all-in), otherwise:
  *   { position, role, heroPos, villainPos, potType, potTypeLabel }
  * `position`/`role` are ready to merge straight into a Postflop Playbook
- * cell once texture/category are added from the board.
+ * cell once texture/made-hand/draws are answered.
  */
 function buildBridgeContext(heroPos, villainPos, scenario, actionKey) {
     const roleInfo = deriveRoleAndPotType(scenario, actionKey);
