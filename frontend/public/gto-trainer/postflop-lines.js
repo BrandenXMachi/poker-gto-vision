@@ -444,6 +444,65 @@ const PF_MISTAKES = [
 ];
 
 // ---------------------------------------------------------------------------
+// Range-width modifier. See PF_RANGE_MODIFIERS_NOTE below for the rationale;
+// this augments whichever line/fallback pfResolve() picks, it never changes
+// which one gets picked.
+// ---------------------------------------------------------------------------
+
+const PF_TIGHT_OPENERS = new Set(['UTG', 'MP']);
+
+function pfRangeWidth(position, role) {
+    if (role === 'aggressor') {
+        return PF_TIGHT_OPENERS.has(position) ? 'tight' : 'wide';
+    }
+    if (position === 'BB') return 'wide';
+    return 'tight';
+}
+
+function computeRangeModifier(heroPos, heroRole, villainPos, villainRole) {
+    if (!heroPos || !villainPos) return null;
+    const heroWidth = pfRangeWidth(heroPos, heroRole);
+    const villainWidth = pfRangeWidth(villainPos, villainRole);
+
+    if (heroWidth === 'wide' && villainWidth === 'wide') {
+        return { flag: 'both-wide', note:
+            'Both ranges are wide and merged here (' + heroPos + ' vs ' + villainPos +
+            '). Lean toward smaller, more frequent bets and thinner value - neither ' +
+            'range is polarized enough to demand a big pot to protect it.' };
+    }
+    if (heroRole === 'aggressor' && heroWidth === 'tight' && villainWidth === 'wide') {
+        return { flag: 'aggressor-tight', note:
+            'Your range is narrow and strong for this pot (' + heroPos + ' opening) ' +
+            'against a wide, capped defending range (' + villainPos + '). That range ' +
+            'advantage supports betting bigger and more often than the texture alone ' +
+            'would suggest, even on boards that would otherwise call for checking.' };
+    }
+    if (heroRole === 'caller' && heroWidth === 'wide' && villainWidth === 'tight') {
+        return { flag: 'aggressor-tight', note:
+            'Villain\u2019s range is narrow and strong for this pot (' + villainPos +
+            ' opening) against your wider, capped defending range. Expect to face ' +
+            'bigger, more frequent bets than the texture alone would suggest, and ' +
+            'give up more readily against continued pressure.' };
+    }
+    if (heroRole === 'aggressor' && heroWidth === 'wide' && villainWidth === 'tight') {
+        return { flag: 'aggressor-wide', note:
+            'Villain\u2019s continuing range (' + villainPos + ') is narrower and ' +
+            'stronger than usual for this pot type. Shade your frequency and sizing ' +
+            'down from the pot-type default, and give up more readily against resistance.' };
+    }
+    if (heroRole === 'caller' && heroWidth === 'tight' && villainWidth === 'wide') {
+        return { flag: 'aggressor-wide', note:
+            'Your continuing range (' + heroPos + ') is narrower and stronger than ' +
+            'usual for this pot type. Villain should be shading their frequency and ' +
+            'sizing down against you - use that to continue a little wider than the ' +
+            'base line suggests.' };
+    }
+    return { flag: 'both-tight', note:
+        'Both ranges are narrow and strong here (' + heroPos + ' vs ' + villainPos +
+        '). Expect a slower, more standard-sized game with less merged betting either way.' };
+}
+
+// ---------------------------------------------------------------------------
 // Resolution
 // ---------------------------------------------------------------------------
 
@@ -456,16 +515,21 @@ function pfLineMatches(line, cell) {
 }
 
 /**
- * Resolve a cell to the lines that apply. Returns { lines, fallback }:
- * `lines` may hold several (they are distinguished by their trigger, and the
- * UI asks which happened); when it is empty, `fallback` carries the DEFAULT
- * policy so the funnel always terminates in an answer.
+ * Resolve a cell to the lines that apply. Returns { lines, fallback,
+ * rangeModifier }. `rangeModifier` is advisory-only and present when the
+ * cell carries heroPos/villainPos (set by the Study-mode bridge); it never
+ * changes which line/fallback is selected.
  */
 function pfResolve(cell) {
     const lines = POSTFLOP_LINES.filter((l) => pfLineMatches(l, cell));
+    const rangeModifier = (cell.heroPos && cell.villainPos)
+        ? computeRangeModifier(cell.heroPos, cell.role,
+            cell.villainPos, cell.role === 'aggressor' ? 'caller' : 'aggressor')
+        : null;
     return {
         lines,
-        fallback: lines.length ? null : PF_DEFAULTS[cell.category]
+        fallback: lines.length ? null : PF_DEFAULTS[cell.category],
+        rangeModifier
     };
 }
 

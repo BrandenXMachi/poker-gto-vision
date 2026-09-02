@@ -288,6 +288,8 @@ function resetStudy() {
     studyVillain = null;
     studyLegalScenarios = [];
     screenHistory = [];
+    studyWinningActionKey = null;
+    postflopContinuePending = false;
     updateBadges();
     showScreen('hand', { isBack: true });
 }
@@ -410,6 +412,7 @@ async function selectScenario(scenario) {
 
         const res = await step2AllFold(studyHero, scenario, studyHand);
         if (res.allFold) {
+            postflopContinuePending = false;
             showResult({
                 forcedFold: true,
                 reason: res.unreachable ? 'unreachable' : 'never-profitable-scenario'
@@ -419,19 +422,35 @@ async function selectScenario(scenario) {
         if (scenario === 'RFI') {
             const chartData = await loadChartFor(studyHero, null, 'RFI');
             showResult({ chartData });
+            await resumePostflopIfPending();
             return;
         }
         if (res.villains.length === 1) {
             // Only one possible villain for this spot - skip straight to
             // the result instead of asking a question with one answer.
             await selectVillainCore(res.villains[0]);
+            await resumePostflopIfPending();
             return;
         }
+        // Still missing villain - the pending continue (if any) resumes
+        // once selectVillain/selectVillainCore runs below.
         renderVillainButtons(res.villains);
         showScreen('villain');
     } finally {
         studyBusy = false;
     }
+}
+
+/** After a backtrack step lands on a complete result, resume straight into
+ *  the Postflop Playbook rather than leaving the user back on the result
+ *  screen they were already trying to leave. */
+async function resumePostflopIfPending() {
+    if (!postflopContinuePending) return;
+    postflopContinuePending = false;
+    if (!studyScenario || (studyScenario !== 'RFI' && !studyVillain)) return;
+    const bridge = buildBridgeContext(studyHero, studyVillain, studyScenario, studyWinningActionKey);
+    if (!bridge) return;
+    startPostflopFromBridge(bridge, studyHand);
 }
 
 // ---------------------------------------------------------------------------
@@ -465,6 +484,7 @@ async function selectVillain(villain) {
     studyBusy = true;
     try {
         await selectVillainCore(villain);
+        await resumePostflopIfPending();
     } finally {
         studyBusy = false;
     }
@@ -674,7 +694,86 @@ function showResult({ forcedFold, reason, chartData } = {}) {
         currentRollRows = null;
     }
 
+    // The program assumes the action with the largest share was the one
+    // acted on - that's what "Continue to Postflop" carries forward.
+    updatePostflopButton(rows);
+
     showScreen('result');
+}
+
+// ---------------------------------------------------------------------------
+// Continue to Postflop - bridges a completed Study result into the
+// Postflop Playbook. See postflop-bridge.js for the derivation logic.
+// ---------------------------------------------------------------------------
+
+const studyPostflopBtn = document.getElementById('study-postflop-btn');
+let studyWinningActionKey = null;
+
+function updatePostflopButton(rows) {
+    studyWinningActionKey = rows && rows.length ? rows[0].key : null;
+    const canContinue = !!studyScenario && studyWinningActionKey &&
+        studyResultHasPostflop(studyScenario, studyWinningActionKey);
+    // Villain may still be unknown (RFI, or an auto-skipped single-villain
+    // spot) - that's fine here, resolved by the backtrack on click. Only
+    // scenario needs to exist yet, since it (plus the action) decides
+    // whether there is a postflop street to guide at all.
+    studyPostflopBtn.hidden = !canContinue;
+}
+
+if (studyPostflopBtn) {
+    studyPostflopBtn.addEventListener('click', async () => {
+        if (studyBusy) return;
+        studyBusy = true;
+        try {
+            await continueToPostflop();
+        } finally {
+            studyBusy = false;
+        }
+    });
+}
+
+/**
+ * Backtracks to fill any missing scenario/villain (the funnel can reach the
+ * result screen without ever asking either - see step1AllFold/step2AllFold
+ * and the single-villain auto-skip in selectScenario), then hands off to
+ * the Postflop Playbook once both are known.
+ */
+// Set while a backtrack (scenario or villain) is in flight, so the normal
+// scenario/villain selection handlers know to resume straight into the
+// Postflop Playbook afterwards instead of just re-showing the result.
+let postflopContinuePending = false;
+
+async function continueToPostflop() {
+    if (!studyScenario) {
+        // The hand never had a scenario chosen (a step1 all-fold result)
+        // - ask now instead of guessing one.
+        postflopContinuePending = true;
+        studyLegalScenarios = SCENARIOS.filter(s => isScenarioLegalForHero(studyHero, s));
+        renderScenarioButtons(studyLegalScenarios);
+        showScreen('scenario');
+        return;
+    }
+    if (studyScenario !== 'RFI' && !studyVillain) {
+        const list = await reachableVillains(studyHero, studyScenario, studyHand);
+        if (list.length === 0) {
+            // Should not happen if canContinue was true, but fail safe.
+            return;
+        }
+        if (list.length === 1) {
+            await selectVillainCore(list[0]);
+            // selectVillainCore already recomputed studyWinningActionKey via
+            // showResult -> updatePostflopButton; fall through and use it.
+        } else {
+            postflopContinuePending = true;
+            renderVillainButtons(list);
+            showScreen('villain');
+            return;
+        }
+    }
+
+    const bridge = buildBridgeContext(studyHero, studyVillain, studyScenario, studyWinningActionKey);
+    if (!bridge) return;
+    startPostflopFromBridge(bridge, studyHand);
 }
 
 // ---------------------------------------------------------------------------

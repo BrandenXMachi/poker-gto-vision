@@ -117,6 +117,7 @@
                 </div>
                 <button class="primary-btn dice-btn" id="dice-roll-btn" type="button" hidden>&#127922; Roll the Dice</button>
 
+                <button class="primary-btn" id="study-postflop-btn" type="button" hidden>&#127826; Continue to Postflop &rarr;</button>
                 <button class="primary-btn" id="study-restart-btn" type="button">&#128260; Study Another Hand</button>
             </div>
         </section>
@@ -219,6 +220,21 @@
                 <div class="pos-grid" id="pf-category-buttons"></div>
             </div>
 
+            <!-- Board entry: only reached via "Continue to Postflop" from
+                 Study Mode. Texture and hand category are computed from
+                 this instead of being asked as separate questions. -->
+            <div class="study-screen glass" id="pf-screen-board">
+                <button class="back-btn" data-pf-back type="button">&larr; Back</button>
+                <h2 class="study-title">What&rsquo;s the flop?</h2>
+                <p class="study-hint" id="pf-board-context"></p>
+                <p class="study-hint">Enter three cards, e.g. "Jh Ts 6c". Board texture and your
+                    hand&rsquo;s category are worked out from this automatically.</p>
+                <input type="text" id="pf-board-input" class="pf-board-input"
+                       placeholder="Jh Ts 6c" autocomplete="off">
+                <p class="pf-note-risk" id="pf-board-error" hidden></p>
+                <button class="primary-btn" id="pf-board-submit-btn" type="button">See the line &rarr;</button>
+            </div>
+
             <!-- Step 5: branch, only when several lines fit the same spot -->
             <div class="study-screen glass" id="pf-screen-branch">
                 <button class="back-btn" data-pf-back type="button">&larr; Back</button>
@@ -266,6 +282,9 @@
 <script src="multiway.js"></script>
 <!-- Postflop Playbook: heuristic framework, independent of the chart data. -->
 <script src="postflop-lines.js"></script>
+<!-- Study Mode -> Postflop Playbook bridge. Must load after study.js and
+     postflop-lines.js, before postflop.js and study.js's own wiring below. -->
+<script src="postflop-bridge.js"></script>
 <script src="postflop.js"></script>
 </body>
 </html>

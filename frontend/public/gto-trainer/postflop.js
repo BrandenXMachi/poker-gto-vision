@@ -46,7 +46,7 @@
     // Screen stack
     // -----------------------------------------------------------------------
 
-    const SCREENS = ['position', 'role', 'texture', 'category', 'branch', 'result', 'browse'];
+    const SCREENS = ['position', 'role', 'texture', 'category', 'board', 'branch', 'result', 'browse'];
     const screenEls = {};
     for (const key of SCREENS) screenEls[key] = document.getElementById(`pf-screen-${key}`);
 
@@ -55,6 +55,15 @@
     let pfTexture = null;
     let pfCategory = null;
     let pfHistory = [];
+
+    // Set when the funnel is entered via "Continue to Postflop" from Study
+    // Mode (see startPostflopFromBridge below). Carries heroPos/villainPos
+    // for the range-width modifier and skips straight to the board screen,
+    // since position/role are already known and texture/category are about
+    // to be computed from the board rather than asked.
+    let pfBridge = null;
+    let pfHand = null;
+    let pfPendingRangeModifier = null;
 
     function showScreen(key, opts = {}) {
         if (!opts.isBack) {
@@ -71,13 +80,16 @@
         if (!prev) return;
         // Clear anything chosen after the screen being returned to, so a back
         // step never leaves a stale answer feeding the next resolution.
-        if (prev === 'position') { pfRole = pfTexture = pfCategory = null; }
+        if (prev === 'position') { pfRole = pfTexture = pfCategory = null; pfBridge = null; }
         else if (prev === 'role') { pfTexture = pfCategory = null; }
         else if (prev === 'texture') { pfCategory = null; }
+        else if (prev === 'board') { pfTexture = pfCategory = null; }
         showScreen(prev, { isBack: true });
     }
 
     function reset() {
+        pfBridge = null;
+        pfHand = null;
         pfPosition = pfRole = pfTexture = pfCategory = null;
         pfHistory = [];
         showScreen('position', { isBack: true });
@@ -138,13 +150,83 @@
             position: pfPosition,
             role: pfRole,
             texture: pfTexture,
-            category: pfCategory
+            category: pfCategory,
+            heroPos: pfBridge ? pfBridge.heroPos : null,
+            villainPos: pfBridge ? pfBridge.villainPos : null
         };
     }
+
+    // -----------------------------------------------------------------------
+    // Board entry (only reached via the Study Mode bridge) - computes
+    // texture and category from the flop instead of asking for either.
+    // -----------------------------------------------------------------------
+
+    function submitBoard() {
+        const input = document.getElementById('pf-board-input');
+        const errEl = document.getElementById('pf-board-error');
+        const board = parseBoard(input.value || '');
+        if (!board) {
+            errEl.textContent = 'Enter three cards, e.g. "Jh Ts 6c".';
+            errEl.hidden = false;
+            return;
+        }
+        errEl.hidden = true;
+
+        pfTexture = classifyBoardTexture(board);
+        pfCategory = classifyHandCategory(pfHand, board);
+
+        const { lines, fallback, rangeModifier } = pfResolve(currentCell());
+        pfPendingRangeModifier = rangeModifier;
+
+        if (fallback) {
+            showResult(fallback, { isDefault: true });
+            return;
+        }
+        if (lines.length === 1) {
+            showResult(lines[0], { isDefault: false });
+            return;
+        }
+        renderBranch(lines);
+        showScreen('branch');
+    }
+
+    /**
+     * Called from Study Mode's "Continue to Postflop" button. `bridge` is a
+     * buildBridgeContext() result; `hand` is the Study Mode hand string.
+     * Skips position/role/texture/category entirely - those are derived or
+     * about to be computed from the board - and lands on board entry.
+     */
+    function startPostflopFromBridge(bridge, hand) {
+        pfBridge = bridge;
+        pfHand = hand;
+        pfPosition = bridge.position;
+        pfRole = bridge.role;
+        pfTexture = null;
+        pfCategory = null;
+        pfHistory = [];
+
+        const boardTitleEl = document.getElementById('pf-board-context');
+        if (boardTitleEl) {
+            const posLabel = labelOf(PF_POSITIONS, bridge.position);
+            const roleLabel = bridge.role === 'aggressor' ? 'you raised preflop' : 'you called preflop';
+            boardTitleEl.textContent =
+                `${hand} \u00b7 ${posLabel} \u00b7 ${roleLabel} \u00b7 ${bridge.potTypeLabel}`;
+        }
+        const input = document.getElementById('pf-board-input');
+        if (input) input.value = '';
+        const errEl = document.getElementById('pf-board-error');
+        if (errEl) errEl.hidden = true;
+
+        switchView('postflop');
+        showScreen('board', { isBack: true });
+    }
+    window.startPostflopFromBridge = startPostflopFromBridge;
 
     function pickPosition(id) {
         pfPosition = id;
         pfRole = pfTexture = pfCategory = null;
+        pfBridge = null;
+        pfHand = null;
         showScreen('role');
     }
 
@@ -162,7 +244,8 @@
 
     function pickCategory(id) {
         pfCategory = id;
-        const { lines, fallback } = pfResolve(currentCell());
+        const { lines, fallback, rangeModifier } = pfResolve(currentCell());
+        pfPendingRangeModifier = rangeModifier;
 
         if (fallback) {
             showResult(fallback, { isDefault: true });
@@ -257,6 +340,10 @@
         if (isDefault) {
             notesEl.appendChild(makeEl('p', 'result-tree-note pf-note-default', PF_DEFAULT_DISCLAIMER));
         }
+        if (pfPendingRangeModifier) {
+            notesEl.appendChild(makeEl('p', 'result-tree-note pf-note-range',
+                pfPendingRangeModifier.note));
+        }
         if (line.risk === 'high') {
             notesEl.appendChild(makeEl('p', 'result-tree-note pf-note-risk',
                 'HIGH RISK - this line depends more on a read than any other here.'));
@@ -336,4 +423,13 @@
     });
     document.getElementById('pf-restart-btn').addEventListener('click', reset);
     document.getElementById('pf-browse-btn').addEventListener('click', () => showScreen('browse'));
+
+    const boardSubmitBtn = document.getElementById('pf-board-submit-btn');
+    if (boardSubmitBtn) boardSubmitBtn.addEventListener('click', submitBoard);
+    const boardInputEl = document.getElementById('pf-board-input');
+    if (boardInputEl) {
+        boardInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitBoard();
+        });
+    }
 })();
